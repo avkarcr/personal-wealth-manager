@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Доходы — Капитал{% endblock %}
+{% block content %}
+{% set t = inc.totals %}
+<header class="page-head">
+  <div><h1>Доходы</h1><p class="muted">Пассивный доход от инвестиций и крипты плюс фриланс · в {{ base }}</p></div>
+  <div class="actions">
+    <form method="get" class="seg small" onchange="this.submit()">
+      <label><input type="radio" name="year" value="" {{ 'checked' if not year }}><span>12 мес.</span></label>
+      {% for y in years[:4] %}<label><input type="radio" name="year" value="{{ y }}" {{ 'checked' if year == y }}><span>{{ y }}</span></label>{% endfor %}
+    </form>
+    {% if nav_accounts %}<button class="btn primary" data-open="dlg-flow" data-fill='{"type": "income"}'>+ Доход</button>{% endif %}
+  </div>
+</header>
+
+<section class="kpis five">
+  <div class="kpi"><span class="lbl">Всего доходов</span><span class="val">{{ t.get('income', 0)|money(base) }}</span>
+    <span class="sub muted">{{ 'за ' ~ year ~ ' год' if year else 'за 12 месяцев' }}</span></div>
+  <div class="kpi"><span class="lbl">Пассивный</span><span class="val">{{ t.get('passive', 0)|money(base) }}</span>
+    <span class="sub muted">инвестиции, крипта, аренда</span></div>
+  <div class="kpi"><span class="lbl">Фриланс</span><span class="val">{{ t.get('freelance', 0)|money(base) }}</span>
+    {% if t.get('freelance_expense') %}<span class="sub muted">расходы {{ t.freelance_expense|money(base) }}</span>{% endif %}</div>
+  <div class="kpi"><span class="lbl">В среднем в месяц</span><span class="val">{{ t.get('avg_month', 0)|money(base) }}</span>
+    {% if t.get('income') %}<span class="sub muted">пассивный — {{ ((t.get('passive', 0) / t.income) if t.income else 0)|pct(false) }}</span>{% endif %}</div>
+  <div class="kpi"><span class="lbl">Ожидается</span><span class="val {{ 'warn' if t.get('pending') }}">{{ t.get('pending', 0)|money(base) }}</span>
+    <span class="sub muted">{{ inc.pending|length }} неоплаченных</span></div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Доход по месяцам</h2><div class="legend inline" id="inc-legend"></div></div>
+  <div class="chart" id="inc-chart"></div>
+</section>
+
+{% if inc.pending %}
+<section class="card flush">
+  <div class="card-head pad"><h2>Ожидают оплаты</h2></div>
+  <table class="tbl"><tbody>
+  {% for p in inc.pending %}{% set f = p.row %}
+    <tr class="is-pending"><td class="muted num nowrap shrink">{{ f.date|rudate }}</td>
+      <td>{{ f.source or f.category or '—' }}<span class="muted small block">{{ f.acc_name }}{{ ' · ' ~ f.note if f.note }}</span></td>
+      <td class="r num nowrap">{{ f.amount|money(f.currency, 2) }}</td>
+      <td class="r shrink"><form method="post" action="{{ url_for('flow_paid', fid=f.id) }}"><button class="btn sm">Получено</button></form></td></tr>
+  {% endfor %}
+  </tbody></table>
+</section>
+{% endif %}
+
+{% set show_kind = true %}
+{% include "_income_tables.html" %}
+
+<p class="muted small">Учитываются операции типа «Доход» (без ожидаемых). Доходы в монетах пересчитываются по текущему курсу из «Курсов и данных».</p>
+{% endblock %}
+
+{% block scripts %}
+<script>Charts.stacked('#inc-chart', '#inc-legend', {{ inc.months|tojson }}, {{ inc.series|tojson }}, {{ (sign.get(base, base))|tojson }});</script>
+{% endblock %}

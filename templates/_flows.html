@@ -1,0 +1,26 @@
+<table class="tbl">
+  <thead><tr><th>Дата</th><th>Тип</th>{% if show_acc %}<th>Счёт</th>{% endif %}<th class="hide-s">Категория · источник</th><th class="r">Сумма</th><th></th></tr></thead>
+  <tbody>
+  {% for f in flows %}
+    {% set out = f.type in ('withdrawal', 'expense') %}
+    <tr class="{{ 'is-pending' if f.pending }}">
+      <td class="num nowrap muted shrink">{{ f.date|rudate }}</td>
+      <td class="shrink">{% if f.pending %}<span class="tag t-pending">{{ "У риелтора" if f.rent_payment_id else "Ожидается" }}</span>{% else %}<span class="tag t-{{ f.type }}">{{ FLOW_LABELS[f.type] }}</span>{% endif %}</td>
+      {% if show_acc %}<td>{{ f.acc_name }}</td>{% endif %}
+      <td class="hide-s">{{ f.category }}{% if f.category and f.source %} · {% endif %}{{ f.source }}
+        {% if f.note %}<span class="muted small block">{{ f.note }}</span>{% endif %}</td>
+      <td class="r num nowrap {{ 'neg' if out }} {{ 'muted' if f.pending }}">{{ '−' if out }}{{ f.amount|money(f.currency, 2) }}</td>
+      <td class="r nowrap">
+        {% if f.rent_payment_id %}<a class="muted small" href="{{ url_for('account', aid=f.account_id) }}#rent" title="Создано из платежа по аренде — меняется там">аренда →</a>
+        {% else %}
+        {% if f.pending %}<form method="post" action="{{ url_for('flow_paid', fid=f.id) }}" class="inline"><button class="btn sm ghost" title="Отметить полученным сегодняшней датой">Получено</button></form>{% endif %}
+        <button type="button" class="icon-btn" title="Изменить" data-open="dlg-flow"
+          data-fill='{{ {"id": f.id, "account_id": f.account_id, "type": f.type, "amount": f.amount, "currency": f.currency, "date": f.date, "category": f.category, "source": f.source, "pending": f.pending, "note": f.note}|tojson }}'>✎</button>
+        <form method="post" action="{{ url_for('flow_delete', fid=f.id) }}" class="inline" data-confirm="Удалить операцию?">
+          <button class="icon-btn" title="Удалить">×</button></form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>

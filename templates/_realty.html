@@ -1,0 +1,103 @@
+{# Блок аренды на странице объекта недвижимости. Ожидает acc, rent #}
+{% set o = rent.occ %}{% set sm = rent.summary %}
+<section class="card" id="rent">
+  <div class="card-head">
+    <h2>Аренда</h2>
+    <button class="btn sm primary" data-open="dlg-lease" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "deposit_currency": acc.currency, "frequency": "month", "schedule": 1}|tojson }}'>+ Договор</button>
+  </div>
+
+  <div class="rent-now">
+    {% if o.active %}{% set l = o.active %}
+      <span class="tag t-income">Сдана</span>
+      <span><b>{{ l.tenant }}</b> · {{ l.rent_amount|money(l.currency) }} {{ rent.FREQ[l.frequency] }}
+        {{ '· до ' ~ (l.end_date|rudate) if l.end_date else '· бессрочно' }}
+        · {{ 'через ' ~ l.agent if l.agent else 'напрямую' }}</span>
+    {% elif o.vacant_since %}
+      <span class="tag t-expense">Пустует</span>
+      <span>с {{ o.vacant_since|rudate }}{% if o.gaps %} · {{ o.gaps[-1].days }} дн.{% endif %}
+        {% if o.upcoming %} · заезд {{ o.upcoming.tenant }} {{ o.upcoming.start_date|rudate }}{% endif %}</span>
+    {% else %}
+      <span class="muted">Добавьте договор аренды — появится график платежей и учёт простоя.</span>
+    {% endif %}
+  </div>
+
+  <div class="mini-stats">
+    <div><span class="lbl">Заполняемость</span><b>{{ o.rate|pct(false) }}</b><span class="muted small">за {{ o.total_days }} дн.</span></div>
+    <div><span class="lbl">Простой</span><b class="{{ 'warn' if o.vacant }}">{{ o.vacant }} дн.</b><span class="muted small">{{ o.gaps|length }} {{ 'период' if o.gaps|length == 1 else 'периода' if o.gaps|length in (2,3,4) else 'периодов' }}</span></div>
+    <div><span class="lbl">У риелтора</span><b class="{{ 'warn' if sm.agent }}">{{ sm.agent|money(base) }}</b><span class="muted small">{{ sm.agent_n }} платеж.</span></div>
+    <div><span class="lbl">Просрочено</span><b class="{{ 'neg' if sm.overdue }}">{{ sm.overdue|money(base) }}</b><span class="muted small">{{ sm.overdue_n }} платеж.</span></div>
+    {% if sm.has_fx %}<div><span class="lbl" title="Сколько вы получили в рублях по сравнению с курсом ЦБ — за 12 месяцев">Потери на курсе</span>
+      <b class="{{ 'neg' if sm.fx_diff < 0 else 'pos' }}">{{ sm.fx_diff|signed(base) }}</b><span class="muted small">к курсу ЦБ, 12 мес.</span></div>{% endif %}
+  </div>
+
+  {% if o.timeline %}
+  <div class="timeline" aria-label="Занятость за период">
+    {% for t in o.timeline %}<i class="tl-{{ t.kind }}" style="width: {{ t.pct }}%" title="{{ 'Сдана' if t.kind == 'occupied' else 'Простой' }}: {{ t.from|rudate }} — {{ t.to|rudate }} ({{ t.days }} дн.)"></i>{% endfor %}
+  </div>
+  <div class="tl-legend muted small"><span>{{ o.start|rudate }}</span>
+    <span><i class="sw sq tl-occupied"></i>сдана <i class="sw sq tl-vacant"></i>простой</span><span>сегодня</span></div>
+  {% endif %}
+</section>
+
+{% if rent.leases %}
+<section class="card flush">
+  <div class="card-head pad"><h2>Договоры</h2></div>
+  <table class="tbl">
+    <thead><tr><th>Арендатор</th><th class="hide-s">Срок</th><th class="r">Ставка</th><th class="hide-s">Залог · риелтор</th><th></th></tr></thead>
+    <tbody>
+    {% for li in rent.leases %}{% set l = li.l %}
+      <tr>
+        <td><b>{{ l.tenant }}</b> {% if li.status == 'active' %}<span class="tag t-income">действует</span>{% elif li.status == 'future' %}<span class="tag">будущий</span>{% else %}<span class="tag">завершён</span>{% endif %}
+          <span class="muted small block">{{ l.contact }}{{ ' · ' if l.contact and l.terms }}{{ l.terms|truncate(60) }}</span></td>
+        <td class="hide-s num nowrap">{{ l.start_date|rudate }} — {{ l.end_date|rudate if l.end_date else '…' }}</td>
+        <td class="r num nowrap">{{ l.rent_amount|money(l.currency) }}<span class="muted small block">{{ rent.FREQ[l.frequency] }}{{ ', до ' ~ l.pay_day ~ ' числа' if l.pay_day and l.frequency != 'day' }}</span></td>
+        <td class="hide-s">{{ l.deposit_amount|money(l.deposit_currency) if l.deposit_amount else '—' }}
+          <span class="muted small block">{{ (l.agent ~ (' · ' ~ l.agent_fee if l.agent_fee else '')) if l.agent else 'напрямую' }}</span></td>
+        <td class="r nowrap">
+          {% if l.frequency != 'day' %}<form method="post" action="{{ url_for('lease_schedule', lid=l.id) }}" class="inline"><button class="btn sm ghost" title="Добавить недостающие платежи до текущего периода">График</button></form>{% endif %}
+          <button type="button" class="icon-btn" title="Изменить" data-open="dlg-lease" data-fill='{{ dict(l)|tojson }}'>✎</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card flush">
+  <div class="card-head pad"><h2>Платежи по аренде</h2>
+    <button class="btn sm ghost" data-open="dlg-rent" data-fill='{{ {"lease_id": (o.active or rent.leases[0].l).id, "status": "expected", "period_start": today, "due_date": today, "amount": (o.active or rent.leases[0].l).rent_amount, "currency": (o.active or rent.leases[0].l).currency}|tojson }}'>+ Платёж</button></div>
+  {% if rent.payments %}
+  <table class="tbl">
+    <thead><tr><th>Период</th><th class="hide-s">Арендатор</th><th class="r">Сумма</th><th>Статус</th><th class="r">Получено</th><th class="r hide-s">Курс</th><th></th></tr></thead>
+    <tbody>
+    {% for p in rent.payments %}
+      <tr class="{{ 'is-overdue' if p.overdue }}">
+        <td class="num nowrap">{{ p.period_start|rudate }}<span class="muted small block">по {{ p.period_end|rudate }} · срок {{ p.due_date|rudate }}</span></td>
+        <td class="hide-s">{{ p.tenant }}</td>
+        <td class="r num nowrap">{{ p.amount|money(p.currency) }}</td>
+        <td class="nowrap">
+          {% if p.overdue %}<span class="tag t-expense">Просрочен</span>
+          {% elif p.status == 'agent' %}<span class="tag t-pending">У риелтора</span>
+          {% elif p.status == 'received' %}<span class="tag t-income">Получено</span>
+          {% else %}<span class="tag">Ожидается</span>{% endif %}
+          {% if p.tenant_paid_date and p.status != 'expected' %}<span class="muted small block">оплачен {{ p.tenant_paid_date|rudate }}</span>{% endif %}
+        </td>
+        <td class="r num nowrap">{% if p.status == 'received' %}{{ p.received_amount|money(p.received_currency) }}<span class="muted small block">{{ p.received_date|rudate }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="r num nowrap hide-s">{% if p.eff_rate %}{{ p.eff_rate|num(2) }}
+            {% if p.fx_diff is not none %}<span class="small block {{ 'neg' if p.fx_diff < 0 else 'pos' }}" title="ЦБ: {{ p.cb_rate|num(4) }}">{{ p.fx_diff|signed('RUB') }} к ЦБ</span>{% endif %}
+          {% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="r nowrap">
+          {% if p.status != 'received' %}
+          <button type="button" class="btn sm" data-open="dlg-rent" data-fill='{{ dict(p, status="received", received_date=today, received_currency=(p.received_currency or "RUB"), received_amount=None)|tojson }}'>Получено</button>
+          {% endif %}
+          <button type="button" class="icon-btn" title="Изменить" data-open="dlg-rent" data-fill='{{ p|tojson }}'>✎</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="pad muted">Нажмите «График» у договора — платежи создадутся автоматически по периодичности. Для посуточной аренды добавляйте платежи вручную.</p>
+  {% endif %}
+</section>
+{% endif %}

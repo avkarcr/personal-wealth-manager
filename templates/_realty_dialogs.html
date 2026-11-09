@@ -1,0 +1,83 @@
+<dialog id="dlg-lease" class="dlg wide">
+  <form method="post" action="{{ url_for('lease_save') }}">
+    <header><h3 data-title-new="Новый договор аренды" data-title-edit="Договор аренды">Новый договор аренды</h3><button type="button" class="x" data-close>×</button></header>
+    <input type="hidden" name="id"><input type="hidden" name="account_id" value="{{ acc.id }}">
+    <div class="row2">
+      <label class="fld"><span>Арендатор</span><input name="tenant" required placeholder="Иванов Иван"></label>
+      <label class="fld"><span>Контакт</span><input name="contact" placeholder="+7…, telegram"></label>
+    </div>
+    <div class="row2">
+      <label class="fld"><span>Начало</span><input type="date" name="start_date" required value="{{ today }}"></label>
+      <label class="fld"><span>Окончание <span class="muted">— пусто, если действует</span></span><input type="date" name="end_date"></label>
+    </div>
+    <div class="row3">
+      <label class="fld"><span>Ставка</span><input name="rent_amount" inputmode="decimal" required placeholder="0"></label>
+      <label class="fld"><span>Валюта</span><select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>Периодичность</span><select name="frequency">{% for k, v in rent.FREQ.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row3">
+      <label class="fld"><span>Оплата до … числа</span><input name="pay_day" inputmode="numeric" placeholder="напр. 5"></label>
+      <label class="fld"><span>Залог</span><input name="deposit_amount" inputmode="decimal" placeholder="0"></label>
+      <label class="fld"><span>Валюта залога</span><select name="deposit_currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+    </div>
+    <div class="row2">
+      <label class="fld"><span>Риелтор / управляющий <span class="muted">— пусто, если напрямую</span></span><input name="agent" placeholder="Анна, АН «Дом»"></label>
+      <label class="fld"><span>Вознаграждение риелтора</span><input name="agent_fee" placeholder="10% ежемесячно / 50% первого месяца"></label>
+    </div>
+    <label class="fld"><span>Коммунальные и прочие платежи</span><input name="utilities" placeholder="Свет и вода — арендатор, интернет включён"></label>
+    <label class="fld"><span>Условия договора</span><textarea name="terms" rows="2" placeholder="Индексация раз в год на 5%, без животных, срок уведомления 30 дней…"></textarea></label>
+    <label class="check new-only"><input type="checkbox" name="schedule" value="1" checked><span>Сразу создать график платежей до текущего месяца</span></label>
+    <footer>
+      <button type="submit" class="btn ghost danger edit-only" data-delete-action="{{ url_for('lease_delete', lid=0) }}" data-confirm="Удалить договор вместе со всеми его платежами?">Удалить</button>
+      <span class="sp"></span>
+      <button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Сохранить</button></footer>
+  </form>
+</dialog>
+
+<dialog id="dlg-rent" class="dlg wide">
+  <form method="post" action="{{ url_for('rent_save') }}">
+    <header><h3 data-title-new="Платёж по аренде" data-title-edit="Платёж по аренде">Платёж по аренде</h3><button type="button" class="x" data-close>×</button></header>
+    <input type="hidden" name="id">
+    <div class="row2">
+      <label class="fld"><span>Договор</span><select name="lease_id">
+        {% for li in rent.leases %}<option value="{{ li.l.id }}">{{ li.l.tenant }} · {{ li.l.start_date|rudate }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>Срок оплаты</span><input type="date" name="due_date"></label>
+    </div>
+    <div class="row2">
+      <label class="fld"><span>Период с</span><input type="date" name="period_start" required></label>
+      <label class="fld"><span>по</span><input type="date" name="period_end"></label>
+    </div>
+    <div class="row2">
+      <label class="fld"><span>Сумма по договору</span><input name="amount" inputmode="decimal" required></label>
+      <label class="fld"><span>Валюта</span><select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+    </div>
+
+    <div class="seg" role="radiogroup">
+      <label><input type="radio" name="status" value="expected" checked><span>Ожидается</span></label>
+      <label><input type="radio" name="status" value="agent"><span>Отдал риелтору</span></label>
+      <label><input type="radio" name="status" value="received"><span>Деньги у меня</span></label>
+    </div>
+    <p class="hint small muted" data-rent-hint></p>
+
+    <div class="only-paid">
+      <label class="fld"><span>Когда арендатор заплатил</span><input type="date" name="tenant_paid_date"></label>
+    </div>
+    <div class="only-received">
+      <div class="row3">
+        <label class="fld"><span>Я получил</span><input name="received_amount" inputmode="decimal" placeholder="сумма"></label>
+        <label class="fld"><span>Валюта</span><select name="received_currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+        <label class="fld"><span>Дата</span><input type="date" name="received_date"></label>
+      </div>
+      <div class="row2 fx-row">
+        <label class="fld"><span>Курс ЦБ для сравнения <span class="muted">— ₽ за 1</span></span>
+          <span class="input-btn"><input name="cb_rate" inputmode="decimal" placeholder="необязательно"><button type="button" class="btn sm ghost" data-cbr>ЦБ на дату</button></span></label>
+        <div class="fx-out" data-fx-out></div>
+      </div>
+    </div>
+    <label class="fld"><span>Комментарий</span><input name="note" placeholder="Необязательно"></label>
+    <footer>
+      <button type="submit" class="btn ghost danger edit-only" data-delete-action="{{ url_for('rent_delete', pid=0) }}" data-confirm="Удалить платёж?">Удалить</button>
+      <span class="sp"></span>
+      <button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Сохранить</button></footer>
+  </form>
+</dialog>

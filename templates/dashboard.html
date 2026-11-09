@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <div>
+    <h1>Обзор</h1>
+    <p class="muted">Все суммы в {{ base }} по текущим курсам</p>
+  </div>
+  <div class="actions">
+    {% if has_any %}<button class="btn" data-open="dlg-flow">+ Операция</button>{% endif %}
+    <button class="btn primary" data-open="dlg-account">+ Счёт</button>
+  </div>
+</header>
+
+{% if not has_any %}
+<section class="card empty">
+  <h2>С чего начать</h2>
+  <ol class="steps">
+    <li><b>Добавьте счёт</b> — брокерский счёт, ИИС, криптобиржу или кошелёк, квартиру. Фриланс — отдельным источником дохода.</li>
+    <li><b>Внесите позиции</b> — тикер, количество, среднюю и текущую цену. Деньги на счёте — отдельной позицией «Деньги».</li>
+    <li><b>Записывайте пополнения и выводы</b> — так приложение отличит вашу прибыль от новых взносов и посчитает годовую доходность.</li>
+  </ol>
+  <button class="btn primary" data-open="dlg-account">Добавить первый счёт</button>
+  <p class="muted small">Данные хранятся только у вас на компьютере, в файле invest.db.</p>
+</section>
+{% else %}
+{% if items %}
+<section class="kpis">
+  <div class="kpi main-kpi">
+    <span class="lbl">Капитал</span>
+    <span class="val">{{ total.value|money(base) }}</span>
+  </div>
+  <div class="kpi">
+    <span class="lbl">Вложено</span>
+    <span class="val">{{ total.invested|money(base) }}</span>
+  </div>
+  <div class="kpi">
+    <span class="lbl">Прибыль</span>
+    <span class="val {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit|signed(base) }}</span>
+    <span class="sub {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit_pct|pct }}</span>
+  </div>
+  <div class="kpi">
+    <span class="lbl" title="Годовая доходность с учётом дат пополнений и выводов (XIRR)">Годовая доходность <i class="q">?</i></span>
+    <span class="val {{ 'pos' if (total.xirr or 0) >= 0 else 'neg' }}">{{ total.xirr|pct }}</span>
+    {% if total.xirr is none %}<span class="sub muted">нужны пополнения с датами</span>{% endif %}
+  </div>
+  <div class="kpi">
+    <span class="lbl">Доход за 12 мес.</span>
+    <span class="val">{{ total.income_12m|money(base) }}</span>
+    <span class="sub muted">пассивный{% if inc.totals.get('freelance') %}; + фриланс {{ inc.totals.freelance|money(base) }}{% endif %}</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>Динамика капитала</h2>
+    <div class="seg small" id="hist-range">
+      <label><input type="radio" name="r" value="90"><span>3М</span></label>
+      <label><input type="radio" name="r" value="365"><span>1Г</span></label>
+      <label><input type="radio" name="r" value="0" checked><span>Всё</span></label>
+    </div>
+  </div>
+  <div class="chart" id="hist-chart"></div>
+  <div class="legend inline"><span><i class="sw sw-a"></i>Стоимость</span><span><i class="sw sw-dash"></i>Вложено</span></div>
+  {% if hist|length < 2 %}<p class="muted small">График наполняется сам: каждый день, когда вы открываете приложение, сохраняется снимок. Прошлые значения можно добавить на странице счёта.</p>{% endif %}
+</section>
+
+{% include "_income_card.html" %}
+
+<div class="grid2">
+  <section class="card">
+    <h2>По классам активов</h2>
+    <div class="donut-wrap">
+      <div class="donut" id="class-donut"></div>
+      <ul class="legend list" id="class-legend"></ul>
+    </div>
+  </section>
+  <section class="card">
+    <h2>По валютам</h2>
+    <ul class="bars">
+      {% for cur, v in by_cur %}
+      <li><span class="b-lbl">{{ cur }}</span>
+        <span class="b-track"><span class="b-fill" style="width: {{ (v / total.value * 100) if total.value else 0 }}%"></span></span>
+        <span class="b-val">{{ ((v / total.value) if total.value else 0)|pct(false) }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="card flush">
+  <div class="card-head pad"><h2>Счета</h2></div>
+  <table class="tbl">
+    <thead><tr><th>Счёт</th><th class="r">Стоимость</th><th class="r hide-s">Доля</th><th class="r">Прибыль</th><th class="r hide-s">XIRR</th></tr></thead>
+    <tbody>
+    {% for i in items %}{% set a, m = i.acc, i.m %}
+      <tr class="link" data-href="{{ url_for('account', aid=a.id) }}">
+        <td><div class="name"><i class="dot k-{{ a.kind }}"></i><div><b>{{ a.name }}</b><span class="muted small">{{ KIND_LABELS[a.kind] }}{{ ' · ' ~ a.institution if a.institution }}</span></div></div></td>
+        <td class="r num">{{ m.value|money(base) }}</td>
+        <td class="r num hide-s muted">{{ ((m.value / total.value) if total.value else 0)|pct(false) }}</td>
+        <td class="r num"><span class="{{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit|signed }}</span><span class="small muted block">{{ m.profit_pct|pct }}</span></td>
+        <td class="r num hide-s">{{ m.xirr|pct }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% else %}
+{% include "_income_card.html" %}
+{% endif %}
+
+{% if recent %}
+<section class="card flush">
+  <div class="card-head pad"><h2>Последние операции</h2><a class="muted small" href="{{ url_for('operations') }}">Все →</a></div>
+  <table class="tbl">
+    <tbody>
+    {% for f in recent %}
+      <tr><td class="muted num nowrap shrink">{{ f.date|rudate }}</td>
+        <td class="shrink hide-s">{% if f.pending %}<span class="tag t-pending">Ожидается</span>{% else %}<span class="tag t-{{ f.type }}">{{ FLOW_LABELS[f.type] }}</span>{% endif %}</td>
+        <td>{{ f.acc_name }}<span class="muted small block">{{ f.note }}</span></td>
+        <td class="r num nowrap {{ 'neg' if f.type in ('withdrawal','expense') }}">{{ ('−' if f.type in ('withdrawal','expense') else '') }}{{ f.amount|money(f.currency) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_any %}
+<script>Charts.stacked('#dash-inc', '#dash-inc-legend', {{ inc.months|tojson }}, {{ inc.series|tojson }}, {{ (sign.get(base, base))|tojson }});</script>
+{% endif %}
+{% if items %}
+<script>
+  const HIST = {{ hist|tojson }};
+  const CLASSES = {{ by_class|tojson }};
+  const BASE = {{ (sign.get(base, base))|tojson }};
+  Charts.history('#hist-chart', HIST, BASE, '#hist-range');
+  Charts.donut('#class-donut', '#class-legend', CLASSES, BASE);
+</script>
+{% endif %}
+{% endblock %}

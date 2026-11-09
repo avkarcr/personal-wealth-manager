@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Курсы и данные — Капитал{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div><h1>Курсы и данные</h1><p class="muted">Курсы для пересчёта всего в одну валюту</p></div>
+</header>
+
+<section class="card">
+  <div class="card-head"><h2>Курсы валют к рублю</h2>
+    <div class="actions">
+      <form method="post" action="{{ url_for('rates_cbr') }}" title="Запрос к cbr.ru, без ваших данных"><button class="btn sm ghost">Курсы ЦБ</button></form>
+      <form method="post" action="{{ url_for('rates_crypto') }}" title="Курсы монет из списка ниже с Binance / Bybit / OKX, через USD"><button class="btn sm ghost">Курсы крипты</button></form>
+    </div></div>
+  <form method="post" action="{{ url_for('rates_save') }}">
+    <table class="tbl compact">
+      <thead><tr><th>Валюта</th><th class="r">1 ед. = ₽</th><th class="r hide-s">Обновлён</th><th class="r">Основная</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rates %}
+        <tr><td><b>{{ r.currency }}</b> <span class="muted">{{ sign.get(r.currency, '') if sign.get(r.currency) != r.currency }}</span></td>
+          <td class="r">{% if r.currency == 'RUB' %}<span class="muted">1</span>{% else %}<input class="num-in" name="rate_{{ r.currency }}" value="{{ r.rate|num(4) }}" inputmode="decimal">{% endif %}</td>
+          <td class="r hide-s muted num">{{ r.updated_at|rudate }}</td>
+          <td class="r"><input type="radio" name="base_currency" value="{{ r.currency }}" {{ 'checked' if r.currency == base }}></td>
+          <td class="r">{% if r.currency != 'RUB' %}<button class="icon-btn" formaction="{{ url_for('rate_delete', cur=r.currency) }}" title="Удалить">×</button>{% endif %}</td></tr>
+      {% endfor %}
+        <tr class="add-row"><td><input name="new_currency" placeholder="Код: KZT, BTC…" maxlength="5" class="code-in"></td>
+          <td class="r"><input class="num-in" name="new_rate" placeholder="курс" inputmode="decimal"></td><td colspan="3"></td></tr>
+      </tbody>
+    </table>
+    <div class="pad-t"><button class="btn primary">Сохранить</button></div>
+  </form>
+  <p class="muted small">«Основная» — валюта, в которой показываются итоги. Криптовалюты добавляются так же, как обычные валюты (BTC, ETH, USDT…) — это нужно, если доход приходит в монетах.</p>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>Шифрование и доступ</h2><span class="tag t-income">AES-256-GCM · scrypt</span></div>
+  <div class="grid2 tight">
+    <form method="post" action="{{ url_for('change_password') }}">
+      <h3 class="sub-h">Сменить пароль</h3>
+      <label class="fld"><span>Текущий пароль</span><input type="password" name="old" required autocomplete="current-password"></label>
+      <div class="row2">
+        <label class="fld"><span>Новый пароль</span><input type="password" name="new" required minlength="8" autocomplete="new-password"></label>
+        <label class="fld"><span>Ещё раз</span><input type="password" name="new2" required minlength="8" autocomplete="new-password"></label>
+      </div>
+      <button class="btn">Сменить и перешифровать</button>
+    </form>
+    <form method="post" action="{{ url_for('set_idle') }}">
+      <h3 class="sub-h">Автоблокировка</h3>
+      <label class="fld"><span>Заблокировать после бездействия, минут (0 — не блокировать)</span>
+        <input name="idle" inputmode="numeric" value="{{ idle }}"></label>
+      <button class="btn">Сохранить</button>
+      <p class="muted small">Расшифрованные данные существуют только в памяти, пока приложение открыто. На диске — только зашифрованный файл.</p>
+    </form>
+  </div>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Резервная копия</h2>
+    <p class="muted small">Все данные — в одном зашифрованном файле:<br><code>{{ db_path }}</code><br>Рядом лежит предыдущая версия (<code>.bak</code>), тоже зашифрованная. Копию можно хранить где угодно — без пароля её не прочитать.</p>
+    <div class="actions left">
+      <a class="btn" href="{{ url_for('backup') }}">Скачать копию (.enc)</a>
+      <a class="btn ghost" href="{{ url_for('export_csv') }}" data-confirm-link="CSV-файл НЕ зашифрован — в нём будут все ваши суммы открытым текстом. Продолжить?">Экспорт в CSV</a>
+    </div>
+  </section>
+  <section class="card">
+    <h2>Приватность</h2>
+    <p class="muted small">Приложение работает только на вашем компьютере (127.0.0.1) и ничего не отправляет. Данные зашифрованы паролем, который нигде не хранится. Внешние запросы происходят только по кнопкам: «Курсы ЦБ» (cbr.ru), «Цены с MOEX» (iss.moex.com), «Цены с бирж» и «Курсы крипты» (публичные API Binance, Bybit, OKX). Передаются только тикеры — без ключей и личных данных.</p>
+  </section>
+</div>
+
+{% if archived %}
+<section class="card flush">
+  <div class="card-head pad"><h2>Архив счетов</h2></div>
+  <table class="tbl"><tbody>
+  {% for a in archived %}
+    <tr><td><a href="{{ url_for('account', aid=a.id) }}">{{ a.name }}</a> <span class="muted small">{{ KIND_LABELS[a.kind] }}</span></td>
+      <td class="r"><form method="post" action="{{ url_for('account_archive', aid=a.id) }}"><button class="btn sm ghost">Вернуть</button></form></td></tr>
+  {% endfor %}
+  </tbody></table>
+</section>
+{% endif %}
+{% endblock %}

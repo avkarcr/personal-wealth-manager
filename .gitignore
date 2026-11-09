@@ -224,3 +224,9 @@ __marimo__/
 .venv/
 *.py[cod]
 .idea/
+
+# Local encrypted vaults and failed-save temporary files
+invest.enc
+invest.enc.bak
+invest.enc.tmp
+invest.db

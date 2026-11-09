@@ -189,7 +189,7 @@ def portfolio(db, rates, include_archived=False):
     return items, dict(total), dict(by_class), dict(by_cur)
 
 
-def take_snapshot(db, rates):
+def take_snapshot(db, rates, *, commit=True):
     """Фиксирует сегодняшнюю стоимость всех активных счетов (в RUB)."""
     today = date.today().isoformat()
     base_rate = rates.r.get(rates.base, 1.0)
@@ -200,7 +200,8 @@ def take_snapshot(db, rates):
             "ON CONFLICT(date, account_id) DO UPDATE SET value_rub=excluded.value_rub, invested_rub=excluded.invested_rub",
             (today, acc["id"], m["value"] * base_rate, m["invested"] * base_rate),
         )
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def history(db, rates, account_id=None):

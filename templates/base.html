@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ru">
+<html lang="{{ language }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Капитал{% endblock %}</title>
+<title>{% block title %}{{ _('Капитал') }}{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23256a5a'/><path d='M8 22l6-7 4 4 6-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -12,60 +12,60 @@
 <aside class="side">
   <a class="brand" href="{{ url_for('dashboard') }}">
     <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M8 22l6-7 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <span>Капитал</span>
+    <span>{{ _('Капитал') }}</span>
   </a>
   <nav class="nav">
     <a href="{{ url_for('dashboard') }}" class="{{ 'on' if request.endpoint=='dashboard' }}">
-      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg>Обзор</a>
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg>{{ _('Дашборд') }}</a>
     <a href="{{ url_for('operations') }}" class="{{ 'on' if request.endpoint=='operations' }}">
-      <svg viewBox="0 0 24 24"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>Операции</a>
+      <svg viewBox="0 0 24 24"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>{{ _('Операции') }}</a>
     <a href="{{ url_for('income') }}" class="{{ 'on' if request.endpoint=='income' }}">
-      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.3 12 10s5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/></svg>Доходы</a>
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.3 12 10s5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/></svg>{{ _('Доходы') }}</a>
     <a href="{{ url_for('settings') }}" class="{{ 'on' if request.endpoint=='settings' }}">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Курсы и данные</a>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>{{ _('Настройки') }}</a>
   </nav>
 
   <div class="side-head">
-    <span>Инвестиции</span>
-    <button class="icon-btn" data-open="dlg-account" title="Добавить счёт">+</button>
+    <span>{{ _('Инвестиции') }}</span>
+    <button class="icon-btn" data-open="dlg-account" title="{{ _('Добавить счёт') }}">+</button>
   </div>
   <nav class="nav accounts">
     {% for a in nav_invest %}
       <a href="{{ url_for('account', aid=a.id) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
         <i class="dot k-{{ a.kind }}"></i><span>{{ a.name }}</span></a>
     {% else %}
-      <p class="muted small pad">Пока нет счетов</p>
+      <p class="muted small pad">{{ _('Пока нет счетов') }}</p>
     {% endfor %}
   </nav>
   <div class="side-head">
-    <span>Фриланс</span>
-    <button class="icon-btn" data-open="dlg-account" data-fill='{"kind": "freelance"}' title="Добавить источник дохода">+</button>
+    <span>{{ _('Фриланс') }}</span>
+    <button class="icon-btn" data-open="dlg-account" data-fill='{"kind": "freelance"}' title="{{ _('Добавить источник дохода') }}">+</button>
   </div>
   <nav class="nav accounts">
     {% for a in nav_work %}
       <a href="{{ url_for('account', aid=a.id) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
         <i class="dot k-{{ a.kind }}"></i><span>{{ a.name }}</span></a>
     {% else %}
-      <a href="#" data-open="dlg-account" data-fill='{"kind": "freelance"}' class="muted small">+ Площадка или клиент</a>
+      <a href="#" data-open="dlg-account" data-fill='{"kind": "freelance"}' class="muted small">{{ _('+ Площадка или клиент') }}</a>
     {% endfor %}
   </nav>
 
   <form method="post" action="{{ url_for('lock') }}" class="lock-btn">
-    <button class="theme" title="Заблокировать: данные зашифруются, понадобится пароль">
-      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span>Заблокировать</span></button>
+    <button class="theme" title="{{ _('Заблокировать: данные зашифруются, понадобится пароль') }}">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg><span>{{ _('Заблокировать') }}</span></button>
   </form>
-  <button class="theme" id="theme-toggle" title="Тема">
-    <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg><span>Тема</span>
+  <button class="theme" id="theme-toggle" title="{{ _('Тема') }}">
+    <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg><span>{{ _('Тема') }}</span>
   </button>
 </aside>
 
 <main class="main">
   {% with msgs = get_flashed_messages() %}
-    {% if msgs %}<div class="toast">{% for m in msgs %}<div>{{ m }}</div>{% endfor %}</div>{% endif %}
+    {% if msgs %}<div class="toast">{% for m in msgs %}<div>{{ _(m) }}</div>{% endfor %}</div>{% endif %}
   {% endwith %}
   {% if missing_rates %}
-    <div class="banner">Нет курса для: <b>{{ missing_rates|join(', ') }}</b> — суммы в этих валютах считаются как 1&nbsp;₽.
-      <a href="{{ url_for('settings') }}">Добавить курс →</a></div>
+    <div class="banner">{{ _('Нет курса для:') }} <b>{{ missing_rates|join(', ') }}</b> {{ _('— суммы в этих валютах считаются как 1&nbsp;₽.') }}
+      <a href="{{ url_for('settings') }}">{{ _('Добавить курс →') }}</a></div>
   {% endif %}
   {% block content %}{% endblock %}
 </main>
@@ -73,72 +73,73 @@
 {# ── Диалог: счёт ── #}
 <dialog id="dlg-account" class="dlg">
   <form method="post" action="{{ url_for('account_save') }}">
-    <header><h3 data-title-new="Новый счёт" data-title-edit="Редактировать счёт">Новый счёт</h3>
+    <header><h3 data-title-new="{{ _('Новый счёт') }}" data-title-edit="{{ _('Редактировать счёт') }}">{{ _('Новый счёт') }}</h3>
       <button type="button" class="x" data-close>×</button></header>
     <input type="hidden" name="id">
     <div class="seg five" role="radiogroup">
-      <label><input type="radio" name="kind" value="broker" checked><span>Брокер</span></label>
-      <label><input type="radio" name="kind" value="crypto"><span>Крипто</span></label>
-      <label><input type="radio" name="kind" value="realty"><span>Недвижимость</span></label>
-      <label><input type="radio" name="kind" value="freelance"><span>Фриланс</span></label>
-      <label><input type="radio" name="kind" value="other"><span>Прочее</span></label>
+      <label><input type="radio" name="kind" value="broker" checked><span>{{ _('Брокер') }}</span></label>
+      <label><input type="radio" name="kind" value="crypto"><span>{{ _('Крипто') }}</span></label>
+      <label><input type="radio" name="kind" value="realty"><span>{{ _('Недвижимость') }}</span></label>
+      <label><input type="radio" name="kind" value="freelance"><span>{{ _('Фриланс') }}</span></label>
+      <label><input type="radio" name="kind" value="other"><span>{{ _('Прочее') }}</span></label>
     </div>
     <p class="hint small muted" data-kind-hint></p>
-    <label class="fld"><span>Название</span><input name="name" required placeholder="Например, ИИС, Bybit или Квартира на Ленина"></label>
+    <label class="fld"><span>{{ _('Название') }}</span><input name="name" required placeholder="{{ _('Например, ИИС, Bybit или Квартира на Ленина') }}"></label>
     <div class="row2">
-      <label class="fld"><span data-kind-label>Брокер / банк</span><input name="institution" placeholder="Т-Инвестиции, БКС…"></label>
-      <label class="fld"><span>Валюта счёта</span><select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+      <label class="fld"><span data-kind-label>{{ _('Брокер / банк') }}</span><input name="institution" placeholder="{{ _('Т-Инвестиции, БКС…') }}"></label>
+      <label class="fld"><span>{{ _('Валюта счёта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
     </div>
     <div class="only-realty">
       <div class="row2">
-        <label class="fld"><span>Текущая оценка</span><input name="current_value" inputmode="decimal" placeholder="0"></label>
-        <label class="fld new-only"><span>Цена покупки</span><input name="purchase_price" inputmode="decimal" placeholder="0"></label>
+        <label class="fld"><span>{{ _('Текущая оценка') }}</span><input name="current_value" inputmode="decimal" placeholder="0"></label>
+        <label class="fld new-only"><span>{{ _('Цена покупки') }}</span><input name="purchase_price" inputmode="decimal" placeholder="0"></label>
       </div>
-      <label class="fld new-only"><span>Дата покупки</span><input type="date" name="purchase_date" value="{{ today }}"></label>
+      <label class="fld new-only"><span>{{ _('Дата покупки') }}</span><input type="date" name="purchase_date" value="{{ today }}"></label>
     </div>
     <div class="only-freelance">
-      <label class="fld"><span>Ставка налога, % <span class="muted">— для оценки налога (НПД: 4 или 6)</span></span>
+      <label class="fld"><span>{{ _('Ставка налога, %') }} <span class="muted">{{ _('— для оценки налога (НПД: 4 или 6)') }}</span></span>
         <input name="tax_rate" inputmode="decimal" placeholder="0"></label>
     </div>
-    <label class="fld"><span>Заметка</span><input name="note" placeholder="Необязательно"></label>
-    <footer><button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Сохранить</button></footer>
+    <label class="fld"><span>{{ _('Заметка') }}</span><input name="note" placeholder="{{ _('Необязательно') }}"></label>
+    <footer><button type="button" class="btn ghost" data-close>{{ _('Отмена') }}</button><button class="btn primary">{{ _('Сохранить') }}</button></footer>
   </form>
 </dialog>
 
 {# ── Диалог: операция ── #}
 <dialog id="dlg-flow" class="dlg">
   <form method="post" action="{{ url_for('flow_save') }}">
-    <header><h3 data-title-new="Новая операция" data-title-edit="Операция">Новая операция</h3>
+    <header><h3 data-title-new="{{ _('Новая операция') }}" data-title-edit="{{ _('Операция') }}">{{ _('Новая операция') }}</h3>
       <button type="button" class="x" data-close>×</button></header>
     <input type="hidden" name="id">
     <div class="seg four">
       {% for k, v in FLOW_LABELS.items() %}
-      <label class="ft-{{ k }}"><input type="radio" name="type" value="{{ k }}" {{ 'checked' if loop.first }}><span>{{ v }}</span></label>
+      <label class="ft-{{ k }}"><input type="radio" name="type" value="{{ k }}" {{ 'checked' if loop.first }}><span>{{ _(v) }}</span></label>
       {% endfor %}
     </div>
     <p class="hint small muted" data-flow-hint></p>
-    <label class="fld"><span>Счёт</span>
+    <label class="fld"><span>{{ _('Счёт') }}</span>
       <select name="account_id" required>
-        {% if nav_invest %}<optgroup label="Инвестиции">{% for a in nav_invest %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
-        {% if nav_work %}<optgroup label="Фриланс">{% for a in nav_work %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
+        {% if nav_invest %}<optgroup label="{{ _('Инвестиции') }}">{% for a in nav_invest %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
+        {% if nav_work %}<optgroup label="{{ _('Фриланс') }}">{% for a in nav_work %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
       </select></label>
     <div class="row2 cat-row">
-      <label class="fld"><span>Категория</span><input name="category" list="cat-list" placeholder="Выберите или впишите" autocomplete="off"></label>
-      <label class="fld"><span data-source-label>Источник</span><input name="source" placeholder="" autocomplete="off"></label>
+      <label class="fld"><span>{{ _('Категория') }}</span><input name="category" list="cat-list" placeholder="{{ _('Выберите или впишите') }}" autocomplete="off"></label>
+      <label class="fld"><span data-source-label>{{ _('Источник') }}</span><input name="source" placeholder="" autocomplete="off"></label>
     </div>
     <datalist id="cat-list"></datalist>
     <div class="row3">
-      <label class="fld"><span>Сумма</span><input name="amount" inputmode="decimal" required placeholder="0"></label>
-      <label class="fld"><span>Валюта</span><select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
-      <label class="fld"><span>Дата</span><input type="date" name="date" value="{{ today }}" required></label>
+      <label class="fld"><span>{{ _('Сумма') }}</span><input name="amount" inputmode="decimal" required placeholder="0"></label>
+      <label class="fld"><span>{{ _('Валюта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>{{ _('Дата') }}</span><input type="date" name="date" value="{{ today }}" required></label>
     </div>
-    <label class="check only-income"><input type="checkbox" name="pending" value="1"><span>Ещё не получено — ожидается оплата</span></label>
-    <label class="fld"><span>Комментарий</span><input name="note" placeholder="Необязательно"></label>
-    <footer><button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Сохранить</button></footer>
+    <label class="check only-income"><input type="checkbox" name="pending" value="1"><span>{{ _('Ещё не получено — ожидается оплата') }}</span></label>
+    <label class="fld"><span>{{ _('Комментарий') }}</span><input name="note" placeholder="{{ _('Необязательно') }}"></label>
+    <footer><button type="button" class="btn ghost" data-close>{{ _('Отмена') }}</button><button class="btn primary">{{ _('Сохранить') }}</button></footer>
   </form>
 </dialog>
 
 {% block dialogs %}{% endblock %}
+<script>window.UI_MESSAGES = {{ ui_messages|tojson }};</script>
 <script>window.CATEGORIES = {{ CATEGORIES|tojson }};</script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% block scripts %}{% endblock %}

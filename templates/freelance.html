@@ -1,55 +1,55 @@
 {% extends "base.html" %}
-{% block title %}{{ acc.name }} — Капитал{% endblock %}
+{% block title %}{{ acc.name }} {{ _('— Капитал') }}{% endblock %}
 {% block content %}
 {% set t = inc.totals %}
 {% set acc_json = {'id': acc.id, 'name': acc.name, 'kind': acc.kind, 'institution': acc.institution, 'currency': acc.currency, 'tax_rate': acc.tax_rate, 'note': acc.note} %}
 <header class="page-head">
   <div>
-    <p class="crumb"><i class="dot k-freelance"></i>Фриланс{{ ' · ' ~ acc.institution if acc.institution }}{% if acc.archived %} · <b>в архиве</b>{% endif %}</p>
+    <p class="crumb"><i class="dot k-freelance"></i>{{ _('Фриланс') }}{{ ' · ' ~ acc.institution if acc.institution }}{% if acc.archived %} · <b>{{ _('в архиве') }}</b>{% endif %}</p>
     <h1>{{ acc.name }}</h1>
     {% if acc.note %}<p class="muted">{{ acc.note }}</p>{% endif %}
   </div>
   <div class="actions">
-    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "expense"}|tojson }}'>+ Расход</button>
-    <button class="btn primary" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "income"}|tojson }}'>+ Оплата</button>
+    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "expense"}|tojson }}'>{{ _('+ Расход') }}</button>
+    <button class="btn primary" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "income"}|tojson }}'>{{ _('+ Оплата') }}</button>
     <details class="menu">
-      <summary class="btn icon" title="Ещё">⋯</summary>
+      <summary class="btn icon" title="{{ _('Ещё') }}">⋯</summary>
       <div class="menu-pop">
-        <button data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>Редактировать</button>
-        <form method="post" action="{{ url_for('account_archive', aid=acc.id) }}"><button>{{ 'Вернуть из архива' if acc.archived else 'В архив' }}</button></form>
-        <form method="post" action="{{ url_for('account_delete', aid=acc.id) }}" data-confirm="Удалить «{{ acc.name }}» со всеми операциями?"><button class="danger">Удалить</button></form>
+        <button data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>{{ _('Редактировать') }}</button>
+        <form method="post" action="{{ url_for('account_archive', aid=acc.id) }}"><button>{{ _('Вернуть из архива') if acc.archived else _('В архив') }}</button></form>
+        <form method="post" action="{{ url_for('account_delete', aid=acc.id) }}" data-confirm="{{ _('Удалить «') }}{{ acc.name }}{{ _('» со всеми операциями?') }}"><button class="danger">{{ _('Удалить') }}</button></form>
       </div>
     </details>
   </div>
 </header>
 
 <section class="kpis five">
-  <div class="kpi"><span class="lbl">Доход за 12 мес.</span><span class="val">{{ t.get('income', 0)|money(base) }}</span></div>
-  <div class="kpi"><span class="lbl">Этот месяц</span><span class="val">{{ t.get('this_month', 0)|money(base) }}</span></div>
-  <div class="kpi"><span class="lbl">В среднем в месяц</span><span class="val">{{ t.get('avg_month', 0)|money(base) }}</span></div>
-  <div class="kpi"><span class="lbl">{{ 'Налог (оценка ' ~ (acc.tax_rate|num(1)) ~ '%)' if acc.tax_rate else 'Расходы за 12 мес.' }}</span>
+  <div class="kpi"><span class="lbl">{{ _('Доход за 12 мес.') }}</span><span class="val">{{ t.get('income', 0)|money(base) }}</span></div>
+  <div class="kpi"><span class="lbl">{{ _('Этот месяц') }}</span><span class="val">{{ t.get('this_month', 0)|money(base) }}</span></div>
+  <div class="kpi"><span class="lbl">{{ _('В среднем в месяц') }}</span><span class="val">{{ t.get('avg_month', 0)|money(base) }}</span></div>
+  <div class="kpi"><span class="lbl">{{ _('Налог (оценка ') ~ (acc.tax_rate|num(1)) ~ '%)' if acc.tax_rate else _('Расходы за 12 мес.') }}</span>
     <span class="val">{{ (tax_est if acc.tax_rate else t.get('expense', 0))|money(base) }}</span>
-    {% if acc.tax_rate %}<span class="sub muted">с дохода за 12 мес.</span>
-    {% else %}<span class="sub muted"><a href="#" data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>указать ставку налога</a></span>{% endif %}</div>
-  <div class="kpi"><span class="lbl">Ожидается</span><span class="val">{{ t.get('pending', 0)|money(base) }}</span>
-    <span class="sub muted">{{ inc.pending|length }} неоплаченных</span></div>
+    {% if acc.tax_rate %}<span class="sub muted">{{ _('с дохода за 12 мес.') }}</span>
+    {% else %}<span class="sub muted"><a href="#" data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>{{ _('указать ставку налога') }}</a></span>{% endif %}</div>
+  <div class="kpi"><span class="lbl">{{ _('Ожидается') }}</span><span class="val">{{ t.get('pending', 0)|money(base) }}</span>
+    <span class="sub muted">{{ inc.pending|length }} {{ _('неоплаченных') }}</span></div>
 </section>
 
 <section class="card">
-  <div class="card-head"><h2>Оплаты по месяцам</h2><span class="muted small">последние 12 месяцев</span></div>
+  <div class="card-head"><h2>{{ _('Оплаты по месяцам') }}</h2><span class="muted small">{{ _('последние 12 месяцев') }}</span></div>
   <div class="chart sm" id="fl-chart"></div>
 </section>
 
-{% set source_title = 'По клиентам и проектам' %}
+{% set source_title = _('По клиентам и проектам') %}
 {% include "_income_tables.html" %}
 
 <section class="card flush">
-  <div class="card-head pad"><h2>Операции</h2></div>
+  <div class="card-head pad"><h2>{{ _('Операции') }}</h2></div>
   {% if flows %}
     {% include "_flows.html" %}
   {% else %}
-    <div class="pad empty-inline"><p class="muted">Записывайте оплаты от клиентов. Ещё не пришедшие деньги отмечайте «ожидается» — так видно, кто вам должен.</p>
-      <button class="btn primary" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "income"}|tojson }}'>+ Оплата</button></div>
+    <div class="pad empty-inline"><p class="muted">{{ _('Записывайте оплаты от клиентов. Ещё не пришедшие деньги отмечайте «ожидается» — так видно, кто вам должен.') }}</p>
+      <button class="btn primary" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "type": "income"}|tojson }}'>{{ _('+ Оплата') }}</button></div>
   {% endif %}
 </section>
 {% endblock %}

@@ -1,5 +1,7 @@
 /* Капитал — интерфейс: диалоги, мелкие удобства и графики на чистом SVG (без внешних библиотек). */
 (function () {
+  const t = text => (window.UI_MESSAGES || {})[text] || text;
+  const locale = document.documentElement.lang === 'en' ? 'en-US' : 'ru-RU';
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
@@ -15,37 +17,37 @@
 
   /* ── диалоги ── */
   const FLOW_HINTS = {
-    deposit: 'Ваши деньги, внесённые на счёт (или покупка/доплата за объект).',
-    withdrawal: 'Деньги, которые вы забрали со счёта себе.',
-    income: 'Дивиденды, купоны, аренда, стейкинг, оплата за проект.',
-    expense: 'Комиссии, налоги, газ, расходы на содержание объекта.',
+    deposit: t('Ваши деньги, внесённые на счёт (или покупка/доплата за объект).'),
+    withdrawal: t('Деньги, которые вы забрали со счёта себе.'),
+    income: t('Дивиденды, купоны, аренда, стейкинг, оплата за проект.'),
+    expense: t('Комиссии, налоги, газ, расходы на содержание объекта.'),
   };
   const INCOME_HINT_BY_KIND = {
-    broker: 'Для статистики доходов: сами деньги уже учтены в позиции «Деньги» на счёте.',
-    crypto: 'Для статистики доходов: монеты от стейкинга/фарминга добавьте и в количество позиции. Можно указать сумму прямо в монетах (ETH, USDT…).',
-    realty: 'Аренда входит в прибыль объекта.',
-    freelance: 'Оплата за работу. Если деньги ещё не пришли — отметьте «ожидается».',
+    broker: t('Для статистики доходов: сами деньги уже учтены в позиции «Деньги» на счёте.'),
+    crypto: t('Для статистики доходов: монеты от стейкинга/фарминга добавьте и в количество позиции. Можно указать сумму прямо в монетах (ETH, USDT…).'),
+    realty: t('Аренда входит в прибыль объекта.'),
+    freelance: t('Оплата за работу. Если деньги ещё не пришли — отметьте «ожидается».'),
     other: '',
   };
   const RENT_HINTS = {
-    expected: 'Арендатор ещё не заплатил.',
-    agent: 'Арендатор заплатил риелтору, но до вас деньги ещё не дошли. Сумма будет видна как «у риелтора».',
-    received: 'Укажите, сколько вы фактически получили и в какой валюте — курс посчитается сам.',
+    expected: t('Арендатор ещё не заплатил.'),
+    agent: t('Арендатор заплатил риелтору, но до вас деньги ещё не дошли. Сумма будет видна как «у риелтора».'),
+    received: t('Укажите, сколько вы фактически получили и в какой валюте — курс посчитается сам.'),
   };
   const numv = v => parseFloat(String(v || '').replace(/\s/g, '').replace(',', '.')) || 0;
-  const fmt2 = v => v.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+  const fmt2 = v => v.toLocaleString(locale, { maximumFractionDigits: 2 });
   function fxCalc(dlg) {
     const out = $('[data-fx-out]', dlg);
     if (!out) return;
     const f = $('form', dlg);
     const amt = numv(f.amount.value), rec = numv(f.received_amount.value), cb = numv(f.cb_rate.value);
     const cur = f.currency.value, rcur = f.received_currency.value;
-    if (!amt || !rec || cur === rcur) { out.innerHTML = cur === rcur ? '' : '<span class="muted">Введите полученную сумму — посчитаю курс</span>'; return; }
+    if (!amt || !rec || cur === rcur) { out.innerHTML = cur === rcur ? '' : '<span class="muted">' + t('Введите полученную сумму — посчитаю курс') + '</span>'; return; }
     const eff = rec / amt;
-    let html = `Курс: <b>1 ${cur} = ${fmt2(eff)} ${rcur}</b>`;
+    let html = `${t('Курс:')} <b>1 ${cur} = ${fmt2(eff)} ${rcur}</b>`;
     if (cb && rcur === 'RUB') {
       const diff = rec - amt * cb;
-      html += `<br>По ЦБ было бы ${fmt2(amt * cb)} ₽ → <b class="${diff < 0 ? 'neg' : 'pos'}">${diff < 0 ? '−' : '+'}${fmt2(Math.abs(diff))} ₽</b> (${fmt2((eff / cb - 1) * 100)}%)`;
+      html += `<br>${t('По ЦБ было бы')} ${fmt2(amt * cb)} ₽ → <b class="${diff < 0 ? 'neg' : 'pos'}">${diff < 0 ? '−' : '+'}${fmt2(Math.abs(diff))} ₽</b> (${fmt2((eff / cb - 1) * 100)}%)`;
     }
     out.innerHTML = html;
   }
@@ -55,27 +57,27 @@
     if (!b) return;
     const f = b.closest('form');
     const d = f.received_date.value || f.tenant_paid_date.value || f.due_date.value;
-    b.disabled = true; const t = b.textContent; b.textContent = '…';
+    b.disabled = true; const previousText = b.textContent; b.textContent = '…';
     try {
       const r = await fetch(`/api/cbr?cur=${encodeURIComponent(f.currency.value)}&date=${d}`);
       const j = await r.json();
       if (j.rate) { f.cb_rate.value = String(j.rate).replace('.', ','); fxCalc(b.closest('dialog')); }
-      else alert(j.error || 'Нет курса');
-    } catch (err) { alert('Не удалось связаться с cbr.ru'); }
-    b.disabled = false; b.textContent = t;
+      else alert(j.error || t('Нет курса'));
+    } catch (err) { alert(t('Не удалось связаться с cbr.ru')); }
+    b.disabled = false; b.textContent = previousText;
   });
   const KIND_HINTS = {
-    broker: 'Брокерский счёт или ИИС: позиции, пополнения, дивиденды и купоны.',
-    crypto: 'Биржа или кошелёк: монеты, стейблкоины, доход от стейкинга, фарминга, аирдропов, P2P.',
-    realty: 'Объект недвижимости: оценка, аренда и расходы.',
-    freelance: 'Площадка или постоянный клиент: оплаты по проектам, комиссии, налог. Не входит в капитал — только в доходы.',
-    other: 'Всё остальное: металлы, вклад, доля в бизнесе…',
+    broker: t('Брокерский счёт или ИИС: позиции, пополнения, дивиденды и купоны.'),
+    crypto: t('Биржа или кошелёк: монеты, стейблкоины, доход от стейкинга, фарминга, аирдропов, P2P.'),
+    realty: t('Объект недвижимости: оценка, аренда и расходы.'),
+    freelance: t('Площадка или постоянный клиент: оплаты по проектам, комиссии, налог. Не входит в капитал — только в доходы.'),
+    other: t('Всё остальное: металлы, вклад, доля в бизнесе…'),
   };
-  const INST_PH = { broker: 'Т-Инвестиции, БКС…', crypto: 'Bybit, OKX, Ledger…', realty: 'Казань, ул. Ленина 5', freelance: 'Kwork, FL.ru, Upwork, напрямую', other: '' };
-  const NAME_PH = { broker: 'ИИС, Брокерский счёт…', crypto: 'Bybit, Холодный кошелёк…', realty: 'Квартира на Ленина', freelance: 'Kwork или Прямые клиенты', other: 'Золото, вклад…' };
-  const INST_LABEL = { broker: 'Брокер', crypto: 'Биржа / кошелёк', realty: 'Город / адрес', freelance: 'Площадка', other: 'Где хранится' };
-  const SOURCE_LABEL = { broker: 'Бумага', crypto: 'Монета / протокол', realty: 'Арендатор', freelance: 'Клиент / проект', other: 'Источник' };
-  const SOURCE_PH = { broker: 'SBER', crypto: 'ETH, Lido, Bybit Earn', realty: '', freelance: 'ООО Ромашка / лендинг', other: '' };
+  const INST_PH = { broker: t('Т-Инвестиции, БКС…'), crypto: 'Bybit, OKX, Ledger…', realty: t('Казань, ул. Ленина 5'), freelance: t('Kwork, FL.ru, Upwork, напрямую'), other: '' };
+  const NAME_PH = { broker: t('ИИС, Брокерский счёт…'), crypto: t('Bybit, Холодный кошелёк…'), realty: t('Квартира на Ленина'), freelance: t('Kwork или Прямые клиенты'), other: t('Золото, вклад…') };
+  const INST_LABEL = { broker: t('Брокер'), crypto: t('Биржа / кошелёк'), realty: t('Город / адрес'), freelance: t('Площадка'), other: t('Где хранится') };
+  const SOURCE_LABEL = { broker: t('Бумага'), crypto: t('Монета / протокол'), realty: t('Арендатор'), freelance: t('Клиент / проект'), other: t('Источник') };
+  const SOURCE_PH = { broker: 'SBER', crypto: 'ETH, Lido, Bybit Earn', realty: '', freelance: t('ООО Ромашка / лендинг'), other: '' };
 
   function syncDialog(dlg) {
     const form = $('form', dlg);
@@ -83,7 +85,7 @@
     if (kind) {
       dlg.dataset.kind = kind.value;
       const lbl = $('[data-kind-label]', dlg);
-      if (lbl) lbl.textContent = INST_LABEL[kind.value] || 'Где';
+      if (lbl) lbl.textContent = INST_LABEL[kind.value] || t('Где');
       const ii = form.querySelector('[name=institution]'); if (ii) ii.placeholder = INST_PH[kind.value] || '';
       const ni = form.querySelector('[name=name]'); if (ni) ni.placeholder = NAME_PH[kind.value] || '';
       const kh = $('[data-kind-hint]', dlg);
@@ -93,7 +95,7 @@
     if (cls) {
       dlg.classList.toggle('cash', cls.value === 'Деньги');
       const q = $('[data-qty-label]', dlg);
-      if (q) q.textContent = cls.value === 'Деньги' ? 'Сумма' : 'Количество';
+      if (q) q.textContent = cls.value === 'Деньги' ? t('Сумма') : t('Количество');
     }
     const rs = form.querySelector('[name=status]:checked');
     if (rs) {
@@ -121,7 +123,7 @@
       const cats = ((window.CATEGORIES || {})[ak] || {})[ft ? ft.value : ''] || [];
       if (list) list.innerHTML = cats.map(c => `<option value="${c}">`).join('');
       const sl = $('[data-source-label]', dlg);
-      if (sl) sl.textContent = SOURCE_LABEL[ak] || 'Источник';
+      if (sl) sl.textContent = SOURCE_LABEL[ak] || t('Источник');
       const si = form.querySelector('[name=source]');
       if (si) si.placeholder = SOURCE_PH[ak] || '';
     }
@@ -197,13 +199,13 @@
   };
   const fmtShort = v => {
     const a = Math.abs(v);
-    if (a >= 1e9) return (v / 1e9).toFixed(1).replace('.0', '').replace('.', ',') + ' млрд';
-    if (a >= 1e6) return (v / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.0', '').replace('.', ',') + ' млн';
-    if (a >= 1e3) return Math.round(v / 1e3) + ' тыс';
+    if (a >= 1e9) return (v / 1e9).toFixed(1).replace('.0', '').replace('.', ',') + t(' млрд');
+    if (a >= 1e6) return (v / 1e6).toFixed(a >= 1e7 ? 0 : 1).replace('.0', '').replace('.', ',') + t(' млн');
+    if (a >= 1e3) return Math.round(v / 1e3) + t(' тыс');
     return String(Math.round(v));
   };
-  const fmtFull = v => Math.round(v).toLocaleString('ru-RU');
-  const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const fmtFull = v => Math.round(v).toLocaleString(locale);
+  const MONTHS = [t('янв'), t('фев'), t('мар'), t('апр'), t('мая'), t('июн'), t('июл'), t('авг'), t('сен'), t('окт'), t('ноя'), t('дек')];
   const fmtDate = (d, withYear) => `${d.getDate()} ${MONTHS[d.getMonth()]}${withYear ? ' ' + d.getFullYear() : ''}`;
   const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 
@@ -230,7 +232,7 @@
       if (pts.length < 2) {
         const msg = document.createElement('div');
         msg.className = 'empty-chart';
-        msg.textContent = pts.length ? `Сегодня: ${fmtFull(pts[0].v)} ${cur}. Линия появится со второго дня.` : 'Нет данных за период';
+        msg.textContent = pts.length ? `${t('Сегодня:')} ${fmtFull(pts[0].v)} ${cur}. ${t('Линия появится со второго дня.')}` : t('Нет данных за период');
         box.appendChild(msg);
         return;
       }
@@ -275,7 +277,7 @@
         cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('opacity', .4);
         dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('opacity', 1);
         const pr = best.v - best.i;
-        tip.innerHTML = `${fmtDate(best.t, true)}<br><b>${fmtFull(best.v)} ${cur}</b><br>вложено ${fmtFull(best.i)} · ${pr >= 0 ? '+' : '−'}${fmtFull(Math.abs(pr))}`;
+        tip.innerHTML = `${fmtDate(best.t, true)}<br><b>${fmtFull(best.v)} ${cur}</b><br>${t('вложено')} ${fmtFull(best.i)} · ${pr >= 0 ? '+' : '−'}${fmtFull(Math.abs(pr))}`;
         tip.style.left = Math.min(Math.max(x / W * r.width, 80), r.width - 80) + 'px';
         tip.style.top = y / H * r.height + 'px';
         tip.style.opacity = 1;
@@ -361,7 +363,7 @@
       const svg = el('svg', { viewBox: `0 0 ${W} ${H}` }, box);
       const totals = months.map((_, i) => series.reduce((s, x) => s + x.values[i], 0));
       const max = Math.max(...totals, 0);
-      if (!max) { const m = document.createElement('div'); m.className = 'empty-chart'; m.textContent = 'Доходов за период пока нет'; box.appendChild(m); return; }
+      if (!max) { const m = document.createElement('div'); m.className = 'empty-chart'; m.textContent = t('Доходов за период пока нет'); box.appendChild(m); return; }
       const ticks = niceTicks(0, max, 3), top = ticks[ticks.length - 1];
       const Y = v => P.t + (H - P.t - P.b) * (1 - v / top);
       const g = el('g', { class: 'grid' }, svg), ax = el('g', { class: 'axis' }, svg);

@@ -2,80 +2,80 @@
 {% block content %}
 <header class="page-head">
   <div>
-    <h1>Обзор</h1>
-    <p class="muted">Все суммы в {{ base }} по текущим курсам</p>
+    <h1>{{ _('Обзор') }}</h1>
+    <p class="muted">{{ _('Все суммы в') }} {{ base }} {{ _('по текущим курсам') }}</p>
   </div>
   <div class="actions">
-    {% if has_any %}<button class="btn" data-open="dlg-flow">+ Операция</button>{% endif %}
-    <button class="btn primary" data-open="dlg-account">+ Счёт</button>
+    {% if has_any %}<button class="btn" data-open="dlg-flow">{{ _('+ Операция') }}</button>{% endif %}
+    <button class="btn primary" data-open="dlg-account">{{ _('+ Счёт') }}</button>
   </div>
 </header>
 
 {% if not has_any %}
 <section class="card empty">
-  <h2>С чего начать</h2>
+  <h2>{{ _('С чего начать') }}</h2>
   <ol class="steps">
-    <li><b>Добавьте счёт</b> — брокерский счёт, ИИС, криптобиржу или кошелёк, квартиру. Фриланс — отдельным источником дохода.</li>
-    <li><b>Внесите позиции</b> — тикер, количество, среднюю и текущую цену. Деньги на счёте — отдельной позицией «Деньги».</li>
-    <li><b>Записывайте пополнения и выводы</b> — так приложение отличит вашу прибыль от новых взносов и посчитает годовую доходность.</li>
+    <li><b>{{ _('Добавьте счёт') }}</b> {{ _('— брокерский счёт, ИИС, криптобиржу или кошелёк, квартиру. Фриланс — отдельным источником дохода.') }}</li>
+    <li><b>{{ _('Внесите позиции') }}</b> {{ _('— тикер, количество, среднюю и текущую цену. Деньги на счёте — отдельной позицией «Деньги».') }}</li>
+    <li><b>{{ _('Записывайте пополнения и выводы') }}</b> {{ _('— так приложение отличит вашу прибыль от новых взносов и посчитает годовую доходность.') }}</li>
   </ol>
-  <button class="btn primary" data-open="dlg-account">Добавить первый счёт</button>
-  <p class="muted small">Данные хранятся только у вас на компьютере, в файле invest.db.</p>
+  <button class="btn primary" data-open="dlg-account">{{ _('Добавить первый счёт') }}</button>
+  <p class="muted small">{{ _('Данные хранятся только у вас на компьютере, в зашифрованном файле invest.enc.') }}</p>
 </section>
 {% else %}
 {% if items %}
 <section class="kpis">
   <div class="kpi main-kpi">
-    <span class="lbl">Капитал</span>
+    <span class="lbl">{{ _('Капитал') }}</span>
     <span class="val">{{ total.value|money(base) }}</span>
   </div>
   <div class="kpi">
-    <span class="lbl">Вложено</span>
+    <span class="lbl">{{ _('Вложено') }}</span>
     <span class="val">{{ total.invested|money(base) }}</span>
   </div>
   <div class="kpi">
-    <span class="lbl">Прибыль</span>
+    <span class="lbl">{{ _('Прибыль') }}</span>
     <span class="val {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit|signed(base) }}</span>
     <span class="sub {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit_pct|pct }}</span>
   </div>
   <div class="kpi">
-    <span class="lbl" title="Годовая доходность с учётом дат пополнений и выводов (XIRR)">Годовая доходность <i class="q">?</i></span>
+    <span class="lbl" title="{{ _('Годовая доходность с учётом дат пополнений и выводов (XIRR)') }}">{{ _('Годовая доходность') }} <i class="q">?</i></span>
     <span class="val {{ 'pos' if (total.xirr or 0) >= 0 else 'neg' }}">{{ total.xirr|pct }}</span>
-    {% if total.xirr is none %}<span class="sub muted">нужны пополнения с датами</span>{% endif %}
+    {% if total.xirr is none %}<span class="sub muted">{{ _('нужны пополнения с датами') }}</span>{% endif %}
   </div>
   <div class="kpi">
-    <span class="lbl">Доход за 12 мес.</span>
+    <span class="lbl">{{ _('Доход за 12 мес.') }}</span>
     <span class="val">{{ total.income_12m|money(base) }}</span>
-    <span class="sub muted">пассивный{% if inc.totals.get('freelance') %}; + фриланс {{ inc.totals.freelance|money(base) }}{% endif %}</span>
+    <span class="sub muted">{{ _('пассивный') }}{% if inc.totals.get('freelance') %}{{ _('; + фриланс') }} {{ inc.totals.freelance|money(base) }}{% endif %}</span>
   </div>
 </section>
 
 <section class="card">
   <div class="card-head">
-    <h2>Динамика капитала</h2>
+    <h2>{{ _('Динамика капитала') }}</h2>
     <div class="seg small" id="hist-range">
-      <label><input type="radio" name="r" value="90"><span>3М</span></label>
-      <label><input type="radio" name="r" value="365"><span>1Г</span></label>
-      <label><input type="radio" name="r" value="0" checked><span>Всё</span></label>
+      <label><input type="radio" name="r" value="90"><span>{{ _('3М') }}</span></label>
+      <label><input type="radio" name="r" value="365"><span>{{ _('1Г') }}</span></label>
+      <label><input type="radio" name="r" value="0" checked><span>{{ _('Всё') }}</span></label>
     </div>
   </div>
   <div class="chart" id="hist-chart"></div>
-  <div class="legend inline"><span><i class="sw sw-a"></i>Стоимость</span><span><i class="sw sw-dash"></i>Вложено</span></div>
-  {% if hist|length < 2 %}<p class="muted small">График наполняется сам: каждый день, когда вы открываете приложение, сохраняется снимок. Прошлые значения можно добавить на странице счёта.</p>{% endif %}
+  <div class="legend inline"><span><i class="sw sw-a"></i>{{ _('Стоимость') }}</span><span><i class="sw sw-dash"></i>{{ _('Вложено') }}</span></div>
+  {% if hist|length < 2 %}<p class="muted small">{{ _('График наполняется сам: каждый день, когда вы открываете приложение, сохраняется снимок. Прошлые значения можно добавить на странице счёта.') }}</p>{% endif %}
 </section>
 
 {% include "_income_card.html" %}
 
 <div class="grid2">
   <section class="card">
-    <h2>По классам активов</h2>
+    <h2>{{ _('По классам активов') }}</h2>
     <div class="donut-wrap">
       <div class="donut" id="class-donut"></div>
       <ul class="legend list" id="class-legend"></ul>
     </div>
   </section>
   <section class="card">
-    <h2>По валютам</h2>
+    <h2>{{ _('По валютам') }}</h2>
     <ul class="bars">
       {% for cur, v in by_cur %}
       <li><span class="b-lbl">{{ cur }}</span>
@@ -87,13 +87,13 @@
 </div>
 
 <section class="card flush">
-  <div class="card-head pad"><h2>Счета</h2></div>
+  <div class="card-head pad"><h2>{{ _('Счета') }}</h2></div>
   <table class="tbl">
-    <thead><tr><th>Счёт</th><th class="r">Стоимость</th><th class="r hide-s">Доля</th><th class="r">Прибыль</th><th class="r hide-s">XIRR</th></tr></thead>
+    <thead><tr><th>{{ _('Счёт') }}</th><th class="r">{{ _('Стоимость') }}</th><th class="r hide-s">{{ _('Доля') }}</th><th class="r">{{ _('Прибыль') }}</th><th class="r hide-s">XIRR</th></tr></thead>
     <tbody>
     {% for i in items %}{% set a, m = i.acc, i.m %}
       <tr class="link" data-href="{{ url_for('account', aid=a.id) }}">
-        <td><div class="name"><i class="dot k-{{ a.kind }}"></i><div><b>{{ a.name }}</b><span class="muted small">{{ KIND_LABELS[a.kind] }}{{ ' · ' ~ a.institution if a.institution }}</span></div></div></td>
+        <td><div class="name"><i class="dot k-{{ a.kind }}"></i><div><b>{{ a.name }}</b><span class="muted small">{{ _(KIND_LABELS[a.kind]) }}{{ ' · ' ~ a.institution if a.institution }}</span></div></div></td>
         <td class="r num">{{ m.value|money(base) }}</td>
         <td class="r num hide-s muted">{{ ((m.value / total.value) if total.value else 0)|pct(false) }}</td>
         <td class="r num"><span class="{{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit|signed }}</span><span class="small muted block">{{ m.profit_pct|pct }}</span></td>
@@ -110,12 +110,12 @@
 
 {% if recent %}
 <section class="card flush">
-  <div class="card-head pad"><h2>Последние операции</h2><a class="muted small" href="{{ url_for('operations') }}">Все →</a></div>
+  <div class="card-head pad"><h2>{{ _('Последние операции') }}</h2><a class="muted small" href="{{ url_for('operations') }}">{{ _('Все →') }}</a></div>
   <table class="tbl">
     <tbody>
     {% for f in recent %}
       <tr><td class="muted num nowrap shrink">{{ f.date|rudate }}</td>
-        <td class="shrink hide-s">{% if f.pending %}<span class="tag t-pending">Ожидается</span>{% else %}<span class="tag t-{{ f.type }}">{{ FLOW_LABELS[f.type] }}</span>{% endif %}</td>
+        <td class="shrink hide-s">{% if f.pending %}<span class="tag t-pending">{{ _('Ожидается') }}</span>{% else %}<span class="tag t-{{ f.type }}">{{ _(FLOW_LABELS[f.type]) }}</span>{% endif %}</td>
         <td>{{ f.acc_name }}<span class="muted small block">{{ f.note }}</span></td>
         <td class="r num nowrap {{ 'neg' if f.type in ('withdrawal','expense') }}">{{ ('−' if f.type in ('withdrawal','expense') else '') }}{{ f.amount|money(f.currency) }}</td></tr>
     {% endfor %}

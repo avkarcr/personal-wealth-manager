@@ -1,33 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Операции — Капитал{% endblock %}
+{% block title %}{{ _('Операции — Капитал') }}{% endblock %}
 {% block content %}
 <header class="page-head">
-  <div><h1>Операции</h1><p class="muted">Журнал всех движений денег. Аналитика доходов — в разделе <a href="{{ url_for('income') }}">«Доходы»</a></p></div>
-  <div class="actions">{% if nav_accounts %}<button class="btn primary" data-open="dlg-flow">+ Операция</button>{% endif %}</div>
+  <div><h1>{{ _('Операции') }}</h1><p class="muted">{{ _('Журнал всех движений денег. Аналитика доходов — в разделе') }} <a href="{{ url_for('income') }}">{{ _('«Доходы»') }}</a></p></div>
+  <div class="actions">{% if nav_accounts %}<button class="btn primary" data-open="dlg-flow">{{ _('+ Операция') }}</button>{% endif %}</div>
 </header>
 
 <section class="kpis four">
   {% for k, v in FLOW_LABELS.items() %}
-  <div class="kpi"><span class="lbl">{{ v }}</span><span class="val {{ 'neg' if k in ('withdrawal','expense') and totals[k] }}">{{ totals[k]|money(base) }}</span></div>
+  <div class="kpi"><span class="lbl">{{ _(v) }}</span><span class="val {{ 'neg' if k in ('withdrawal','expense') and totals[k] }}">{{ totals[k]|money(base) }}</span></div>
   {% endfor %}
 </section>
 
 
 <section class="card flush">
   <form class="filters pad" method="get">
-    <select name="account" onchange="this.form.submit()"><option value="">Все счета</option>
+    <select name="account" onchange="this.form.submit()"><option value="">{{ _('Все счета') }}</option>
       {% for a in nav_accounts %}<option value="{{ a.id }}" {{ 'selected' if f.account == a.id|string }}>{{ a.name }}</option>{% endfor %}</select>
-    <select name="type" onchange="this.form.submit()"><option value="">Все типы</option>
-      {% for k, v in FLOW_LABELS.items() %}<option value="{{ k }}" {{ 'selected' if f.type == k }}>{{ v }}</option>{% endfor %}</select>
-    <select name="year" onchange="this.form.submit()"><option value="">Все годы</option>
+    <select name="type" onchange="this.form.submit()"><option value="">{{ _('Все типы') }}</option>
+      {% for k, v in FLOW_LABELS.items() %}<option value="{{ k }}" {{ 'selected' if f.type == k }}>{{ _(v) }}</option>{% endfor %}</select>
+    <select name="year" onchange="this.form.submit()"><option value="">{{ _('Все годы') }}</option>
       {% for y in years %}<option {{ 'selected' if f.year == y }}>{{ y }}</option>{% endfor %}</select>
-    {% if f.account or f.type or f.year %}<a class="muted small" href="{{ url_for('operations') }}">Сбросить</a>{% endif %}
+    {% if f.account or f.type or f.year %}<a class="muted small" href="{{ url_for('operations') }}">{{ _('Сбросить') }}</a>{% endif %}
   </form>
   {% if flows %}
     {% set show_acc = true %}
     {% include "_flows.html" %}
   {% else %}
-    <p class="pad muted">Операций нет.</p>
+    <p class="pad muted">{{ _('Операций нет.') }}</p>
   {% endif %}
 </section>
 {% endblock %}

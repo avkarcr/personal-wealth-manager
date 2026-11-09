@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = wealth_manager, calc, vault, db, app
+
+[report]
+show_missing = True
+omit = tests/*

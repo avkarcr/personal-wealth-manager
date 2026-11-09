@@ -1,74 +1,74 @@
 {% extends "base.html" %}
-{% block title %}{{ acc.name }} — Капитал{% endblock %}
+{% block title %}{{ acc.name }} {{ _('— Капитал') }}{% endblock %}
 {% block content %}
 {% set acc_json = {'id': acc.id, 'name': acc.name, 'kind': acc.kind, 'institution': acc.institution, 'currency': acc.currency, 'current_value': acc.current_value, 'note': acc.note} %}
 <header class="page-head">
   <div>
-    <p class="crumb"><i class="dot k-{{ acc.kind }}"></i>{{ KIND_LABELS[acc.kind] }}{{ ' · ' ~ acc.institution if acc.institution }}{% if acc.archived %} · <b>в архиве</b>{% endif %}</p>
+    <p class="crumb"><i class="dot k-{{ acc.kind }}"></i>{{ _(KIND_LABELS[acc.kind]) }}{{ ' · ' ~ acc.institution if acc.institution }}{% if acc.archived %} · <b>{{ _('в архиве') }}</b>{% endif %}</p>
     <h1>{{ acc.name }}</h1>
     {% if acc.note %}<p class="muted">{{ acc.note }}</p>{% endif %}
   </div>
   <div class="actions">
-    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>+ Операция</button>
-    {% if acc.kind != 'realty' %}<button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>+ Позиция</button>{% endif %}
+    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>{{ _('+ Операция') }}</button>
+    {% if acc.kind != 'realty' %}<button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>{{ _('+ Позиция') }}</button>{% endif %}
     <details class="menu">
-      <summary class="btn icon" title="Ещё">⋯</summary>
+      <summary class="btn icon" title="{{ _('Ещё') }}">⋯</summary>
       <div class="menu-pop">
-        <button data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>Редактировать</button>
-        <form method="post" action="{{ url_for('account_archive', aid=acc.id) }}"><button>{{ 'Вернуть из архива' if acc.archived else 'В архив' }}</button></form>
-        <form method="post" action="{{ url_for('account_delete', aid=acc.id) }}" data-confirm="Удалить счёт «{{ acc.name }}» со всеми позициями и операциями?"><button class="danger">Удалить</button></form>
+        <button data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>{{ _('Редактировать') }}</button>
+        <form method="post" action="{{ url_for('account_archive', aid=acc.id) }}"><button>{{ _('Вернуть из архива') if acc.archived else _('В архив') }}</button></form>
+        <form method="post" action="{{ url_for('account_delete', aid=acc.id) }}" data-confirm="{{ _('Удалить счёт «') }}{{ acc.name }}{{ _('» со всеми позициями и операциями?') }}"><button class="danger">{{ _('Удалить') }}</button></form>
       </div>
     </details>
   </div>
 </header>
 
 <section class="kpis">
-  <div class="kpi main-kpi"><span class="lbl">Стоимость</span><span class="val">{{ m.value|money(base) }}</span></div>
-  <div class="kpi"><span class="lbl">Вложено</span><span class="val">{{ m.invested|money(base) }}</span>
-    {% if m.invested_from_cost and m.positions %}<span class="sub muted" title="Пополнения не внесены — считаем по средней цене позиций">по средней цене покупки</span>{% endif %}</div>
-  <div class="kpi"><span class="lbl">Прибыль</span>
+  <div class="kpi main-kpi"><span class="lbl">{{ _('Стоимость') }}</span><span class="val">{{ m.value|money(base) }}</span></div>
+  <div class="kpi"><span class="lbl">{{ _('Вложено') }}</span><span class="val">{{ m.invested|money(base) }}</span>
+    {% if m.invested_from_cost and m.positions %}<span class="sub muted" title="{{ _('Пополнения не внесены — считаем по средней цене позиций') }}">{{ _('по средней цене покупки') }}</span>{% endif %}</div>
+  <div class="kpi"><span class="lbl">{{ _('Прибыль') }}</span>
     <span class="val {{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit|signed(base) }}</span>
     <span class="sub {{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit_pct|pct }}</span></div>
-  <div class="kpi"><span class="lbl" title="Годовая доходность с учётом дат пополнений и выводов">Годовая доходность</span>
+  <div class="kpi"><span class="lbl" title="{{ _('Годовая доходность с учётом дат пополнений и выводов') }}">{{ _('Годовая доходность') }}</span>
     <span class="val">{{ m.xirr|pct }}</span></div>
-  <div class="kpi"><span class="lbl">Доход за 12 мес.</span><span class="val">{{ m.income_12m|money(base) }}</span>
-    {% if acc.kind == 'realty' and m.value %}<span class="sub muted">{{ (m.income_12m / m.value)|pct(false) }} годовых к оценке</span>{% endif %}</div>
+  <div class="kpi"><span class="lbl">{{ _('Доход за 12 мес.') }}</span><span class="val">{{ m.income_12m|money(base) }}</span>
+    {% if acc.kind == 'realty' and m.value %}<span class="sub muted">{{ (m.income_12m / m.value)|pct(false) }} {{ _('годовых к оценке') }}</span>{% endif %}</div>
 </section>
 
 {% if acc.kind == 'realty' %}
 <section class="card">
-  <div class="card-head"><h2>Оценка объекта</h2><span class="muted small">Обновляйте, когда меняется рыночная цена</span></div>
+  <div class="card-head"><h2>{{ _('Оценка объекта') }}</h2><span class="muted small">{{ _('Обновляйте, когда меняется рыночная цена') }}</span></div>
   <form class="inline-form" method="post" action="{{ url_for('account_value', aid=acc.id) }}">
-    <label class="fld"><span>Текущая стоимость, {{ acc.currency }}</span><input name="current_value" inputmode="decimal" value="{{ acc.current_value|num(2) }}"></label>
-    <button class="btn primary">Обновить</button>
+    <label class="fld"><span>{{ _('Текущая стоимость,') }} {{ acc.currency }}</span><input name="current_value" inputmode="decimal" value="{{ acc.current_value|num(2) }}"></label>
+    <button class="btn primary">{{ _('Обновить') }}</button>
   </form>
-  <p class="muted small">Аренда учитывается через договоры и платежи ниже. Налоги, ремонт и коммунальные платежи — «Расход» в операциях, доплаты (ремонт, взнос по ипотеке) — «Пополнение».</p>
+  <p class="muted small">{{ _('Аренда учитывается через договоры и платежи ниже. Налоги, ремонт и коммунальные платежи — «Расход» в операциях, доплаты (ремонт, взнос по ипотеке) — «Пополнение».') }}</p>
 </section>
 {% include "_realty.html" %}
 {% else %}
 <section class="card flush">
   <div class="card-head pad">
-    <h2>Позиции <span class="muted">{{ rows|length }}</span></h2>
+    <h2>{{ _('Позиции') }} <span class="muted">{{ rows|length }}</span></h2>
     {% if rows %}
     <div class="actions">
       {% if acc.kind in ('crypto', 'other') %}
-      <form method="post" action="{{ url_for('account_crypto', aid=acc.id) }}" title="Цены монет в USDT с публичных API Binance / Bybit / OKX (отправляются только тикеры)">
-        <button class="btn sm ghost">Цены с бирж</button></form>{% endif %}
+      <form method="post" action="{{ url_for('account_crypto', aid=acc.id) }}" title="{{ _('Цены монет в USDT с публичных API Binance / Bybit / OKX (отправляются только тикеры)') }}">
+        <button class="btn sm ghost">{{ _('Цены с бирж') }}</button></form>{% endif %}
       {% if acc.kind in ('broker', 'other') %}
-      <form method="post" action="{{ url_for('account_moex', aid=acc.id) }}" title="Загрузить последние цены с Московской биржи по тикерам (отправляются только тикеры)">
-        <button class="btn sm ghost">Цены с MOEX</button></form>{% endif %}
-      <button class="btn sm" id="edit-prices">Обновить цены</button>
+      <form method="post" action="{{ url_for('account_moex', aid=acc.id) }}" title="{{ _('Загрузить последние цены с Московской биржи по тикерам (отправляются только тикеры)') }}">
+        <button class="btn sm ghost">{{ _('Цены с MOEX') }}</button></form>{% endif %}
+      <button class="btn sm" id="edit-prices">{{ _('Обновить цены') }}</button>
     </div>
     {% endif %}
   </div>
   {% if rows %}
   <form method="post" action="{{ url_for('account_prices', aid=acc.id) }}" id="prices-form">
   <table class="tbl">
-    <thead><tr><th>Актив</th><th class="r hide-s">Кол-во</th><th class="r hide-s">Ср. цена</th><th class="r">Цена</th><th class="r">Стоимость</th><th class="r hide-s">Доля</th><th class="r">Результат</th><th></th></tr></thead>
+    <thead><tr><th>{{ _('Актив') }}</th><th class="r hide-s">{{ _('Кол-во') }}</th><th class="r hide-s">{{ _('Ср. цена') }}</th><th class="r">{{ _('Цена') }}</th><th class="r">{{ _('Стоимость') }}</th><th class="r hide-s">{{ _('Доля') }}</th><th class="r">{{ _('Результат') }}</th><th></th></tr></thead>
     <tbody>
     {% for r in rows %}{% set h = r.h %}
       <tr>
-        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ h.asset_class }}</span></td>
+        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ _(h.asset_class) }}</span></td>
         <td class="r num hide-s">{{ h.quantity|num(4) }}</td>
         <td class="r num hide-s muted">{% if h.asset_class != 'Деньги' %}{{ h.avg_price|num(4) }}{% endif %}</td>
         <td class="r num">
@@ -80,18 +80,18 @@
         <td class="r num hide-s muted">{{ r.share|pct(false) }}</td>
         <td class="r num">{% if h.asset_class != 'Деньги' %}<span class="{{ 'pos' if r.pl >= 0 else 'neg' }}">{{ r.pl_pct|pct }}</span><span class="muted small block">{{ r.pl|signed(h.currency) }}</span>{% endif %}</td>
         <td class="r nowrap">
-          <button type="button" class="icon-btn" title="Изменить" data-open="dlg-holding" data-fill='{{ {"id": h.id, "account_id": h.account_id, "name": h.name, "ticker": h.ticker, "asset_class": h.asset_class, "currency": h.currency, "quantity": h.quantity, "avg_price": h.avg_price, "price": h.price}|tojson }}'>✎</button>
+          <button type="button" class="icon-btn" title="{{ _('Изменить') }}" data-open="dlg-holding" data-fill='{{ {"id": h.id, "account_id": h.account_id, "name": h.name, "ticker": h.ticker, "asset_class": h.asset_class, "currency": h.currency, "quantity": h.quantity, "avg_price": h.avg_price, "price": h.price}|tojson }}'>✎</button>
         </td>
       </tr>
     {% endfor %}
     </tbody>
   </table>
-  <div class="edit-bar pad"><button type="button" class="btn ghost" id="cancel-prices">Отмена</button><button class="btn primary">Сохранить цены</button></div>
+  <div class="edit-bar pad"><button type="button" class="btn ghost" id="cancel-prices">{{ _('Отмена') }}</button><button class="btn primary">{{ _('Сохранить цены') }}</button></div>
   </form>
   {% else %}
   <div class="pad empty-inline">
-    <p class="muted">{{ 'Добавьте монеты и стейблкоины: тикер (BTC, ETH, USDT), количество и цену в долларах.' if acc.kind == 'crypto' else 'Добавьте бумаги, фонды и остаток денег на счёте.' }}</p>
-    <button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>+ Позиция</button>
+    <p class="muted">{{ _('Добавьте монеты и стейблкоины: тикер (BTC, ETH, USDT), количество и цену в долларах.') if acc.kind == 'crypto' else _('Добавьте бумаги, фонды и остаток денег на счёте.') }}</p>
+    <button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>{{ _('+ Позиция') }}</button>
   </div>
   {% endif %}
 </section>
@@ -99,25 +99,25 @@
 
 <div class="grid2 {{ 'single' if by_class|length < 2 }}">
   <section class="card">
-    <div class="card-head"><h2>История стоимости</h2>
-      <button class="btn sm ghost" data-open="dlg-point">+ Прошлая оценка</button></div>
+    <div class="card-head"><h2>{{ _('История стоимости') }}</h2>
+      <button class="btn sm ghost" data-open="dlg-point">{{ _('+ Прошлая оценка') }}</button></div>
     <div class="chart sm" id="acc-chart"></div>
   </section>
   {% if by_class|length >= 2 %}
   <section class="card">
-    <h2>Структура</h2>
+    <h2>{{ _('Структура') }}</h2>
     <div class="donut-wrap"><div class="donut" id="acc-donut"></div><ul class="legend list" id="acc-legend"></ul></div>
   </section>
   {% endif %}
 </div>
 
 <section class="card flush">
-  <div class="card-head pad"><h2>Операции</h2>
-    <button class="btn sm ghost" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>+ Операция</button></div>
+  <div class="card-head pad"><h2>{{ _('Операции') }}</h2>
+    <button class="btn sm ghost" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>{{ _('+ Операция') }}</button></div>
   {% if flows %}
   {% include "_flows.html" %}
   {% else %}
-  <p class="pad muted">Пополнения и выводы нужны, чтобы считать честную доходность. {{ 'Стейкинг, фарминг, аирдропы и P2P записывайте как «Доход» с категорией.' if acc.kind == 'crypto' else 'Дивиденды, купоны и аренду записывайте как «Доход».' }}</p>
+  <p class="pad muted">{{ _('Пополнения и выводы нужны, чтобы считать честную доходность.') }} {{ _('Стейкинг, фарминг, аирдропы и P2P записывайте как «Доход» с категорией.') if acc.kind == 'crypto' else _('Дивиденды, купоны и аренду записывайте как «Доход».') }}</p>
   {% endif %}
 </section>
 {% endblock %}
@@ -126,40 +126,40 @@
 {% if acc.kind == 'realty' %}{% include "_realty_dialogs.html" %}{% endif %}
 <dialog id="dlg-holding" class="dlg">
   <form method="post" action="{{ url_for('holding_save') }}">
-    <header><h3 data-title-new="Новая позиция" data-title-edit="Позиция">Новая позиция</h3><button type="button" class="x" data-close>×</button></header>
+    <header><h3 data-title-new="{{ _('Новая позиция') }}" data-title-edit="{{ _('Позиция') }}">{{ _('Новая позиция') }}</h3><button type="button" class="x" data-close>×</button></header>
     <input type="hidden" name="id"><input type="hidden" name="account_id" value="{{ acc.id }}">
-    <label class="fld"><span>Класс актива</span>
-      <select name="asset_class">{% for c in ASSET_CLASSES %}<option>{{ c }}</option>{% endfor %}</select></label>
+    <label class="fld"><span>{{ _('Класс актива') }}</span>
+      <select name="asset_class">{% for c in ASSET_CLASSES %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
     <div class="row2 not-cash">
-      <label class="fld"><span>Тикер</span><input name="ticker" placeholder="SBER" autocapitalize="characters"></label>
-      <label class="fld"><span>Название</span><input name="name" placeholder="Сбербанк"></label>
+      <label class="fld"><span>{{ _('Тикер') }}</span><input name="ticker" placeholder="SBER" autocapitalize="characters"></label>
+      <label class="fld"><span>{{ _('Название') }}</span><input name="name" placeholder="{{ _('Сбербанк') }}"></label>
     </div>
     <div class="row2">
-      <label class="fld"><span data-qty-label>Количество</span><input name="quantity" inputmode="decimal" required placeholder="0"></label>
-      <label class="fld"><span>Валюта</span><select name="currency">{% for c in currencies %}<option>{{ c }}</option>{% endfor %}</select></label>
+      <label class="fld"><span data-qty-label>{{ _('Количество') }}</span><input name="quantity" inputmode="decimal" required placeholder="0"></label>
+      <label class="fld"><span>{{ _('Валюта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
     </div>
     <div class="row2 not-cash">
-      <label class="fld"><span>Средняя цена покупки</span><input name="avg_price" inputmode="decimal" placeholder="0"></label>
-      <label class="fld"><span>Текущая цена</span><input name="price" inputmode="decimal" placeholder="0"></label>
+      <label class="fld"><span>{{ _('Средняя цена покупки') }}</span><input name="avg_price" inputmode="decimal" placeholder="0"></label>
+      <label class="fld"><span>{{ _('Текущая цена') }}</span><input name="price" inputmode="decimal" placeholder="0"></label>
     </div>
-    <p class="muted small not-cash">{{ 'Цену монет удобно вести в USD — тогда кнопка «Цены с бирж» обновит её автоматически.' if acc.kind == 'crypto' else 'Для облигаций указывайте цену в валюте (не в %), например 985,4.' }}</p>
+    <p class="muted small not-cash">{{ _('Цену монет удобно вести в USD — тогда кнопка «Цены с бирж» обновит её автоматически.') if acc.kind == 'crypto' else _('Для облигаций указывайте цену в валюте (не в %), например 985,4.') }}</p>
     <footer>
-      <button type="submit" class="btn ghost danger edit-only" data-delete-action="{{ url_for('holding_delete', hid=0) }}" data-confirm="Удалить позицию?">Удалить</button>
+      <button type="submit" class="btn ghost danger edit-only" data-delete-action="{{ url_for('holding_delete', hid=0) }}" data-confirm="{{ _('Удалить позицию?') }}">{{ _('Удалить') }}</button>
       <span class="sp"></span>
-      <button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Сохранить</button></footer>
+      <button type="button" class="btn ghost" data-close>{{ _('Отмена') }}</button><button class="btn primary">{{ _('Сохранить') }}</button></footer>
   </form>
 </dialog>
 
 <dialog id="dlg-point" class="dlg">
   <form method="post" action="{{ url_for('account_history_point', aid=acc.id) }}">
-    <header><h3>Оценка на прошлую дату</h3><button type="button" class="x" data-close>×</button></header>
-    <p class="muted small">Чтобы график начинался не с сегодняшнего дня — внесите, сколько стоил счёт на какую-то дату (например, по отчёту брокера на конец месяца).</p>
+    <header><h3>{{ _('Оценка на прошлую дату') }}</h3><button type="button" class="x" data-close>×</button></header>
+    <p class="muted small">{{ _('Чтобы график начинался не с сегодняшнего дня — внесите, сколько стоил счёт на какую-то дату (например, по отчёту брокера на конец месяца).') }}</p>
     <div class="row3">
-      <label class="fld"><span>Дата</span><input type="date" name="date" required max="{{ today }}"></label>
-      <label class="fld"><span>Стоимость</span><input name="value" inputmode="decimal" required></label>
-      <label class="fld"><span>Валюта</span><select name="currency">{% for c in currencies %}<option {{ 'selected' if c==acc.currency }}>{{ c }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>{{ _('Дата') }}</span><input type="date" name="date" required max="{{ today }}"></label>
+      <label class="fld"><span>{{ _('Стоимость') }}</span><input name="value" inputmode="decimal" required></label>
+      <label class="fld"><span>{{ _('Валюта') }}</span><select name="currency">{% for c in currencies %}<option {{ 'selected' if c==acc.currency }}>{{ c }}</option>{% endfor %}</select></label>
     </div>
-    <footer><button type="button" class="btn ghost" data-close>Отмена</button><button class="btn primary">Добавить</button></footer>
+    <footer><button type="button" class="btn ghost" data-close>{{ _('Отмена') }}</button><button class="btn primary">{{ _('Добавить') }}</button></footer>
   </form>
 </dialog>
 {% endblock %}

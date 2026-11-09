@@ -73,3 +73,20 @@
   и «Курсы крипты» (публичные API Binance / Bybit / OKX). Передаются лишь тикеры, без ключей и личных данных.
 - Сервер слушает только 127.0.0.1 — из сети он недоступен.
 - Порт можно сменить: `PORT=8000 python app.py`.
+
+## Архитектура и разработка
+
+Начат поэтапный переход на hexagonal-архитектуру: сохранение счёта и смена языка
+вынесены в независимые сценарии с портами, SQLite-адаптерами и UnitOfWork.
+В **Настройки → Общие** можно выбрать русский или английский язык интерфейса.
+Выбор сохраняется в зашифрованном хранилище.
+
+Подробности, ограничения переходного этапа и целевая структура меню:
+[docs/architecture.md](docs/architecture.md).
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m coverage run -m unittest discover -s tests -v
+python -m coverage report
+python -m coverage report --include='wealth_manager/*' --fail-under=95
+```

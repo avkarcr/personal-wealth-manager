@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="ru">
+<html lang="{{ language }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ 'Создание хранилища' if mode == 'setup' else 'Вход' }} — Капитал</title>
+<title>{{ _('Создание хранилища') if mode == 'setup' else _('Вход') }} {{ _('— Капитал') }}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23256a5a'/><path d='M8 22l6-7 4 4 6-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -13,26 +13,26 @@
   <form class="auth-card" method="post" autocomplete="off">
     <div class="brand">
       <svg viewBox="0 0 32 32" width="26" height="26"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M8 22l6-7 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Капитал</span>
+      <span>{{ _('Капитал') }}</span>
     </div>
-    {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="note-box">{{ m }}</div>{% endfor %}{% endwith %}
+    {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="note-box">{{ _(m) }}</div>{% endfor %}{% endwith %}
 
     {% if mode == 'setup' %}
-      <h1>Придумайте пароль</h1>
-      <p class="muted">Все данные будут храниться только в зашифрованном виде (AES-256). Пароль никуда не сохраняется.</p>
-      {% if legacy %}<div class="note-box">Найдена незашифрованная база прошлой версии. Она будет перенесена в зашифрованное хранилище, а открытый файл — перезаписан и удалён.</div>{% endif %}
-      <label class="fld"><span>Пароль (минимум 8 символов)</span><input type="password" name="password" required minlength="8" autofocus autocomplete="new-password"></label>
-      <label class="fld"><span>Повторите пароль</span><input type="password" name="password2" required minlength="8" autocomplete="new-password"></label>
-      {% if error %}<p class="err">{{ error }}</p>{% endif %}
-      <div class="note-box"><b>Важно:</b> если забыть пароль, восстановить данные невозможно — ни вам, ни кому-либо ещё. Запишите его в менеджер паролей.</div>
-      <button class="btn primary">Создать хранилище</button>
+      <h1>{{ _('Придумайте пароль') }}</h1>
+      <p class="muted">{{ _('Все данные будут храниться только в зашифрованном виде (AES-256). Пароль никуда не сохраняется.') }}</p>
+      {% if legacy %}<div class="note-box">{{ _('Найдена незашифрованная база прошлой версии. Она будет перенесена в зашифрованное хранилище, а открытый файл — перезаписан и удалён.') }}</div>{% endif %}
+      <label class="fld"><span>{{ _('Пароль (минимум 8 символов)') }}</span><input type="password" name="password" required minlength="8" autofocus autocomplete="new-password"></label>
+      <label class="fld"><span>{{ _('Повторите пароль') }}</span><input type="password" name="password2" required minlength="8" autocomplete="new-password"></label>
+      {% if error %}<p class="err">{{ _(error) }}</p>{% endif %}
+      <div class="note-box"><b>{{ _('Важно:') }}</b> {{ _('если забыть пароль, восстановить данные невозможно — ни вам, ни кому-либо ещё. Запишите его в менеджер паролей.') }}</div>
+      <button class="btn primary">{{ _('Создать хранилище') }}</button>
     {% else %}
-      <h1>Хранилище заблокировано</h1>
-      <p class="muted">Введите пароль, чтобы расшифровать данные.</p>
+      <h1>{{ _('Хранилище заблокировано') }}</h1>
+      <p class="muted">{{ _('Введите пароль, чтобы расшифровать данные.') }}</p>
       <input type="hidden" name="next" value="{{ next or '' }}">
-      <label class="fld"><span>Пароль</span><input type="password" name="password" required autofocus autocomplete="current-password"></label>
-      {% if error %}<p class="err">{{ error }}</p>{% endif %}
-      <button class="btn primary">Открыть</button>
+      <label class="fld"><span>{{ _('Пароль') }}</span><input type="password" name="password" required autofocus autocomplete="current-password"></label>
+      {% if error %}<p class="err">{{ _(error) }}</p>{% endif %}
+      <button class="btn primary">{{ _('Открыть') }}</button>
     {% endif %}
   </form>
 </main>

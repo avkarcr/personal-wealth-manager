@@ -6,6 +6,10 @@
 Исключения — только по нажатию кнопок: курсы с cbr.ru, цены с iss.moex.com
 и цены криптовалют с публичных API бирж (Binance / Bybit / OKX) — передаются только тикеры.
 """
+from decimal import Decimal, InvalidOperation
+from wealth_manager.adapters.web.i18n import install_i18n
+from wealth_manager.bootstrap import build_services
+from wealth_manager.modules.accounts.domain import Account, Purchase, AccountNotFound
 import csv
 import io
 import json
@@ -18,7 +22,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
 
 from flask import (Flask, Response, abort, flash, redirect, render_template, request,
-                   send_file, session, url_for)
+                   send_file, session, url_for, g)
 
 import calc
 from db import LEGACY_DB_PATH, VAULT_PATH, get_db, init_db, set_vault
@@ -29,6 +33,8 @@ app.secret_key = secrets.token_bytes(32)          # новый при каждо
 app.config.update(SESSION_COOKIE_SAMESITE="Strict", SESSION_COOKIE_HTTPONLY=True)
 VAULT = Vault(VAULT_PATH, idle_minutes=int(os.environ.get("INVEST_IDLE_MIN", 15)))
 set_vault(VAULT)
+services = build_services(VAULT)
+install_i18n(app, VAULT)
 
 OPEN_ENDPOINTS = {"static", "setup", "unlock"}
 
@@ -57,8 +63,9 @@ def persist(resp):
 def _autolock_loop():
     while True:
         time.sleep(30)
-        if VAULT.idle_expired():
-            VAULT.lock()
+        with VAULT.lock_:
+            if VAULT.idle_expired():
+                VAULT.lock()
 
 
 threading.Thread(target=_autolock_loop, daemon=True).start()
@@ -142,6 +149,11 @@ def inject():
     }
 
 
+def f_decimal(name):
+    value = (request.form.get(name) or "0").strip().replace(" ", "").replace(" ", "").replace(",", ".")
+    return Decimal(value)
+
+
 def f_float(name, default=0.0):
     v = (request.form.get(name) or "").strip().replace(" ", "").replace(" ", "").replace(",", ".")
     try:
@@ -223,7 +235,9 @@ def unlock():
 @app.post("/lock")
 def lock():
     VAULT.lock()
+    language = g.language
     session.clear()
+    session["language"] = language
     return redirect(url_for("unlock"))
 
 
@@ -489,31 +503,38 @@ def settings():
     return render_template("settings.html", rates=rates, archived=archived, db_path=VAULT_PATH, idle=VAULT.idle_minutes)
 
 
+@app.post("/settings/general")
+def general_settings_save():
+    language = request.form.get("language", "")
+    try:
+        services["change_language"].execute(language)
+    except ValueError:
+        abort(400)
+    session["language"] = language
+    return redirect(url_for("settings", _anchor="general"))
+
+
 # ───────────────────────── счета ─────────────────────────
 @app.post("/accounts/save")
 def account_save():
-    db = get_db()
-    aid = request.form.get("id")
-    kind = f_str("kind", "broker")
-    data = (f_str("name") or "Без названия", kind, f_str("institution"), f_str("currency", "RUB"),
-            f_float("current_value"), f_float("tax_rate"), f_str("note"))
-    if kind not in calc.KIND_LABELS:
+    try:
+        aid = request.form.get("id")
+        account = Account(
+            id=int(aid) if aid else None,
+            name=f_str("name") or "Без названия", kind=f_str("kind", "broker"),
+            institution=f_str("institution"), currency=f_str("currency", "RUB"),
+            current_value=f_decimal("current_value"), tax_rate=f_decimal("tax_rate"),
+            note=f_str("note"),
+        )
+        purchase = None
+        if account.id is None and account.kind == "realty":
+            purchase = Purchase(f_decimal("purchase_price"),
+                                date.fromisoformat(f_str("purchase_date") or date.today().isoformat()))
+        aid = services["save_account"].execute(account, purchase)
+    except (ValueError, InvalidOperation):
         abort(400)
-    if aid:
-        db.execute("UPDATE accounts SET name=?, kind=?, institution=?, currency=?, current_value=?, tax_rate=?, note=? WHERE id=?",
-                   data + (aid,))
-    else:
-        cur = db.execute("INSERT INTO accounts(name, kind, institution, currency, current_value, tax_rate, note) "
-                         "VALUES (?,?,?,?,?,?,?)", data)
-        aid = cur.lastrowid
-        # для недвижимости сразу фиксируем покупку как вложение
-        price = f_float("purchase_price")
-        if kind == "realty" and price > 0:
-            db.execute("INSERT INTO cashflows(account_id, date, type, amount, currency, note) VALUES (?,?,?,?,?,?)",
-                       (aid, f_str("purchase_date") or date.today().isoformat(), "deposit", price,
-                        f_str("currency", "RUB"), "Покупка объекта"))
-    db.commit()
-    snapshot()
+    except AccountNotFound:
+        abort(404)
     return redirect(url_for("account", aid=aid))
 
 

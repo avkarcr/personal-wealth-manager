@@ -10,7 +10,7 @@ RENT_STATUSES = frozenset({"expected", "agent", "received"})
 
 @dataclass(frozen=True)
 class Lease:
-    account_id: int
+    asset_id: int
     tenant: str
     start_date: str
     contact: str = ""
@@ -79,7 +79,7 @@ def rent_cashflow(payment, lease):
     period = (date.fromisoformat(payment.period_start).strftime("%d.%m.%y") + "–" +
               date.fromisoformat(payment.period_end).strftime("%d.%m.%y"))
     if payment.status == "agent":
-        return Cashflow(lease.account_id, payment.tenant_paid_date or payment.due_date, "income",
+        return Cashflow(lease.asset_id, payment.tenant_paid_date or payment.due_date, "income",
                         payment.amount, payment.currency, "Аренда", lease.tenant, True,
                         f'У риелтора{": " + lease.agent if lease.agent else ""} · за {period}', payment.id)
     amount = payment.received_amount or payment.amount
@@ -87,7 +87,7 @@ def rent_cashflow(payment, lease):
     note = f"за {period}"
     if currency != payment.currency and payment.amount:
         note += f' · {payment.amount:g} {payment.currency} по курсу {amount / payment.amount:.2f}'.replace(".", ",")
-    return Cashflow(lease.account_id, payment.received_date or payment.tenant_paid_date or payment.due_date,
+    return Cashflow(lease.asset_id, payment.received_date or payment.tenant_paid_date or payment.due_date,
                     "income", amount, currency, "Аренда", lease.tenant, False, note, payment.id)
 
 

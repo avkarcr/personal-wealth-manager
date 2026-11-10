@@ -5,7 +5,8 @@ from functools import wraps
 from flask import abort, flash, redirect, request, url_for
 
 from wealth_manager.shared.errors import EntityNotFound, RentalFlowProtected
-from wealth_manager.modules.accounts.domain import Account, Purchase
+from wealth_manager.modules.accounts.domain import Purchase
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.modules.rentals.domain import Lease, RentPayment
@@ -148,7 +149,7 @@ def register_commands(app, runtime):
             pay_day = max(0, min(31, int(f_str('pay_day') or 0)))
         except ValueError:
             pay_day = 0
-        lease = Lease(id=optional_id(), account_id=int(f_str('account_id')), tenant=f_str('tenant') or 'Арендатор',
+        lease = Lease(id=optional_id(), asset_id=int(f_str('account_id')), tenant=f_str('tenant') or 'Арендатор',
                       contact=f_str('contact'), start_date=f_str('start_date') or date.today().isoformat(),
                       end_date=f_str('end_date'), rent_amount=f_float('rent_amount'), currency=f_str('currency', 'RUB'),
                       frequency=f_str('frequency', 'month'), pay_day=pay_day, deposit_amount=f_float('deposit_amount'),
@@ -156,7 +157,7 @@ def register_commands(app, runtime):
                       utilities=f_str('utilities'), terms=f_str('terms'))
         _, count = services['rentals'].save_lease(lease, bool(request.form.get('schedule')))
         flash(gettext('Договор сохранён, добавлено платежей в график: {count}').format(count=count) if count else gettext('Договор сохранён'))
-        return rent_redirect(lease.account_id)
+        return rent_redirect(lease.asset_id)
 
     @app.post('/leases/<int:lid>/schedule')
     @validated

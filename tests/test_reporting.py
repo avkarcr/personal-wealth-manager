@@ -6,7 +6,7 @@ from unittest.mock import Mock
 from wealth_manager.modules.reporting.domain import portfolio, history, income_report, last_months
 from wealth_manager.modules.reporting.application import Reports
 from wealth_manager.modules.valuation.domain import ExchangeRates
-from wealth_manager.modules.accounts.domain import Account
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
 import test_market_data

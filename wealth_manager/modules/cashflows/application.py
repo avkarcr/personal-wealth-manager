@@ -17,7 +17,7 @@ class CashflowCommands:
         flow = flow.normalized()
         self.ensure_manual(flow)
         with self.uow_factory() as uow:
-            uow.accounts.get(flow.account_id)
+            uow.entities.get(flow.account_id)
             if flow.id is not None: self.ensure_manual(uow.cashflows.get(flow.id))
             record_id = uow.cashflows.save(flow)
             uow.take_snapshot()

@@ -84,6 +84,16 @@
     const kind = form.querySelector('[name=kind]:checked');
     if (kind) {
       dlg.dataset.kind = kind.value;
+      if (form.dataset.accountAction) {
+        form.action = kind.value === 'realty' ? form.dataset.assetAction : kind.value === 'freelance' ? form.dataset.incomeAction : form.dataset.accountAction;
+        const editing = Boolean(form.querySelector('[name=id]').value);
+        form.querySelectorAll('[name=kind]').forEach(input => {
+          const group = value => value === 'realty' ? 'asset' : value === 'freelance' ? 'income' : 'account';
+          input.disabled = editing && group(input.value) !== group(kind.value);
+        });
+        const title = dlg.querySelector('h3');
+        if (title) title.textContent = kind.value === 'realty' ? t(editing ? 'Редактировать актив' : 'Новый актив') : kind.value === 'freelance' ? t(editing ? 'Редактировать источник дохода' : 'Новый источник дохода') : t(editing ? 'Редактировать счёт' : 'Новый счёт');
+      }
       const lbl = $('[data-kind-label]', dlg);
       if (lbl) lbl.textContent = INST_LABEL[kind.value] || t('Где');
       const ii = form.querySelector('[name=institution]'); if (ii) ii.placeholder = INST_PH[kind.value] || '';

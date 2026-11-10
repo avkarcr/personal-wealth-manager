@@ -2,13 +2,14 @@
 import csv
 import io
 import os
+import time
 from datetime import date, datetime
 
 from flask import (Response, abort, flash, redirect, render_template, request,
                    send_file, session, url_for, g)
 
 import calc
-from db import init_db
+from wealth_manager.adapters.persistence.migrations import initialize_vault
 from vault import WrongPassword, wipe_file
 
 
@@ -106,8 +107,7 @@ def register_routes(app, runtime):
                 error = "Пароли не совпадают"
             else:
                 con = vault.create(p1, import_plain_path=legacy_db_path if legacy else None)
-                init_db(con)
-                vault.save(force=True)
+                initialize_vault(vault, lock_on_failure=True)
                 if legacy:
                     wipe_file(legacy_db_path)
                     for extra in (legacy_db_path + ".backup", legacy_db_path + "-journal"):
@@ -130,7 +130,8 @@ def register_routes(app, runtime):
                     if not vault.check_password(pw):
                         raise WrongPassword()
                 else:
-                    init_db(vault.unlock(pw))
+                    vault.unlock(pw)
+                    initialize_vault(vault, lock_on_failure=True)
                     row = get_db().execute("SELECT value FROM settings WHERE key='idle_minutes'").fetchone()
                     if row and row["value"].isdigit():
                         vault.idle_minutes = int(row["value"])

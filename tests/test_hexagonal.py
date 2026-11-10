@@ -10,12 +10,14 @@ from unittest.mock import patch
 from db import init_db
 from vault import Vault
 from wealth_manager.bootstrap import build_services
-from wealth_manager.modules.accounts.domain import Account, Purchase, AccountNotFound
+from wealth_manager.modules.accounts.domain import Purchase, AccountNotFound
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.accounts.application import SaveAccount
 
 class MemoryUow:
     def __init__(self):
         self.accounts = self
+        self.assets = self
         self.events = []
     def __enter__(self): return self
     def __exit__(self, *args): pass

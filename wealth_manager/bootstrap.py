@@ -1,6 +1,8 @@
 """Composition root: only this layer selects concrete adapters."""
 from wealth_manager.adapters.persistence.unit_of_work import VaultUnitOfWork
-from wealth_manager.modules.accounts.application import SaveAccount
+from wealth_manager.modules.accounts.application import SaveAccount, SaveFinancialAccount
+from wealth_manager.modules.assets.application import SaveAsset
+from wealth_manager.modules.income_sources.application import SaveIncomeSource
 from wealth_manager.modules.preferences.application import ChangeLanguage
 
 from datetime import date
@@ -22,7 +24,8 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     catalog = catalog or ExchangeCatalog(json.loads((Path(__file__).parent / 'adapters/market_data/exchanges.json').read_text()))
     reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault)
-    return {"reports": Reports(reports, today),
+    return {"save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
+            "save_income_source": SaveIncomeSource(factory), "reports": Reports(reports, today),
             "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),
             "save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),
             "accounts": AccountCommands(factory), "positions": PositionCommands(factory, today),

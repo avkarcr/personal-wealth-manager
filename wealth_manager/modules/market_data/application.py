@@ -46,7 +46,9 @@ class MarketData:
 
     def refresh_account(self,aid,kind):
         data=self.reports.read();rates=rates_for(data)
-        if not any(a['id']==aid for a in data['accounts']): raise EntityNotFound(aid)
+        account=next((a for a in data['accounts'] if a['id']==aid),None)
+        if account is None: raise EntityNotFound(aid)
+        if account['kind'] in ('realty','freelance'):raise ValueError('Quotes require a financial account')
         if kind not in ('crypto','moex'): raise ValueError('Unknown market')
         exchanges=self.active_exchanges() if kind=='crypto' else ()
         usd=rates.r.get('USD')

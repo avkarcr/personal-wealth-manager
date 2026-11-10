@@ -451,5 +451,14 @@
   "Источники: {sources}": "Sources: {sources}",
   "У ЦБ нет курса выбранной валюты": "The central bank has no rate for this currency",
   "Некорректная дата": "Invalid date",
-  "Цены монет с выбранных для страны бирж (отправляются только тикеры)": "Coin prices from exchanges selected for your country (only tickers are sent)"
+  "Цены монет с выбранных для страны бирж (отправляются только тикеры)": "Coin prices from exchanges selected for your country (only tickers are sent)",
+  "Новый актив": "New asset",
+  "Редактировать актив": "Edit asset",
+  "Новый источник дохода": "New income source",
+  "Редактировать источник дохода": "Edit income source",
+  "Счёт, актив или источник дохода": "Account, asset or income source",
+  "Активы": "Assets",
+  "Добавить актив": "Add asset",
+  "Пока нет активов": "No assets yet",
+  "Источники дохода": "Income sources"
 }

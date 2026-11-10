@@ -41,3 +41,22 @@ test('Missing rate uses translated fallback without shadowing translator',async(
   assert.deepEqual(alerts,['No exchange rate']);
   assert.equal(button.disabled,false);
 });
+
+test('Entity forms route by type and unlock type choices when creating again',()=>{
+  const {handlers}=boot('en',async()=>({}));
+  const radios=['broker','crypto','realty','freelance','other'].map(value=>({value,disabled:false,checked:false}));
+  const id={value:'20'};const title={textContent:''};
+  const form={dataset:{accountAction:'/accounts/save',assetAction:'/assets/save',incomeAction:'/income-sources/save'},
+    querySelector:s=>s==='[name=kind]:checked'?radios.find(r=>r.checked):s==='[name=id]'?id:null,
+    querySelectorAll:s=>s==='[name=kind]'?radios:[]};
+  const dlg={dataset:{},querySelector:s=>s==='form'?form:s==='h3'?title:null};
+  const event={target:{closest:()=>dlg}};
+  radios[2].checked=true;handlers.change[0](event);
+  assert.equal(form.action,'/assets/save');assert.equal(title.textContent,'Edit asset');
+  assert.equal(radios[0].disabled,true);assert.equal(radios[2].disabled,false);
+  id.value='';radios[2].checked=false;radios[3].checked=true;handlers.change[0](event);
+  assert.equal(form.action,'/income-sources/save');assert.equal(title.textContent,'New income source');
+  assert.ok(radios.every(r=>!r.disabled));
+  id.value='10';radios[3].checked=false;radios[0].checked=true;handlers.change[0](event);
+  assert.equal(form.action,'/accounts/save');assert.equal(radios[1].disabled,false);assert.equal(radios[3].disabled,true);
+});

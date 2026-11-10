@@ -29,14 +29,16 @@ class CommandRouteTests(unittest.TestCase):
         self.post(f'/accounts/{self.aid}/archive',next='/settings')
         self.assertEqual(self.rows('accounts')[0]['archived'],1)
         self.post(f'/accounts/{self.aid}/history',date='2020-01-01',value='bad')
-        self.post('/holdings/save',account_id=self.aid,ticker='sber',quantity='2',price='100')
+        self.post('/accounts/save',name='Broker',kind='broker')
+        broker=self.rows('accounts')[-1]['id']
+        self.post('/holdings/save',account_id=broker,ticker='sber',quantity='2',price='100')
         hid=self.rows('holdings')[0]['id']
-        self.post('/holdings/save',id=hid,account_id=self.aid,name='Stock',quantity=2,price=110)
-        self.post(f'/accounts/{self.aid}/prices',**{f'price_{hid}':'120,50','price_999':'bad','next':'/settings'})
+        self.post('/holdings/save',id=hid,account_id=broker,name='Stock',quantity=2,price=110)
+        self.post(f'/accounts/{broker}/prices',**{f'price_{hid}':'120,50','price_999':'bad','next':'/settings'})
         self.assertEqual(self.rows('holdings')[0]['price'],120.5)
         self.post(f'/holdings/{hid}/delete')
         self.post(f'/accounts/{self.aid}/delete')
-        self.assertEqual(self.rows('accounts'),[])
+        self.assertEqual(len(self.rows('accounts')),1)
 
     def test_flow_forms(self):
         self.post('/flows/save',account_id=self.aid,type='income',amount='-100',pending='on')

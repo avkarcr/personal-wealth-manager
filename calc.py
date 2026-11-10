@@ -101,5 +101,5 @@ def payment_view(p, rates):
 def occupancy(db, acc, days=365):
     from wealth_manager.modules.rentals.metrics import occupancy as calculate
     owned = db.execute("SELECT MIN(date) FROM cashflows WHERE account_id=? AND type='deposit'", (acc["id"],)).fetchone()[0]
-    leases = db.execute("SELECT * FROM leases WHERE account_id=? ORDER BY start_date", (acc["id"],)).fetchall()
+    leases = db.execute("SELECT * FROM leases WHERE asset_id=? ORDER BY start_date", (acc["id"],)).fetchall()
     return calculate(acc, leases, owned, date.today(), days)

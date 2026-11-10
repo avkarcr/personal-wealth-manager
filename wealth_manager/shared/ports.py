@@ -40,7 +40,12 @@ class ValuationRepository(Protocol):
 from wealth_manager.modules.market_data.ports import MarketPreferences, RateRepository
 
 
+from wealth_manager.modules.entities.ports import EntityRepository, AssetRepository, IncomeSourceRepository
+
 class UnitOfWork(Protocol):
+    entities: EntityRepository
+    assets: AssetRepository
+    income_sources: IncomeSourceRepository
     market_preferences: MarketPreferences
     rates: RateRepository
     accounts: AccountRepository

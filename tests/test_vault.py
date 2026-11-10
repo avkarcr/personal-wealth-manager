@@ -6,7 +6,8 @@ from vault import Vault, WrongPassword
 from db import init_db
 from wealth_manager.bootstrap import build_services
 from wealth_manager.adapters.persistence.unit_of_work import VaultUnitOfWork
-from wealth_manager.modules.accounts.domain import Account, Purchase
+from wealth_manager.modules.accounts.domain import Purchase
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from datetime import date
 from decimal import Decimal
 

@@ -2,46 +2,7 @@
 from wealth_manager.modules.accounts.domain import AccountNotFound
 from wealth_manager.modules.preferences.application import SUPPORTED_LANGUAGES
 
-class SqliteAccountRepository:
-    def __init__(self, connection):
-        self.connection = connection
-
-    def save(self, account):
-        data = (account.name, account.kind, account.institution, account.currency,
-                float(account.current_value), float(account.tax_rate), account.note)
-        if account.id is not None:
-            result = self.connection.execute(
-                "UPDATE accounts SET name=?,kind=?,institution=?,currency=?,current_value=?,tax_rate=?,note=? WHERE id=?",
-                data + (account.id,))
-            if result.rowcount != 1:
-                raise AccountNotFound(account.id)
-            return account.id
-        return self.connection.execute(
-            "INSERT INTO accounts(name,kind,institution,currency,current_value,tax_rate,note) VALUES (?,?,?,?,?,?,?)",
-            data).lastrowid
-
-    def get(self, record_id):
-        row = self.connection.execute("SELECT * FROM accounts WHERE id=?", (record_id,)).fetchone()
-        if row is None:
-            raise AccountNotFound(record_id)
-        return dict(row)
-
-    def set_value(self, record_id, value):
-        self.get(record_id)
-        self.connection.execute("UPDATE accounts SET current_value=? WHERE id=?", (value, record_id))
-
-    def toggle_archived(self, record_id):
-        self.get(record_id)
-        self.connection.execute("UPDATE accounts SET archived=1-archived WHERE id=?", (record_id,))
-
-    def delete(self, record_id):
-        self.get(record_id)
-        self.connection.execute("DELETE FROM accounts WHERE id=?", (record_id,))
-
-    def record_purchase(self, account_id, currency, purchase):
-        self.connection.execute(
-            "INSERT INTO cashflows(account_id,date,type,amount,currency,note) VALUES (?,?,?,?,?,?)",
-            (account_id, purchase.date.isoformat(), "deposit", float(purchase.amount), currency, "Покупка объекта"))
+from .entities import SqliteFinancialAccountRepository as SqliteAccountRepository
 
 class SqlitePreferencesRepository:
     def __init__(self, connection):

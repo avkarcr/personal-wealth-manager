@@ -16,7 +16,7 @@ class RentalCommands:
     def save_lease(self, lease: Lease, generate_schedule=False):
         lease.validate()
         with self.uow_factory() as uow:
-            uow.accounts.get(lease.account_id)
+            uow.assets.get(lease.asset_id)
             record_id = uow.rentals.save(lease)
             lease = replace(lease, id=record_id)
             for payment in uow.rentals.payments(record_id):
@@ -39,7 +39,7 @@ class RentalCommands:
             lease = uow.rentals.get(record_id)
             count = self._schedule(uow, lease)
             uow.commit()
-            return lease.account_id, count
+            return lease.asset_id, count
 
     def delete_lease(self, record_id):
         with self.uow_factory() as uow:
@@ -48,7 +48,7 @@ class RentalCommands:
             uow.rentals.delete(record_id)
             uow.take_snapshot()
             uow.commit()
-            return lease.account_id
+            return lease.asset_id
 
     def save_payment(self, payment: RentPayment):
         with self.uow_factory() as uow:
@@ -59,7 +59,7 @@ class RentalCommands:
             uow.cashflows.sync_rent(record_id, rent_cashflow(payment, lease))
             uow.take_snapshot()
             uow.commit()
-            return record_id, lease.account_id
+            return record_id, lease.asset_id
 
     def delete_payment(self, record_id):
         with self.uow_factory() as uow:
@@ -69,4 +69,4 @@ class RentalCommands:
             uow.rentals.delete_payment(record_id)
             uow.take_snapshot()
             uow.commit()
-            return lease.account_id
+            return lease.asset_id

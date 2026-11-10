@@ -9,7 +9,10 @@ class FinancialRegressions(unittest.TestCase):
         self.db=sqlite3.connect(':memory:')
         self.db.row_factory=sqlite3.Row
         init_db(self.db)
-        self.aid=self.db.execute("INSERT INTO accounts(name,kind,current_value) VALUES ('Home','realty',1200)").lastrowid
+        from wealth_manager.adapters.persistence.entities import SqliteAssetRepository
+        from wealth_manager.modules.assets.domain import Asset
+        from decimal import Decimal
+        self.aid=SqliteAssetRepository(self.db).save(Asset('Home',current_value=Decimal('1200')))
     def tearDown(self): self.db.close()
     def flow(self,kind,amount,pending=0):
         self.db.execute("INSERT INTO cashflows(account_id,date,type,amount,currency,pending) VALUES (?,?,?,?,?,?)",(self.aid,date.today().isoformat(),kind,amount,'RUB',pending))
@@ -30,13 +33,19 @@ class FinancialRegressions(unittest.TestCase):
         self.assertEqual((m['value'],m['invested'],m['profit'],m['income']),(1200,1000,275,100))
 
     def test_broker_income_not_counted_twice(self):
-        self.db.execute("UPDATE accounts SET kind='broker' WHERE id=?",(self.aid,))
+        self.db.execute('DELETE FROM entities WHERE id=?',(self.aid,))
+        from wealth_manager.adapters.persistence.entities import SqliteFinancialAccountRepository
+        from wealth_manager.modules.accounts.domain import Account
+        self.aid=SqliteFinancialAccountRepository(self.db).save(Account('Broker'))
         self.db.execute("INSERT INTO holdings(account_id,name,quantity,avg_price,price) VALUES (?,'Stock',10,100,120)",(self.aid,))
         self.flow('deposit',1000);self.flow('income',50)
         self.assertEqual(self.metrics()['profit'],200)
 
     def test_no_deposits_uses_cost_basis(self):
-        self.db.execute("UPDATE accounts SET kind='broker' WHERE id=?",(self.aid,))
+        self.db.execute('DELETE FROM entities WHERE id=?',(self.aid,))
+        from wealth_manager.adapters.persistence.entities import SqliteFinancialAccountRepository
+        from wealth_manager.modules.accounts.domain import Account
+        self.aid=SqliteFinancialAccountRepository(self.db).save(Account('Broker'))
         self.db.execute("INSERT INTO holdings(account_id,name,quantity,avg_price,price) VALUES (?,'Stock',10,100,120)",(self.aid,))
         m=self.metrics()
         self.assertEqual(m['invested'],1000)
@@ -51,7 +60,7 @@ class FinancialRegressions(unittest.TestCase):
         self.assertEqual(rates.rub_to_base(500),5)
 
     def lease(self):
-        lid=self.db.execute("INSERT INTO leases(account_id,tenant,start_date,end_date,rent_amount,currency,pay_day) VALUES (?,'Tenant','2024-01-31','2024-03-31',100,'USD',31)",(self.aid,)).lastrowid
+        lid=self.db.execute("INSERT INTO leases(asset_id,tenant,start_date,end_date,rent_amount,currency,pay_day) VALUES (?,'Tenant','2024-01-31','2024-03-31',100,'USD',31)",(self.aid,)).lastrowid
         return self.db.execute('SELECT * FROM leases WHERE id=?',(lid,)).fetchone()
 
     def test_schedule_is_idempotent_and_clamps_leap_year_dates(self):

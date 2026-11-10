@@ -162,7 +162,7 @@ with patch.object(flask.Flask, '__init__', side_effect=AssertionError('app creat
     def test_legacy_route_still_persists_after_request(self):
         app = self.make_app()
         client = self.setup_client(app)
-        client.post('/accounts/save', data={'name': 'Before'})
+        client.post('/accounts/save', data={'name': 'Before', 'kind': 'realty'})
         client.post('/accounts/1/value', data={'current_value': '123'})
         runtime = app.extensions['wealth_manager']
         reader = Vault(runtime.vault.path)
@@ -186,7 +186,9 @@ with patch.object(flask.Flask, '__init__', side_effect=AssertionError('app creat
         path = self.root/'legacy.db'
         con = sqlite3.connect(str(path)); con.row_factory = sqlite3.Row
         init_db(con)
-        con.execute("INSERT INTO accounts(name,kind) VALUES ('Imported','broker')")
+        from wealth_manager.adapters.persistence.entities import SqliteFinancialAccountRepository
+        from wealth_manager.modules.accounts.domain import Account
+        SqliteFinancialAccountRepository(con).save(Account('Imported'))
         con.commit(); con.close()
         app = self.make_app('target', LEGACY_DB_PATH=path)
         client = self.setup_client(app)

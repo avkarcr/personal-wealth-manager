@@ -46,7 +46,7 @@ class Reports:
 
     @staticmethod
     def rental(data,acc,rates,today):
-        leases=sorted((l for l in data['leases'] if l['account_id']==acc['id']),key=lambda l:l['start_date'],reverse=True)
+        leases=sorted((l for l in data['leases'] if l['asset_id']==acc['id']),key=lambda l:l['start_date'],reverse=True)
         by_id={l['id']:l for l in leases}
         pays=[payment_view(dict(p,tenant=by_id[p['lease_id']]['tenant'],agent=by_id[p['lease_id']]['agent']),rates,today)
               for p in data['rent_payments'] if p['lease_id'] in by_id]
@@ -85,6 +85,8 @@ class Reports:
         nav=sorted((a for a in data['accounts'] if not a['archived']),key=lambda a:({'broker':0,'crypto':1,'realty':2,'other':3}.get(a['kind'],4),a['name']))
         used={r['currency'] for table in ('accounts','holdings','cashflows') for r in data[table]}
         return dict(base=rates.base,currencies=list(rates.r),nav_accounts=nav,
+                    nav_financial=[a for a in nav if a['kind'] not in ('realty','freelance')],
+                    nav_assets=[a for a in nav if a['kind']=='realty'],
                     nav_invest=[a for a in nav if a['kind']!='freelance'],nav_work=[a for a in nav if a['kind']=='freelance'],
                     missing_rates=sorted(c for c in used if c and c not in rates.r))
 

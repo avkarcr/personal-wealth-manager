@@ -8,7 +8,7 @@ from werkzeug.datastructures import MultiDict
 from db import init_db
 from wealth_manager.factory import create_app
 from wealth_manager.bootstrap import build_services
-from wealth_manager.modules.accounts.domain import Account
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.market_data.domain import Quote, ProviderError, NoExchangeSelected, MissingRate, positive, symbol
 from wealth_manager.adapters.market_data.providers import HttpClient, CryptoProvider, MoexProvider, CbrProvider

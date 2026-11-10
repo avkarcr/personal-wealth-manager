@@ -26,24 +26,33 @@
   </nav>
 
   <div class="side-head">
-    <span>{{ _('Инвестиции') }}</span>
+    <span>{{ _('Счета') }}</span>
     <button class="icon-btn" data-open="dlg-account" title="{{ _('Добавить счёт') }}">+</button>
   </div>
   <nav class="nav accounts">
-    {% for a in nav_invest %}
-      <a href="{{ url_for('account', aid=a.id) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
+    {% for a in nav_financial %}
+      <a href="{{ entity_url(a) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
         <i class="dot k-{{ a.kind }}"></i><span>{{ a.name }}</span></a>
     {% else %}
       <p class="muted small pad">{{ _('Пока нет счетов') }}</p>
     {% endfor %}
   </nav>
   <div class="side-head">
-    <span>{{ _('Фриланс') }}</span>
+    <span>{{ _('Активы') }}</span>
+    <button class="icon-btn" data-open="dlg-account" data-fill='{"kind": "realty"}' title="{{ _('Добавить актив') }}">+</button>
+  </div>
+  <nav class="nav accounts">
+    {% for a in nav_assets %}
+      <a href="{{ entity_url(a) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}"><i class="dot k-realty"></i><span>{{ a.name }}</span></a>
+    {% else %}<p class="muted small pad">{{ _('Пока нет активов') }}</p>{% endfor %}
+  </nav>
+  <div class="side-head">
+    <span>{{ _('Источники дохода') }}</span>
     <button class="icon-btn" data-open="dlg-account" data-fill='{"kind": "freelance"}' title="{{ _('Добавить источник дохода') }}">+</button>
   </div>
   <nav class="nav accounts">
     {% for a in nav_work %}
-      <a href="{{ url_for('account', aid=a.id) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
+      <a href="{{ entity_url(a) }}" class="{{ 'on' if request.view_args and request.view_args.get('aid')==a.id }}">
         <i class="dot k-{{ a.kind }}"></i><span>{{ a.name }}</span></a>
     {% else %}
       <a href="#" data-open="dlg-account" data-fill='{"kind": "freelance"}' class="muted small">{{ _('+ Площадка или клиент') }}</a>
@@ -72,7 +81,7 @@
 
 {# ── Диалог: счёт ── #}
 <dialog id="dlg-account" class="dlg">
-  <form method="post" action="{{ url_for('account_save') }}">
+  <form method="post" action="{{ url_for('account_save') }}" data-account-action="{{ url_for('account_save') }}" data-asset-action="{{ url_for('asset_save') }}" data-income-action="{{ url_for('income_source_save') }}">
     <header><h3 data-title-new="{{ _('Новый счёт') }}" data-title-edit="{{ _('Редактировать счёт') }}">{{ _('Новый счёт') }}</h3>
       <button type="button" class="x" data-close>×</button></header>
     <input type="hidden" name="id">
@@ -87,7 +96,7 @@
     <label class="fld"><span>{{ _('Название') }}</span><input name="name" required placeholder="{{ _('Например, ИИС, Bybit или Квартира на Ленина') }}"></label>
     <div class="row2">
       <label class="fld"><span data-kind-label>{{ _('Брокер / банк') }}</span><input name="institution" placeholder="{{ _('Т-Инвестиции, БКС…') }}"></label>
-      <label class="fld"><span>{{ _('Валюта счёта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>{{ _('Валюта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
     </div>
     <div class="only-realty">
       <div class="row2">
@@ -117,7 +126,7 @@
       {% endfor %}
     </div>
     <p class="hint small muted" data-flow-hint></p>
-    <label class="fld"><span>{{ _('Счёт') }}</span>
+    <label class="fld"><span>{{ _('Счёт, актив или источник дохода') }}</span>
       <select name="account_id" required>
         {% if nav_invest %}<optgroup label="{{ _('Инвестиции') }}">{% for a in nav_invest %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
         {% if nav_work %}<optgroup label="{{ _('Фриланс') }}">{% for a in nav_work %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}

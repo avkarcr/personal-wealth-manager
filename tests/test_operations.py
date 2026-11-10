@@ -9,7 +9,7 @@ from unittest.mock import patch
 from db import init_db
 from vault import Vault
 from wealth_manager.bootstrap import build_services
-from wealth_manager.modules.accounts.domain import Account
+from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.modules.rentals.domain import Lease, RentPayment, scheduled_payments, rent_cashflow
@@ -39,7 +39,8 @@ class OperationTests(unittest.TestCase):
         p = Position(self.other, ticker='sber', quantity=10, price=100)
         pid = self.s['positions'].save(p)
         self.s['positions'].save(replace(p, id=pid, price=120, avg_price=90))
-        cash = self.s['positions'].save(Position(self.aid, asset_class='Деньги', price=5, quantity=20))
+        third = self.s['save_account'].execute(Account('Other broker'))
+        cash = self.s['positions'].save(Position(third, asset_class='Деньги', price=5, quantity=20))
         self.s['positions'].update_prices(self.other, {pid: 130, cash: 900, 999: 10})
         rows = self.rows('holdings')
         self.assertEqual((rows[0]['name'], rows[0]['ticker'], rows[0]['avg_price'], rows[0]['price']), ('sber','SBER',90,130))
@@ -74,7 +75,7 @@ class OperationTests(unittest.TestCase):
         self.s['accounts'].toggle_archived(self.aid)
         lid,_=self.r.save_lease(self.lease, True)
         self.r.save_payment(RentPayment(lid,'2024-04-01',status='received'))
-        self.s['positions'].save(Position(self.aid))
+        # Positions belong to financial accounts, not properties.
         self.s['accounts'].delete(self.aid)
         for table in ('leases','rent_payments','cashflows','holdings'):
             self.assertEqual(self.rows(table), [], table)
@@ -95,13 +96,14 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(len(self.rows('cashflows')),1)
         flow=self.rows('cashflows')[0]
         self.assertEqual((flow['id'],flow['amount'],flow['pending'],flow['date']),(fid,9500,0,TODAY.isoformat()))
-        self.r.save_lease(replace(self.lease,id=lid,tenant='New tenant',account_id=self.other))
-        self.assertEqual((self.rows('cashflows')[0]['source'],self.rows('cashflows')[0]['account_id']),('New tenant',self.other))
+        new_asset=self.s['save_account'].execute(Account('Other home',kind='realty'))
+        self.r.save_lease(replace(self.lease,id=lid,tenant='New tenant',asset_id=new_asset))
+        self.assertEqual((self.rows('cashflows')[0]['source'],self.rows('cashflows')[0]['account_id']),('New tenant',new_asset))
         self.r.save_payment(replace(p,status='expected'))
         self.assertEqual(self.rows('cashflows'),[])
         self.r.save_payment(replace(p,status='received',received_amount=0))
         self.assertEqual(self.rows('cashflows')[0]['currency'],'USD')
-        self.assertEqual(self.r.delete_payment(pid),self.other)
+        self.assertEqual(self.r.delete_payment(pid),new_asset)
         self.assertEqual(self.rows('cashflows'),[]); self.assertEqual(self.rows('rent_payments'),[])
 
     def test_schedule_idempotent_trim_and_delete(self):
@@ -119,7 +121,7 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(self.rows('rent_payments'),[]);self.assertEqual(self.rows('cashflows'),[])
 
     def test_missing_entities_do_not_succeed_silently(self):
-        actions=[lambda:self.s['positions'].delete(999),lambda:self.s['positions'].save(Position(self.aid,id=999)),lambda:self.s['cashflows'].delete(999),lambda:self.s['accounts'].set_value(999,1),lambda:self.s['accounts'].toggle_archived(999),lambda:self.s['accounts'].delete(999),lambda:self.r.delete_lease(999),lambda:self.r.delete_payment(999),lambda:self.r.generate_schedule(999)]
+        actions=[lambda:self.s['positions'].delete(999),lambda:self.s['positions'].save(Position(self.other,id=999)),lambda:self.s['cashflows'].delete(999),lambda:self.s['accounts'].set_value(999,1),lambda:self.s['accounts'].toggle_archived(999),lambda:self.s['accounts'].delete(999),lambda:self.r.delete_lease(999),lambda:self.r.delete_payment(999),lambda:self.r.generate_schedule(999)]
         for action in actions:
             with self.subTest(action=action), self.assertRaises(EntityNotFound): action()
 

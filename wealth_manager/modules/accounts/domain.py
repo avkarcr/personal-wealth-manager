@@ -6,7 +6,9 @@ from typing import Optional
 
 KINDS = frozenset({"broker", "crypto", "realty", "other", "freelance"})
 
-class AccountNotFound(Exception):
+from wealth_manager.shared.errors import EntityNotFound
+
+class AccountNotFound(EntityNotFound):
     pass
 
 @dataclass(frozen=True)

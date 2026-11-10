@@ -20,6 +20,24 @@ class SqliteAccountRepository:
             "INSERT INTO accounts(name,kind,institution,currency,current_value,tax_rate,note) VALUES (?,?,?,?,?,?,?)",
             data).lastrowid
 
+    def get(self, record_id):
+        row = self.connection.execute("SELECT * FROM accounts WHERE id=?", (record_id,)).fetchone()
+        if row is None:
+            raise AccountNotFound(record_id)
+        return dict(row)
+
+    def set_value(self, record_id, value):
+        self.get(record_id)
+        self.connection.execute("UPDATE accounts SET current_value=? WHERE id=?", (value, record_id))
+
+    def toggle_archived(self, record_id):
+        self.get(record_id)
+        self.connection.execute("UPDATE accounts SET archived=1-archived WHERE id=?", (record_id,))
+
+    def delete(self, record_id):
+        self.get(record_id)
+        self.connection.execute("DELETE FROM accounts WHERE id=?", (record_id,))
+
     def record_purchase(self, account_id, currency, purchase):
         self.connection.execute(
             "INSERT INTO cashflows(account_id,date,type,amount,currency,note) VALUES (?,?,?,?,?,?)",

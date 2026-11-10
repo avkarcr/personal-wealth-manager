@@ -427,5 +427,7 @@
   "Эта операция создана из платежа по аренде — удалите сам платёж на странице объекта": "This transaction comes from a rent payment — delete the payment on the property page",
   "Сначала задайте курс USD": "Set the USD exchange rate first",
   "посуточно / разовые": "daily / one-off",
-  "Данные хранятся только у вас на компьютере, в зашифрованном файле invest.enc.": "Data is stored only on your computer in the encrypted invest.enc file."
+  "Данные хранятся только у вас на компьютере, в зашифрованном файле invest.enc.": "Data is stored only on your computer in the encrypted invest.enc file.",
+  "Договор сохранён, добавлено платежей в график: {count}": "Lease saved, scheduled payments added: {count}",
+  "Добавлено платежей в график: {count}": "Scheduled payments added: {count}"
 }

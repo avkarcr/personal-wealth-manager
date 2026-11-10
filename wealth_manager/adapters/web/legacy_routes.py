@@ -1,6 +1,5 @@
-"""Legacy HTTP handlers registered per app; business extraction is stage 2."""
-from decimal import Decimal, InvalidOperation
-from wealth_manager.modules.accounts.domain import Account, Purchase, AccountNotFound
+"""Legacy read models, settings and market integrations awaiting stage 3."""
+from .forms import f_str, f_float, back
 import csv
 import io
 import json
@@ -101,27 +100,6 @@ def register_routes(app, runtime):
             "today": date.today().isoformat(),
             "nav_accounts": nav,
         }
-
-
-    def f_decimal(name):
-        value = (request.form.get(name) or "0").strip().replace(" ", "").replace(" ", "").replace(",", ".")
-        return Decimal(value)
-
-
-    def f_float(name, default=0.0):
-        v = (request.form.get(name) or "").strip().replace(" ", "").replace(" ", "").replace(",", ".")
-        try:
-            return float(v) if v else default
-        except ValueError:
-            return default
-
-
-    def f_str(name, default=""):
-        return (request.form.get(name) or default).strip()
-
-
-    def back(default="dashboard", **kw):
-        return redirect(request.form.get("next") or request.referrer or url_for(default, **kw))
 
 
     def snapshot():
@@ -295,102 +273,6 @@ def register_routes(app, runtime):
 
 
     # ───────────────────────── аренда ─────────────────────────
-    @app.post("/leases/save")
-    def lease_save():
-        db = get_db()
-        lid = request.form.get("id")
-        freq = f_str("frequency", "month")
-        if freq not in calc.FREQ_LABELS:
-            abort(400)
-        try:
-            pay_day = max(0, min(31, int(f_str("pay_day") or 0)))
-        except ValueError:
-            pay_day = 0
-        data = (int(request.form["account_id"]), f_str("tenant") or "Арендатор", f_str("contact"),
-                f_str("start_date") or date.today().isoformat(), f_str("end_date"), f_float("rent_amount"),
-                f_str("currency", "RUB"), freq, pay_day, f_float("deposit_amount"), f_str("deposit_currency", "RUB"),
-                f_str("agent"), f_str("agent_fee"), f_str("utilities"), f_str("terms"))
-        cols = "account_id, tenant, contact, start_date, end_date, rent_amount, currency, frequency, pay_day, deposit_amount, " \
-               "deposit_currency, agent, agent_fee, utilities, terms"
-        if lid:
-            db.execute(f"UPDATE leases SET ({cols}) = ({','.join('?' * 15)}) WHERE id=?", data + (lid,))
-        else:
-            lid = db.execute(f"INSERT INTO leases({cols}) VALUES ({','.join('?' * 15)})", data).lastrowid
-        lease = db.execute("SELECT * FROM leases WHERE id=?", (lid,)).fetchone()
-        if lease["end_date"]:   # договор закончился раньше — убираем неоплаченные будущие периоды
-            db.execute("DELETE FROM rent_payments WHERE lease_id=? AND status='expected' AND period_start>?",
-                       (lid, lease["end_date"]))
-            db.execute("UPDATE rent_payments SET period_end=? WHERE lease_id=? AND period_end>?",
-                       (lease["end_date"], lid, lease["end_date"]))
-        n = calc.generate_schedule(db, lease) if request.form.get("schedule") else 0
-        db.commit()
-        flash("Договор сохранён" + (f", добавлено платежей в график: {n}" if n else ""))
-        return redirect(url_for("account", aid=lease["account_id"]) + "#rent")
-
-
-    @app.post("/leases/<int:lid>/schedule")
-    def lease_schedule(lid):
-        db = get_db()
-        lease = db.execute("SELECT * FROM leases WHERE id=?", (lid,)).fetchone() or abort(404)
-        n = calc.generate_schedule(db, lease)
-        db.commit()
-        flash(f"Добавлено платежей в график: {n}" if n else "График уже актуален")
-        return redirect(url_for("account", aid=lease["account_id"]) + "#rent")
-
-
-    @app.post("/leases/<int:lid>/delete")
-    def lease_delete(lid):
-        db = get_db()
-        lease = db.execute("SELECT * FROM leases WHERE id=?", (lid,)).fetchone() or abort(404)
-        db.execute("DELETE FROM cashflows WHERE rent_payment_id IN (SELECT id FROM rent_payments WHERE lease_id=?)", (lid,))
-        db.execute("DELETE FROM leases WHERE id=?", (lid,))
-        db.commit()
-        snapshot()
-        flash("Договор и его платежи удалены")
-        return redirect(url_for("account", aid=lease["account_id"]) + "#rent")
-
-
-    @app.post("/rent/save")
-    def rent_save():
-        db = get_db()
-        pid = request.form.get("id")
-        lease = db.execute("SELECT * FROM leases WHERE id=?", (int(request.form["lease_id"]),)).fetchone() or abort(400)
-        status = f_str("status", "expected")
-        if status not in calc.RENT_STATUS:
-            abort(400)
-        ps = f_str("period_start") or date.today().isoformat()
-        amount = f_float("amount") or lease["rent_amount"]
-        currency = f_str("currency") or lease["currency"]
-        rec_amount = f_float("received_amount")
-        rec_cur = f_str("received_currency", "RUB")
-        if status == "received" and not rec_amount:     # получил напрямую в валюте договора
-            rec_amount, rec_cur = amount, currency
-        data = (lease["id"], ps, f_str("period_end") or ps, f_str("due_date") or ps, amount, currency, status,
-                f_str("tenant_paid_date"), f_str("received_date") if status == "received" else "",
-                rec_amount if status == "received" else 0, rec_cur, f_float("cb_rate"), f_str("note"))
-        cols = "lease_id, period_start, period_end, due_date, amount, currency, status, tenant_paid_date, received_date, " \
-               "received_amount, received_currency, cb_rate, note"
-        if pid:
-            db.execute(f"UPDATE rent_payments SET ({cols}) = ({','.join('?' * 13)}) WHERE id=?", data + (pid,))
-        else:
-            pid = db.execute(f"INSERT INTO rent_payments({cols}) VALUES ({','.join('?' * 13)})", data).lastrowid
-        if status == "received" and not f_str("received_date"):
-            db.execute("UPDATE rent_payments SET received_date=? WHERE id=?", (date.today().isoformat(), pid))
-        calc.sync_rent_cashflow(db, pid)
-        db.commit()
-        snapshot()
-        return redirect(url_for("account", aid=lease["account_id"]) + "#rent")
-
-
-    @app.post("/rent/<int:pid>/delete")
-    def rent_delete(pid):
-        db = get_db()
-        row = db.execute("SELECT l.account_id FROM rent_payments p JOIN leases l ON l.id=p.lease_id WHERE p.id=?", (pid,)).fetchone() or abort(404)
-        db.execute("DELETE FROM cashflows WHERE rent_payment_id=?", (pid,))
-        db.execute("DELETE FROM rent_payments WHERE id=?", (pid,))
-        db.commit()
-        snapshot()
-        return redirect(url_for("account", aid=row["account_id"]) + "#rent")
 
 
     @app.get("/api/cbr")
@@ -468,130 +350,6 @@ def register_routes(app, runtime):
         return redirect(url_for("settings", _anchor="general"))
 
 
-    # ───────────────────────── счета ─────────────────────────
-    @app.post("/accounts/save")
-    def account_save():
-        try:
-            aid = request.form.get("id")
-            account = Account(
-                id=int(aid) if aid else None,
-                name=f_str("name") or "Без названия", kind=f_str("kind", "broker"),
-                institution=f_str("institution"), currency=f_str("currency", "RUB"),
-                current_value=f_decimal("current_value"), tax_rate=f_decimal("tax_rate"),
-                note=f_str("note"),
-            )
-            purchase = None
-            if account.id is None and account.kind == "realty":
-                purchase = Purchase(f_decimal("purchase_price"),
-                                    date.fromisoformat(f_str("purchase_date") or date.today().isoformat()))
-            aid = services["save_account"].execute(account, purchase)
-        except (ValueError, InvalidOperation):
-            abort(400)
-        except AccountNotFound:
-            abort(404)
-        return redirect(url_for("account", aid=aid))
-
-
-    @app.post("/accounts/<int:aid>/value")
-    def account_value(aid):
-        db = get_db()
-        db.execute("UPDATE accounts SET current_value=? WHERE id=?", (f_float("current_value"), aid))
-        db.commit()
-        snapshot()
-        return redirect(url_for("account", aid=aid))
-
-
-    @app.post("/accounts/<int:aid>/archive")
-    def account_archive(aid):
-        db = get_db()
-        db.execute("UPDATE accounts SET archived = 1 - archived WHERE id=?", (aid,))
-        db.commit()
-        flash("Статус счёта изменён")
-        return back()
-
-
-    @app.post("/accounts/<int:aid>/delete")
-    def account_delete(aid):
-        db = get_db()
-        db.execute("DELETE FROM accounts WHERE id=?", (aid,))
-        db.commit()
-        flash("Счёт удалён")
-        return redirect(url_for("dashboard"))
-
-
-    @app.post("/accounts/<int:aid>/history")
-    def account_history_point(aid):
-        """Ручная историческая оценка — чтобы график начинался не с сегодняшнего дня."""
-        db = get_db()
-        rates = calc.Rates(db)
-        acc = db.execute("SELECT * FROM accounts WHERE id=?", (aid,)).fetchone() or abort(404)
-        d = f_str("date") or date.today().isoformat()
-        value_rub = rates.to_rub(f_float("value"), f_str("currency", acc["currency"]))
-        inv = 0.0
-        for f in db.execute("SELECT * FROM cashflows WHERE account_id=? AND date<=?", (aid, d)):
-            if f["type"] == "deposit":
-                inv += rates.to_rub(f["amount"], f["currency"])
-            elif f["type"] == "withdrawal":
-                inv -= rates.to_rub(f["amount"], f["currency"])
-        db.execute("INSERT INTO snapshots(date, account_id, value_rub, invested_rub) VALUES (?,?,?,?) "
-                   "ON CONFLICT(date, account_id) DO UPDATE SET value_rub=excluded.value_rub, invested_rub=excluded.invested_rub",
-                   (d, aid, value_rub, inv or value_rub))
-        db.commit()
-        flash("Точка истории добавлена")
-        return redirect(url_for("account", aid=aid))
-
-
-    # ───────────────────────── позиции ─────────────────────────
-    @app.post("/holdings/save")
-    def holding_save():
-        db = get_db()
-        hid = request.form.get("id")
-        cls = f_str("asset_class", "Акции")
-        qty = f_float("quantity")
-        price = f_float("price")
-        avg = f_float("avg_price") or price
-        if cls == "Деньги":
-            price = avg = 1.0
-        data = (int(request.form["account_id"]), f_str("name") or f_str("ticker") or "Позиция", f_str("ticker").upper(),
-                cls, f_str("currency", "RUB"), qty, avg, price, date.today().isoformat())
-        if hid:
-            db.execute("UPDATE holdings SET account_id=?, name=?, ticker=?, asset_class=?, currency=?, quantity=?, "
-                       "avg_price=?, price=?, updated_at=? WHERE id=?", data + (hid,))
-        else:
-            db.execute("INSERT INTO holdings(account_id, name, ticker, asset_class, currency, quantity, avg_price, price, updated_at) "
-                       "VALUES (?,?,?,?,?,?,?,?,?)", data)
-        db.commit()
-        snapshot()
-        return back()
-
-
-    @app.post("/holdings/<int:hid>/delete")
-    def holding_delete(hid):
-        db = get_db()
-        db.execute("DELETE FROM holdings WHERE id=?", (hid,))
-        db.commit()
-        snapshot()
-        return back()
-
-
-    @app.post("/accounts/<int:aid>/prices")
-    def account_prices(aid):
-        """Быстрое обновление цен сразу по всем позициям счёта."""
-        db = get_db()
-        for key, val in request.form.items():
-            if key.startswith("price_"):
-                try:
-                    p = float(val.replace(",", ".").replace(" ", "").replace(" ", ""))
-                except ValueError:
-                    continue
-                db.execute("UPDATE holdings SET price=?, updated_at=? WHERE id=? AND account_id=?",
-                           (p, date.today().isoformat(), int(key[6:]), aid))
-        db.commit()
-        snapshot()
-        flash("Цены обновлены")
-        return redirect(url_for("account", aid=aid))
-
-
     def _iss_rows(block):
         cols = block.get("columns", [])
         return [dict(zip(cols, r)) for r in block.get("data", [])]
@@ -657,16 +415,16 @@ def register_routes(app, runtime):
             flash("Добавьте курс USD в «Курсах и данных» — цены монет приходят в долларах")
             return redirect(url_for("account", aid=aid))
         ok, fail = 0, []
+        prices = {}
         for h in db.execute("SELECT * FROM holdings WHERE account_id=? AND ticker<>'' AND asset_class<>'Деньги'", (aid,)).fetchall():
             p = crypto_usd(h["ticker"])
             if p is not None:
                 price = p * usd / rates.r.get(h["currency"], usd)
-                db.execute("UPDATE holdings SET price=?, updated_at=? WHERE id=?", (price, date.today().isoformat(), h["id"]))
+                prices[h["id"]] = price
                 ok += 1
             else:
                 fail.append(h["ticker"])
-        db.commit()
-        snapshot()
+        services["positions"].update_prices(aid, prices)
         flash(f"Обновлено цен: {ok}" + (f". Не найдены на биржах: {', '.join(fail)}" if fail else ""))
         return redirect(url_for("account", aid=aid))
 
@@ -675,72 +433,20 @@ def register_routes(app, runtime):
     def account_moex(aid):
         db = get_db()
         ok, fail = 0, []
+        prices = {}
         for h in db.execute("SELECT * FROM holdings WHERE account_id=? AND ticker<>'' AND asset_class<>'Деньги'", (aid,)).fetchall():
             try:
                 p = moex_price(h["ticker"])
             except Exception:
                 p = None
             if p:
-                db.execute("UPDATE holdings SET price=?, updated_at=? WHERE id=?", (p, date.today().isoformat(), h["id"]))
+                prices[h["id"]] = p
                 ok += 1
             else:
                 fail.append(h["ticker"])
-        db.commit()
-        snapshot()
+        services["positions"].update_prices(aid, prices)
         flash(f"Обновлено цен: {ok}" + (f". Не найдены на MOEX: {', '.join(fail)}" if fail else ""))
         return redirect(url_for("account", aid=aid))
-
-
-    # ───────────────────────── операции ─────────────────────────
-    @app.post("/flows/save")
-    def flow_save():
-        db = get_db()
-        fid = request.form.get("id")
-        if fid and db.execute("SELECT rent_payment_id FROM cashflows WHERE id=?", (fid,)).fetchone()["rent_payment_id"]:
-            flash("Эта операция создана из платежа по аренде — измените сам платёж на странице объекта")
-            return back()
-        ftype = f_str("type", "deposit")
-        if ftype not in calc.FLOW_LABELS:
-            abort(400)
-        pending = 1 if (request.form.get("pending") and ftype == "income") else 0
-        data = (int(request.form["account_id"]), f_str("date") or date.today().isoformat(), ftype,
-                abs(f_float("amount")), f_str("currency", "RUB").upper(), f_str("category"), f_str("source"), pending, f_str("note"))
-        if fid:
-            db.execute("UPDATE cashflows SET account_id=?, date=?, type=?, amount=?, currency=?, category=?, source=?, pending=?, note=? "
-                       "WHERE id=?", data + (fid,))
-        else:
-            db.execute("INSERT INTO cashflows(account_id, date, type, amount, currency, category, source, pending, note) "
-                       "VALUES (?,?,?,?,?,?,?,?,?)", data)
-        db.commit()
-        snapshot()
-        return back()
-
-
-    @app.post("/flows/<int:fid>/paid")
-    def flow_paid(fid):
-        db = get_db()
-        row = db.execute("SELECT c.rent_payment_id, l.account_id FROM cashflows c LEFT JOIN rent_payments p ON p.id=c.rent_payment_id "
-                         "LEFT JOIN leases l ON l.id=p.lease_id WHERE c.id=?", (fid,)).fetchone()
-        if row and row["rent_payment_id"]:
-            flash("Отметьте получение денег от риелтора в платеже — там же укажите сумму и курс")
-            return redirect(url_for("account", aid=row["account_id"]) + "#rent")
-        db.execute("UPDATE cashflows SET pending=0, date=? WHERE id=?", (date.today().isoformat(), fid))
-        db.commit()
-        flash("Отмечено как полученное")
-        return back()
-
-
-    @app.post("/flows/<int:fid>/delete")
-    def flow_delete(fid):
-        db = get_db()
-        row = db.execute("SELECT rent_payment_id FROM cashflows WHERE id=?", (fid,)).fetchone()
-        if row and row["rent_payment_id"]:
-            flash("Эта операция создана из платежа по аренде — удалите сам платёж на странице объекта")
-            return back()
-        db.execute("DELETE FROM cashflows WHERE id=?", (fid,))
-        db.commit()
-        snapshot()
-        return back()
 
 
     # ───────────────────────── курсы и настройки ─────────────────────────

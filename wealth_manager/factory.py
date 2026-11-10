@@ -8,6 +8,7 @@ from flask import Flask
 from wealth_manager.bootstrap import build_runtime
 from wealth_manager.adapters.web.i18n import install_i18n
 from wealth_manager.adapters.web.legacy_routes import register_routes
+from wealth_manager.adapters.web.commands import register_commands
 from wealth_manager.adapters.web.security import install_vault_hooks
 
 
@@ -39,4 +40,5 @@ def create_app(config=None, *, vault=None):
     install_vault_hooks(app, runtime)
     install_i18n(app, runtime.vault)
     register_routes(app, runtime)
+    register_commands(app, runtime)
     return app

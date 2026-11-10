@@ -15,20 +15,11 @@ def gettext(message):
 def install_i18n(app, vault):
     @app.before_request
     def prepare_request():
-        # All legacy routes share the same memory connection. Hold its lock for
-        # the complete request, including after_request persistence.
-        vault.lock_.acquire()
-        g.vault_lock_held = True
         language = session.get('language', 'ru')
         if vault.unlocked:
             language = SqlitePreferencesRepository(vault.con).get_language()
             session['language'] = language
         g.language = language if language in ('ru', 'en') else 'ru'
-
-    @app.teardown_request
-    def release_request_lock(error):
-        if g.pop('vault_lock_held', False):
-            vault.lock_.release()
 
     @app.context_processor
     def translations():

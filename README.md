@@ -88,5 +88,31 @@
 python -m pip install -r requirements-dev.txt
 python -m coverage run -m unittest discover -s tests -v
 python -m coverage report
-python -m coverage report --include='wealth_manager/*' --fail-under=95
+python -m coverage report --include='wealth_manager/*' --omit='wealth_manager/adapters/web/legacy_routes.py' --fail-under=95
 ```
+
+### Фабрика приложения и жизненный цикл
+
+`python app.py` и существующие скрипты запуска работают как прежде. При импорте
+`app` приложение, хранилище и потоки не создаются. `create_app()` создаёт независимый
+экземпляр Flask; конфигурация читается при вызове фабрики.
+
+```python
+from app import create_app
+
+app = create_app({"VAULT_PATH": "/path/to/invest.enc", "IDLE_MINUTES": 15})
+runtime = app.extensions["wealth_manager"]
+try:
+    runtime.start()  # фоновая автоблокировка; повторный вызов безопасен
+    app.run(host="127.0.0.1", port=5050, use_reloader=False)
+finally:
+    runtime.close()  # останавливает поток, сохраняет и блокирует хранилище
+```
+
+В тестах фон не запускается: достаточно создать приложение и затем закрыть runtime.
+Проверка бездействия при защищённом HTTP-запросе работает и без фонового потока.
+`runtime.close()` вызывается владельцем приложения вне запроса, а не из Flask teardown.
+Каждому независимому экземпляру нужен собственный файл хранилища.
+
+Порог 95% применяется к новому коду. `legacy_routes.py` содержит перенесённые старые
+обработчики: они входят в общий отчёт покрытия, но не в порог нового пакета.

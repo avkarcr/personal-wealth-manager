@@ -1,28 +1,29 @@
-import json
-import os
 from pathlib import Path
 import re
 import tempfile
 import unittest
 
-# Import the legacy entry point with an isolated vault, never the user's file.
-TMP = tempfile.TemporaryDirectory()
-os.environ['INVEST_VAULT'] = str(Path(TMP.name) / 'invest.enc')
-import db
-db.VAULT_PATH = os.environ['INVEST_VAULT']
-import app as web
+from wealth_manager.factory import create_app
 from db import init_db
 from wealth_manager.adapters.web.i18n import EN
 
 class WebTests(unittest.TestCase):
     def setUp(self):
-        web.VAULT.lock()
-        init_db(web.VAULT.create('password123'))
-        web.VAULT.save(force=True)
-        web.app.config['TESTING'] = True
-        self.client = web.app.test_client()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.app = create_app({
+            "TESTING": True,
+            "VAULT_PATH": str(Path(self.tmp.name) / "invest.enc"),
+            "LEGACY_DB_PATH": str(Path(self.tmp.name) / "invest.db"),
+        })
+        self.runtime = self.app.extensions["wealth_manager"]
+        self.addCleanup(self.runtime.close)
+        self.vault = self.runtime.vault
+        init_db(self.vault.create('password123'))
+        self.vault.save(force=True)
+        self.client = self.app.test_client()
         with self.client.session_transaction() as session:
-            session['vault'] = web.VAULT.token
+            session['vault'] = self.vault.token
 
     def test_default_language_and_switch_both_ways(self):
         response = self.client.get('/settings')

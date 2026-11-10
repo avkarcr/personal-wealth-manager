@@ -1,11 +1,4 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-import os
-import sqlite3
-
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-VAULT_PATH = os.environ.get("INVEST_VAULT", os.path.join(APP_DIR, "invest.enc"))
-LEGACY_DB_PATH = os.environ.get("INVEST_DB", os.path.join(APP_DIR, "invest.db"))   # незашифрованная база v1–v2
-
 SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -99,24 +92,6 @@ CREATE TABLE IF NOT EXISTS settings (
 """
 
 DEFAULT_RATES = {"RUB": 1.0, "USD": 82.0, "EUR": 95.0, "CNY": 11.4}
-
-_vault = None
-
-
-def set_vault(v):
-    global _vault
-    _vault = v
-
-
-def get_db():
-    if _vault is None or not _vault.unlocked:
-        raise RuntimeError("Хранилище заблокировано")
-    return _vault.con
-
-
-def close_db(_exc=None):
-    pass
-
 
 def _columns(con, table):
     return {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}

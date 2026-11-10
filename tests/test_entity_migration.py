@@ -73,6 +73,20 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(self.vault.dirty());self.assertEqual(Path(self.vault.path).read_bytes(),encrypted)
         self.vault.lock();self.vault.unlock('password123');self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],3)
 
+    def test_sql_dump_fallback_preserves_schema_version_and_reopens(self):
+        initialize_vault(self.vault)
+        connection=self.vault.con
+        class DumpOnlyConnection:
+            def __getattr__(self,name):
+                if name=='serialize':raise AttributeError(name)
+                return getattr(connection,name)
+        self.vault.con=DumpOnlyConnection()
+        self.vault.save(force=True)
+        self.vault.lock();self.vault.unlock('password123')
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],4)
+        before=self.summaries();db.init_db(self.vault.con)
+        self.assertEqual(self.summaries(),before)
+
     def test_failed_unlock_migration_cannot_be_bypassed_on_retry(self):
         encrypted=Path(self.vault.path).read_bytes()
         self.vault.lock()

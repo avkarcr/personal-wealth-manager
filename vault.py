@@ -131,7 +131,10 @@ class Vault:
             if hasattr(self.con, "serialize"):
                 payload = b"S" + self.con.serialize()
             else:  # Python < 3.11
-                payload = b"D" + "\n".join(self.con.iterdump()).encode("utf-8")
+                # iterdump omits header PRAGMAs; migration version must survive unlock.
+                version = self.con.execute("PRAGMA user_version").fetchone()[0]
+                script = "\n".join(self.con.iterdump()) + f"\nPRAGMA user_version={int(version)};\n"
+                payload = b"D" + script.encode("utf-8")
             nonce = os.urandom(12)
             header = MAGIC + self._salt + struct.pack(">III", *self._params) + nonce
             blob = header + AESGCM(self._key).encrypt(nonce, payload, header)

@@ -18,11 +18,37 @@
   </form>
 </section>
 
+<section class="card" id="market">
+  <h2>{{ _('Страна и криптобиржи') }}</h2>
+  <form method="get" action="{{ url_for('settings') }}#market">
+    <label class="fld"><span>{{ _('Страна проживания (код ISO)') }}</span>
+      <input name="country" value="{{ market.country }}" pattern="[A-Za-z]{2}" maxlength="2" placeholder="RU" list="countries" required>
+      <datalist id="countries"><option value="RU"><option value="KZ"><option value="GE"><option value="AE"><option value="DE"><option value="GB"><option value="US"><option value="CA"><option value="KR"><option value="JP"><option value="SG"></datalist>
+    </label>
+    <button class="btn">{{ _('Показать биржи для страны') }}</button>
+  </form>
+  {% if market.country %}
+  <form method="post" action="{{ url_for('market_settings_save') }}">
+    <input type="hidden" name="country" value="{{ market.country }}">
+    <p>{{ _('Источники котировок для страны') }}: <b>{{ market.country }}</b></p>
+    {% for exchange in market.choices %}
+    <p><label><input type="checkbox" name="exchanges" value="{{ exchange.id }}" {{ 'checked' if exchange.id in market.exchanges }} {{ 'disabled' if exchange.status == 'excluded' }}>
+      {{ exchange.name }}</label> — {{ _('Исключена для этой страны') if exchange.status == 'excluded' else _('Есть ограничения отдельных услуг') if exchange.status == 'limited' else _('Проверьте условия для вашего региона') }}
+      <a href="{{ exchange.source }}" target="_blank" rel="noopener noreferrer">{{ _('Условия биржи') }}</a></p>
+    {% endfor %}
+    <button class="btn primary">{{ _('Сохранить страну и биржи') }}</button>
+  </form>
+  {% endif %}
+  <p class="muted small">{{ _('Выбор сохраняется отдельно для каждой страны. Резервные запросы идут только на отмеченные биржи в порядке списка. Без выбранных бирж автоматические криптокотировки отключены.') }}</p>
+  <p class="muted small">{{ _('Публичные котировки не подтверждают доступность регистрации, торговли или платежей. Ограничения зависят также от региона и услуг. Проверка справочника:') }} {{ market.reviewed_at }}.</p>
+  <p class="muted small">{{ _('Котировки пар к USDT пересчитываются через USD с допущением 1 USDT ≈ 1 USD.') }}</p>
+</section>
+
 <section class="card">
   <div class="card-head"><h2>{{ _('Курсы валют к рублю') }}</h2>
     <div class="actions">
       <form method="post" action="{{ url_for('rates_cbr') }}" title="{{ _('Запрос к cbr.ru, без ваших данных') }}"><button class="btn sm ghost">{{ _('Курсы ЦБ') }}</button></form>
-      <form method="post" action="{{ url_for('rates_crypto') }}" title="{{ _('Курсы монет из списка ниже с Binance / Bybit / OKX, через USD') }}"><button class="btn sm ghost">{{ _('Курсы крипты') }}</button></form>
+      <form method="post" action="{{ url_for('rates_crypto') }}" title="{{ _('Курсы монет с выбранных бирж для вашей страны, через USD') }}"><button class="btn sm ghost">{{ _('Курсы крипты') }}</button></form>
     </div></div>
   <form method="post" action="{{ url_for('rates_save') }}">
     <table class="tbl compact">

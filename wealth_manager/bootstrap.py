@@ -10,9 +10,21 @@ from wealth_manager.modules.cashflows.application import CashflowCommands
 from wealth_manager.modules.rentals.application import RentalCommands
 
 
-def build_services(vault, *, today=date.today):
+def build_services(vault, *, today=date.today, http=None, catalog=None):
+    import json
+    from pathlib import Path
+    from wealth_manager.adapters.persistence.reports import SqliteReportRepository
+    from wealth_manager.modules.reporting.application import Reports
+    from wealth_manager.modules.market_data.application import MarketData
+    from wealth_manager.modules.market_data.domain import ExchangeCatalog
+    from wealth_manager.adapters.market_data.providers import HttpClient, CryptoProvider, MoexProvider, CbrProvider
+    http = http or HttpClient()
+    catalog = catalog or ExchangeCatalog(json.loads((Path(__file__).parent / 'adapters/market_data/exchanges.json').read_text()))
+    reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault)
-    return {"save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),
+    return {"reports": Reports(reports, today),
+            "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),
+            "save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),
             "accounts": AccountCommands(factory), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
 

@@ -1,6 +1,7 @@
 """Serialize mutations with vault locking and restore memory if persistence fails."""
 import sqlite3
 import calc
+from .market_data import SqliteMarketPreferences, SqliteRateRepository
 from .operations import SqlitePositionRepository, SqliteCashflowRepository, SqliteRentalRepository, SqliteValuationRepository
 from .sqlite import SqliteAccountRepository, SqlitePreferencesRepository
 
@@ -19,6 +20,8 @@ class VaultUnitOfWork:
                 raise RuntimeError("Cannot nest a unit of work in an active transaction")
             self.before = sqlite3.connect(":memory:")
             self.connection.backup(self.before)
+            self.market_preferences = SqliteMarketPreferences(self.connection)
+            self.rates = SqliteRateRepository(self.connection)
             self.positions = SqlitePositionRepository(self.connection)
             self.cashflows = SqliteCashflowRepository(self.connection)
             self.rentals = SqliteRentalRepository(self.connection)

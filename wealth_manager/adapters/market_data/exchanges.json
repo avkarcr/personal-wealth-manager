@@ -1,0 +1,64 @@
+{
+  "reviewed_at": "2026-11-10",
+  "exchanges": [
+    {
+      "id": "binance",
+      "name": "Binance",
+      "excluded_countries": [
+        "RU"
+      ],
+      "limited_countries": [],
+      "source": "https://www.binance.com/en/blog/all/8578760889994024403"
+    },
+    {
+      "id": "bybit",
+      "name": "Bybit",
+      "excluded_countries": [
+        "US",
+        "CN",
+        "HK",
+        "SG",
+        "CA",
+        "KP",
+        "CU",
+        "IR",
+        "UZ",
+        "SD",
+        "SY"
+      ],
+      "limited_countries": [
+        "AE"
+      ],
+      "source": "https://www.bybit.com/en/help-center/article/Service-Restricted-Countries"
+    },
+    {
+      "id": "okx",
+      "name": "OKX",
+      "excluded_countries": [
+        "AF",
+        "CA",
+        "CU",
+        "HK",
+        "IR",
+        "IN",
+        "JP",
+        "MY",
+        "NP",
+        "KP",
+        "SY",
+        "UZ"
+      ],
+      "limited_countries": [
+        "RU",
+        "US",
+        "AU",
+        "BS",
+        "BR",
+        "ER",
+        "KR",
+        "GB"
+      ],
+      "source": "https://www.okx.com/help/risk-compliance-disclosure"
+    }
+  ]
+}

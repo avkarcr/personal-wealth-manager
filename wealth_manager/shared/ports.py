@@ -37,7 +37,12 @@ class ValuationRepository(Protocol):
     def save_history(self, account_id: int, day: str, value_rub: float, invested_rub: float) -> None: ...
 
 
+from wealth_manager.modules.market_data.ports import MarketPreferences, RateRepository
+
+
 class UnitOfWork(Protocol):
+    market_preferences: MarketPreferences
+    rates: RateRepository
     accounts: AccountRepository
     positions: PositionRepository
     cashflows: CashflowRepository

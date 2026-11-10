@@ -52,7 +52,7 @@
     {% if rows %}
     <div class="actions">
       {% if acc.kind in ('crypto', 'other') %}
-      <form method="post" action="{{ url_for('account_crypto', aid=acc.id) }}" title="{{ _('Цены монет в USDT с публичных API Binance / Bybit / OKX (отправляются только тикеры)') }}">
+      <form method="post" action="{{ url_for('account_crypto', aid=acc.id) }}" title="{{ _('Цены монет с выбранных для страны бирж (отправляются только тикеры)') }}">
         <button class="btn sm ghost">{{ _('Цены с бирж') }}</button></form>{% endif %}
       {% if acc.kind in ('broker', 'other') %}
       <form method="post" action="{{ url_for('account_moex', aid=acc.id) }}" title="{{ _('Загрузить последние цены с Московской биржи по тикерам (отправляются только тикеры)') }}">

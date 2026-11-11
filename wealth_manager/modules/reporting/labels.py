@@ -1,24 +1,14 @@
+from wealth_manager.shared.classifications import ASSET_LABELS
 KIND_LABELS = {"broker": "Брокерский счёт", "crypto": "Криптобиржа / кошелёк", "realty": "Недвижимость",
                "other": "Прочее", "freelance": "Фриланс"}
 KIND_SHORT = {"broker": "Фондовый рынок", "crypto": "Крипто", "realty": "Недвижимость", "other": "Прочее", "freelance": "Фриланс"}
 INVEST_KINDS = ("broker", "crypto", "realty", "other")
 FLOW_LABELS = {"deposit": "Пополнение", "withdrawal": "Вывод", "income": "Доход", "expense": "Расход"}
-ASSET_CLASSES = ["Акции", "Облигации", "Фонды", "Деньги", "Золото", "Крипто", "Стейблкоины", "Прочее"]
+ASSET_CLASSES = list(ASSET_LABELS)
 STABLECOINS = {"USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "PYUSD"}
 
 # Подсказки категорий в форме операции (можно вводить и свои)
-CATEGORIES = {
-    "broker": {"income": ["Дивиденды", "Купоны", "Проценты на остаток", "Налоговый вычет (ИИС)"],
-               "expense": ["Комиссия брокера", "Налог", "Обслуживание счёта"]},
-    "crypto": {"income": ["Стейкинг", "Фарминг / LP", "Аирдроп", "Лаунчпул", "Earn / сбережения", "P2P",
-                          "Трейдинг", "Рефералы", "Ноды / валидатор"],
-               "expense": ["Комиссия биржи", "Газ (комиссия сети)", "Налог", "Комиссия P2P"]},
-    "realty": {"income": ["Аренда", "Посуточная аренда"],
-               "expense": ["Коммунальные платежи", "Ремонт", "Налог", "Ипотека — проценты", "Страховка"]},
-    "other": {"income": ["Проценты", "Доход"], "expense": ["Комиссия", "Налог"]},
-    "freelance": {"income": ["Проект", "Почасовая работа", "Абонентская оплата", "Бонус", "Консультация"],
-                  "expense": ["Комиссия площадки", "Налог (НПД)", "Софт и сервисы", "Вывод / конвертация"]},
-}
+CATEGORIES = {'broker': {'income': ['dividends', 'coupons', 'cash_interest', 'iis_deduction'], 'expense': ['broker_fee', 'tax', 'account_service']}, 'crypto': {'income': ['staking', 'farming', 'airdrop', 'launchpool', 'earn', 'p2p', 'trading', 'referrals', 'nodes'], 'expense': ['exchange_fee', 'gas', 'tax', 'p2p_fee']}, 'realty': {'income': ['rent', 'daily_rent'], 'expense': ['utilities', 'repairs', 'tax', 'mortgage_interest', 'insurance']}, 'other': {'income': ['interest', 'income'], 'expense': ['fee', 'tax']}, 'freelance': {'income': ['project', 'hourly_work', 'subscription', 'bonus', 'consulting'], 'expense': ['platform_fee', 'npd_tax', 'software', 'conversion']}}
 
 
 

@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -252,7 +252,8 @@ def init_db(con):
                 _init_legacy(con)
                 _migrate_entities(con)
             if version < 5: _migrate_planning(con)
-            _migrate_research(con)
+            if version < 6: _migrate_research(con)
+            _migrate_classifications(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -366,3 +367,37 @@ def _migrate_research(con):
     except BaseException:
         con.rollback()
         raise
+
+
+# Frozen migration mapping: future display labels must not change migration behavior.
+ASSET_CODES_V7 = {'Акции': 'stocks', 'Облигации': 'bonds', 'Фонды': 'funds', 'Деньги': 'cash', 'Золото': 'gold', 'Крипто': 'crypto', 'Стейблкоины': 'stablecoins', 'Прочее': 'other'}
+CATEGORY_CODES_V7 = {'Дивиденды': 'dividends', 'Купоны': 'coupons', 'Проценты на остаток': 'cash_interest', 'Налоговый вычет (ИИС)': 'iis_deduction', 'Комиссия брокера': 'broker_fee', 'Налог': 'tax', 'Обслуживание счёта': 'account_service', 'Стейкинг': 'staking', 'Фарминг / LP': 'farming', 'Аирдроп': 'airdrop', 'Лаунчпул': 'launchpool', 'Earn / сбережения': 'earn', 'P2P': 'p2p', 'Трейдинг': 'trading', 'Рефералы': 'referrals', 'Ноды / валидатор': 'nodes', 'Комиссия биржи': 'exchange_fee', 'Газ (комиссия сети)': 'gas', 'Комиссия P2P': 'p2p_fee', 'Аренда': 'rent', 'Посуточная аренда': 'daily_rent', 'Коммунальные платежи': 'utilities', 'Ремонт': 'repairs', 'Ипотека — проценты': 'mortgage_interest', 'Страховка': 'insurance', 'Проценты': 'interest', 'Доход': 'income', 'Комиссия': 'fee', 'Проект': 'project', 'Почасовая работа': 'hourly_work', 'Абонентская оплата': 'subscription', 'Бонус': 'bonus', 'Консультация': 'consulting', 'Комиссия площадки': 'platform_fee', 'Налог (НПД)': 'npd_tax', 'Софт и сервисы': 'software', 'Вывод / конвертация': 'conversion'}
+
+
+def _migrate_classifications(con):
+    con.execute('PRAGMA foreign_keys=OFF')
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        con.execute("ALTER TABLE holdings ADD COLUMN asset_class_code TEXT NOT NULL DEFAULT 'stocks'")
+        con.execute("UPDATE holdings SET asset_class_code='custom'")
+        for label,code in ASSET_CODES_V7.items():
+            con.execute("UPDATE holdings SET asset_class_code=?,asset_class='' WHERE asset_class=?",(code,label))
+        # Rebuild only holdings to replace its legacy SQL default. IDs and referencing FKs stay intact.
+        rows=con.execute('SELECT * FROM holdings').fetchall()
+        schema=con.execute("SELECT sql FROM sqlite_master WHERE name='holdings'").fetchone()[0]
+        extras=con.execute("SELECT sql FROM sqlite_master WHERE tbl_name='holdings' AND type IN ('index','trigger') AND sql IS NOT NULL").fetchall()
+        con.execute('DROP TABLE holdings')
+        con.execute(schema.replace("DEFAULT 'Акции'", "DEFAULT ''"))
+        if rows: con.executemany('INSERT INTO holdings VALUES ('+','.join('?' for _ in rows[0])+')',[tuple(r) for r in rows])
+        for row in extras: con.execute(row[0])
+        con.execute("ALTER TABLE cashflows ADD COLUMN category_code TEXT NOT NULL DEFAULT ''")
+        for label,code in CATEGORY_CODES_V7.items():
+            con.execute("UPDATE cashflows SET category_code=?,category='' WHERE category=?",(code,label))
+        if con.execute('PRAGMA foreign_key_check').fetchall(): raise ValueError('Classification migration broke links')
+        con.execute('PRAGMA user_version=7')
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    finally:
+        con.execute('PRAGMA foreign_keys=ON')

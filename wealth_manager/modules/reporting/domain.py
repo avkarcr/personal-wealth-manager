@@ -1,3 +1,4 @@
+from wealth_manager.shared.classifications import category_key
 """Pure read models. Inputs are detached records, never database connections."""
 from collections import defaultdict
 from datetime import timedelta
@@ -129,7 +130,7 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
         tot["freelance" if r["kind"] == "freelance" else "passive"] += amt
         if m == this_month:
             tot["this_month"] += amt
-        by_cat[(r["category"] or "Без категории", r["kind"])] += amt
+        by_cat[(category_key(r), r["kind"])] += amt
         by_src[(r["source"] or r["acc_name"], r["kind"])] += amt
 
     # средний месяц — по месяцам с начала учёта (не больше длины периода)

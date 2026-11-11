@@ -133,7 +133,7 @@
 {% if items %}
 <script>
   const HIST = {{ hist|tojson }};
-  const CLASSES = {{ by_class|tojson }};
+  const CLASSES = {{ by_class|class_labels|tojson }};
   const BASE = {{ (sign.get(base, base))|tojson }};
   Charts.history('#hist-chart', HIST, BASE, '#hist-range');
   Charts.donut('#class-donut', '#class-legend', CLASSES, BASE);

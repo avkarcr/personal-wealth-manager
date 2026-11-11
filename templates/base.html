@@ -136,11 +136,11 @@
         {% if nav_invest %}<optgroup label="{{ _('Инвестиции') }}">{% for a in nav_invest %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
         {% if nav_work %}<optgroup label="{{ _('Фриланс') }}">{% for a in nav_work %}<option value="{{ a.id }}" data-kind="{{ a.kind }}">{{ a.name }}</option>{% endfor %}</optgroup>{% endif %}
       </select></label>
-    <div class="row2 cat-row">
-      <label class="fld"><span>{{ _('Категория') }}</span><input name="category" list="cat-list" placeholder="{{ _('Выберите или впишите') }}" autocomplete="off"></label>
+    <div class="row3 cat-row">
+      <label class="fld"><span>{{ _('Категория') }}</span><select name="category_code"><option value="">{{ _('Своя категория / без категории') }}</option>{% for code,label in CATEGORY_LABELS.items() %}<option value="{{ code }}">{{ _(label) }}</option>{% endfor %}</select></label>
+      <label class="fld"><span>{{ _('Название своей категории') }}</span><input name="category" autocomplete="off" data-custom-category></label>
       <label class="fld"><span data-source-label>{{ _('Источник') }}</span><input name="source" placeholder="" autocomplete="off"></label>
     </div>
-    <datalist id="cat-list"></datalist>
     <div class="row3">
       <label class="fld"><span>{{ _('Сумма') }}</span><input name="amount" inputmode="decimal" required placeholder="0"></label>
       <label class="fld"><span>{{ _('Валюта') }}</span><select name="currency">{% for c in currencies %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>

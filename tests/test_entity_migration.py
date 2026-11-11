@@ -52,8 +52,10 @@ class MigrationTests(unittest.TestCase):
         initialize_vault(self.vault)
         self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(self.rows('accounts'),original['accounts'])
-        for table in ('holdings','cashflows','rent_payments','snapshots','rates','settings'):
+        for table in ('rent_payments','snapshots','rates','settings'):
             self.assertEqual(self.rows(table),original[table],table)
+        self.assertEqual(self.rows('holdings'),[dict(r,asset_class='',asset_class_code='stocks') for r in original['holdings']])
+        self.assertEqual(self.rows('cashflows'),[dict(r,category_code='') for r in original['cashflows']])
         self.assertEqual(self.rows('leases'),[dict((('asset_id' if k=='account_id' else k),v) for k,v in row.items()) for row in original['leases']])
         self.assertEqual(self.summaries(),expected)
         self.assertEqual([r['id'] for r in self.rows('financial_accounts')],[10,40])

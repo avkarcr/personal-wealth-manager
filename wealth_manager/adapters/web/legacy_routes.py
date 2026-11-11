@@ -1,3 +1,4 @@
+from .i18n import asset_label, category_label
 """Access lifecycle, presentation filters and export formatting retained for compatibility."""
 import csv
 import io
@@ -216,11 +217,11 @@ def register_routes(app, runtime):
         w = csv.writer(buf, delimiter=";")
         w.writerow(["Тип записи", "Счёт", "Дата", "Тип", "Название", "Тикер", "Класс", "Кол-во", "Ср. цена", "Цена", "Сумма", "Валюта", "Категория", "Источник", "Ожидается", "Комментарий"])
         for h in holdings:
-            w.writerow(["Позиция", h["acc"], h["updated_at"], "", h["name"], h["ticker"], h["asset_class"], h["quantity"],
+            w.writerow(["Позиция", h["acc"], h["updated_at"], "", h["name"], h["ticker"], asset_label(h), h["quantity"],
                         h["avg_price"], h["price"], h["quantity"] * h["price"], h["currency"], "", "", "", ""])
         for f in flows:
             w.writerow(["Операция", f["acc"], f["date"], calc.FLOW_LABELS[f["type"]], "", "", "", "", "", "", f["amount"],
-                        f["currency"], f["category"], f["source"], "да" if f["pending"] else "", f["note"]])
+                        f["currency"], category_label(f), f["source"], "да" if f["pending"] else "", f["note"]])
         return Response("﻿" + buf.getvalue(), mimetype="text/csv",
                         headers={"Content-Disposition": f"attachment; filename=invest-{date.today().isoformat()}.csv"})
 

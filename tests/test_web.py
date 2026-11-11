@@ -52,7 +52,7 @@ class WebTests(unittest.TestCase):
         self.client.post('/settings/general',data={'language':'en'})
         page=self.client.get(response.headers['Location']).get_data(as_text=True)
         self.assertIn('Капитал &lt;script&gt;',page)
-        self.assertIn('value="Деньги">Cash</option>',page)
+        self.assertIn('value="cash">Cash</option>',page)
         self.assertEqual(self.client.post('/accounts/save',data={'name':'X','kind':'bad'}).status_code,400)
         self.assertEqual(self.client.post('/accounts/save',data={'name':'X','id':'999'}).status_code,404)
         self.assertEqual(self.client.post('/accounts/save',data={'name':'X','current_value':'NaN'}).status_code,400)

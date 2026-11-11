@@ -6,7 +6,7 @@
     {% if inc.by_cat %}
     <table class="tbl compact"><tbody>
       {% for c, k, v in inc.by_cat[:12] %}
-      <tr><td><i class="dot k-{{ k }}"></i> {{ c }}{% if show_kind %}<span class="muted small"> · {{ _(KIND_SHORT[k]) }}</span>{% endif %}</td>
+      <tr><td><i class="dot k-{{ k }}"></i> {{ classification_label(c) }}{% if show_kind %}<span class="muted small"> · {{ _(KIND_SHORT[k]) }}</span>{% endif %}</td>
         <td class="r num nowrap">{{ v|money(base) }}<span class="share"><i style="width: {{ (v / inc_total * 100) if inc_total else 0 }}%"></i></span></td></tr>
       {% endfor %}
     </tbody></table>

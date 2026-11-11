@@ -5,6 +5,7 @@ from functools import wraps
 from flask import abort, flash, redirect, request, url_for, render_template
 from wealth_manager.modules.planning.domain import PlanningError
 from wealth_manager.shared.records import RecordError
+from wealth_manager.shared.classifications import CATEGORY_ALIASES
 
 from wealth_manager.shared.errors import EntityNotFound, RentalFlowProtected
 from wealth_manager.modules.accounts.domain import Purchase
@@ -87,7 +88,7 @@ def register_commands(app, runtime):
     @validated
     def holding_save():
         position = Position(id=optional_id(), account_id=int(f_str('account_id')),
-                            name=f_str('name'), ticker=f_str('ticker'), asset_class=f_str('asset_class', 'Акции'),
+                            name=f_str('name'), ticker=f_str('ticker'), asset_class=f_str('asset_class') if request.form.get('asset_class_code') in (None,'custom') else '', asset_class_code=f_str('asset_class_code','stocks'),
                             currency=f_str('currency', 'RUB'), quantity=f_float('quantity'),
                             avg_price=f_float('avg_price'), price=f_float('price'))
         services['positions'].save(position)
@@ -120,7 +121,7 @@ def register_commands(app, runtime):
         flow = Cashflow(id=optional_id(), account_id=int(f_str('account_id')),
                         date=f_str('date') or date.today().isoformat(), type=f_str('type', 'deposit'),
                         amount=f_float('amount'), currency=f_str('currency', 'RUB'),
-                        category=f_str('category'), source=f_str('source'),
+                        category=f_str('category'), category_code=f_str('category_code') if 'category_code' in request.form else CATEGORY_ALIASES.get(f_str('category'),''), source=f_str('source'),
                         pending=bool(request.form.get('pending')), note=f_str('note'))
         try:
             services['cashflows'].save(flow)

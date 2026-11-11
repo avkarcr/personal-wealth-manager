@@ -101,11 +101,13 @@
       const kh = $('[data-kind-hint]', dlg);
       if (kh) kh.textContent = KIND_HINTS[kind.value] || '';
     }
-    const cls = form.querySelector('[name=asset_class]');
+    const cls = form.querySelector('[name=asset_class_code]');
     if (cls) {
-      dlg.classList.toggle('cash', cls.value === 'Деньги');
+      const custom = form.querySelector('[data-custom-asset]');
+      if (custom) custom.disabled = cls.value !== 'custom';
+      dlg.classList.toggle('cash', cls.value === 'cash');
       const q = $('[data-qty-label]', dlg);
-      if (q) q.textContent = cls.value === 'Деньги' ? t('Сумма') : t('Количество');
+      if (q) q.textContent = cls.value === 'cash' ? t('Сумма') : t('Количество');
     }
     const rs = form.querySelector('[name=status]:checked');
     if (rs) {
@@ -129,9 +131,9 @@
       dlg.dataset.ftype = ft ? ft.value : '';
       const hint = $('[data-flow-hint]', dlg);
       if (hint) hint.textContent = (ft && ft.value === 'income' && INCOME_HINT_BY_KIND[ak]) || (ft && FLOW_HINTS[ft.value]) || '';
-      const list = $('#cat-list');
-      const cats = ((window.CATEGORIES || {})[ak] || {})[ft ? ft.value : ''] || [];
-      if (list) list.innerHTML = cats.map(c => `<option value="${c}">`).join('');
+      const category = form.querySelector('[name=category_code]');
+      const customCategory = form.querySelector('[data-custom-category]');
+      if (customCategory && category) customCategory.disabled = Boolean(category.value);
       const sl = $('[data-source-label]', dlg);
       if (sl) sl.textContent = SOURCE_LABEL[ak] || t('Источник');
       const si = form.querySelector('[name=source]');
@@ -299,6 +301,7 @@
     if (rangeSel) $(rangeSel).addEventListener('change', e => { days = +e.target.value; draw(); });
   }
 
+  const escapeLabel = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function donut(sel, legendSel, entries, cur) {
     const box = $(sel), legend = $(legendSel);
     if (!box) return;
@@ -310,7 +313,7 @@
       const R = 42, w = 13, C = 2 * Math.PI * R;
       el('circle', { cx: 50, cy: 50, r: R, fill: 'none', stroke: css('--surface-2'), 'stroke-width': w }, svg);
       const center = document.createElement('div'); center.className = 'center'; box.appendChild(center);
-      const setCenter = (label, v) => center.innerHTML = `<div><b>${total ? Math.round(v / total * 100) : 0}%</b>${label}</div>`;
+      const setCenter = (label, v) => center.innerHTML = `<div><b>${total ? Math.round(v / total * 100) : 0}%</b>${escapeLabel(label)}</div>`;
       let off = 0;
       const arcs = [];
       entries.forEach(([name, v], k) => {
@@ -321,7 +324,7 @@
           style: 'transition: stroke-width .15s; cursor: default' }, svg);
         off += len;
         const li = document.createElement('li');
-        li.innerHTML = `<i style="background:${color}"></i><span>${name}</span><span class="lv">${(v / total * 100).toFixed(1).replace('.', ',')}%</span>`;
+        li.innerHTML = `<i style="background:${color}"></i><span>${escapeLabel(name)}</span><span class="lv">${(v / total * 100).toFixed(1).replace('.', ',')}%</span>`;
         li.title = `${fmtFull(v)} ${cur}`;
         legend.appendChild(li);
         const on = () => { a.setAttribute('stroke-width', w + 4); li.classList.add('hl'); setCenter(name, v); };
@@ -395,7 +398,7 @@
         const hit = el('rect', { x: P.l + i * bw, y: P.t, width: bw, height: H - P.t - P.b, fill: 'transparent' }, svg);
         hit.addEventListener('mouseenter', () => {
           col.setAttribute('opacity', .85);
-          const parts = series.filter(s => s.values[i]).map(s => `${s.name}: ${fmtFull(s.values[i])}`).join('<br>');
+          const parts = series.filter(s => s.values[i]).map(s => `${escapeLabel(t(s.name))}: ${fmtFull(s.values[i])}`).join('<br>');
           tip.innerHTML = `${MONTHS[mm - 1]} ${yy}<br><b>${fmtFull(totals[i])} ${cur}</b>${parts && series.length > 1 ? '<br>' + parts : ''}`;
           tip.style.left = Math.min(Math.max((x + w / 2) / W * box.clientWidth, 70), box.clientWidth - 70) + 'px';
           tip.style.top = Y(totals[i]) / H * box.clientHeight + 'px'; tip.style.opacity = 1;
@@ -403,7 +406,7 @@
         hit.addEventListener('mouseleave', () => { col.setAttribute('opacity', 1); tip.style.opacity = 0; });
       });
       const lg = legendSel && $(legendSel);
-      if (lg) lg.innerHTML = series.map(s => `<span><i class="sw sq" style="background:${css(GROUP_COLOR[s.key] || '--c7')}"></i>${s.name}</span>`).join('');
+      if (lg) lg.innerHTML = series.map(s => `<span><i class="sw sq" style="background:${css(GROUP_COLOR[s.key] || '--c7')}"></i>${escapeLabel(t(s.name))}</span>`).join('');
     };
     draw();
     window.addEventListener('resize', draw);

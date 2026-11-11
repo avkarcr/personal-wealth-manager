@@ -80,15 +80,15 @@ def rent_cashflow(payment, lease):
               date.fromisoformat(payment.period_end).strftime("%d.%m.%y"))
     if payment.status == "agent":
         return Cashflow(lease.asset_id, payment.tenant_paid_date or payment.due_date, "income",
-                        payment.amount, payment.currency, "Аренда", lease.tenant, True,
-                        f'У риелтора{": " + lease.agent if lease.agent else ""} · за {period}', payment.id)
+                        payment.amount, payment.currency, "", lease.tenant, True,
+                        f'У риелтора{": " + lease.agent if lease.agent else ""} · за {period}', payment.id, category_code="rent")
     amount = payment.received_amount or payment.amount
     currency = payment.received_currency or payment.currency
     note = f"за {period}"
     if currency != payment.currency and payment.amount:
         note += f' · {payment.amount:g} {payment.currency} по курсу {amount / payment.amount:.2f}'.replace(".", ",")
     return Cashflow(lease.asset_id, payment.received_date or payment.tenant_paid_date or payment.due_date,
-                    "income", amount, currency, "Аренда", lease.tenant, False, note, payment.id)
+                    "income", amount, currency, "", lease.tenant, False, note, payment.id, category_code="rent")
 
 
 def add_months(d, n):

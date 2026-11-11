@@ -37,7 +37,7 @@
   <table class="tbl"><tbody>
   {% for p in inc.pending %}{% set f = p.row %}
     <tr class="is-pending"><td class="muted num nowrap shrink">{{ f.date|rudate }}</td>
-      <td>{{ f.source or f.category or '—' }}<span class="muted small block">{{ f.acc_name }}{{ ' · ' ~ f.note if f.note }}</span></td>
+      <td>{{ f.source or category_label(f) or '—' }}<span class="muted small block">{{ f.acc_name }}{{ ' · ' ~ f.note if f.note }}</span></td>
       <td class="r num nowrap">{{ f.amount|money(f.currency, 2) }}</td>
       <td class="r shrink"><form method="post" action="{{ url_for('flow_paid', fid=f.id) }}"><button class="btn sm">{{ _('Получено') }}</button></form></td></tr>
   {% endfor %}

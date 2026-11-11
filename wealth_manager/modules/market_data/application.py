@@ -1,3 +1,4 @@
+from wealth_manager.shared.classifications import asset_key
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.modules.reporting.application import rates_for
 from .domain import positive, symbol, MissingRate, NoExchangeSelected, ProviderError
@@ -55,7 +56,7 @@ class MarketData:
         if kind=='crypto' and not usd: raise MissingRate('USD')
         prices={}; failed=[]; sources={}
         for h in data['holdings']:
-            if h['account_id']!=aid or not h['ticker'] or h['asset_class']=='Деньги':continue
+            if h['account_id']!=aid or not h['ticker'] or asset_key(h)=='cash':continue
             try:
                 if kind=='crypto':
                     q=self.crypto.quote(h['ticker'],exchanges)

@@ -1,5 +1,6 @@
 """Pure calculations using legacy numeric semantics; no persistence or transport."""
 from collections import defaultdict
+from wealth_manager.shared.classifications import asset_key
 from datetime import datetime, timedelta
 
 class ExchangeRates:
@@ -57,7 +58,7 @@ def account_metrics(acc, rates, holdings, flows, today):
     if acc["kind"] == "realty":
         value = rates.to_base(acc["current_value"], acc["currency"])
         cost = 0.0
-        by_class["Недвижимость"] += value
+        by_class["real_estate"] += value
         by_cur[acc["currency"]] += value
     else:
         value = cost = 0.0
@@ -65,7 +66,7 @@ def account_metrics(acc, rates, holdings, flows, today):
             v = rates.to_base(h["quantity"] * h["price"], h["currency"])
             value += v
             cost += rates.to_base(h["quantity"] * h["avg_price"], h["currency"])
-            by_class[h["asset_class"]] += v
+            by_class[asset_key(h)] += v
             by_cur[h["currency"]] += v
 
     sums = defaultdict(float)

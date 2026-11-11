@@ -10,7 +10,7 @@
   </div>
   <div class="actions">
     <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>{{ _('+ Операция') }}</button>
-    {% if acc.kind != 'realty' %}<button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>{{ _('+ Позиция') }}</button>{% endif %}
+    {% if acc.kind != 'realty' %}<button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class_code": ("crypto" if acc.kind == "crypto" else "stocks")}|tojson }}'>{{ _('+ Позиция') }}</button>{% endif %}
     <details class="menu">
       <summary class="btn icon" title="{{ _('Ещё') }}">⋯</summary>
       <div class="menu-pop">
@@ -68,19 +68,19 @@
     <tbody>
     {% for r in rows %}{% set h = r.h %}
       <tr>
-        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ _(h.asset_class) }}</span></td>
+        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ asset_label(h) }}</span></td>
         <td class="r num hide-s">{{ h.quantity|num(4) }}</td>
-        <td class="r num hide-s muted">{% if h.asset_class != 'Деньги' %}{{ h.avg_price|num(4) }}{% endif %}</td>
+        <td class="r num hide-s muted">{% if h.asset_class_code != 'cash' %}{{ h.avg_price|num(4) }}{% endif %}</td>
         <td class="r num">
-          {% if h.asset_class == 'Деньги' %}<span class="muted">—</span>
+          {% if h.asset_class_code == 'cash' %}<span class="muted">—</span>
           {% else %}<span class="view">{{ h.price|money(h.currency, 2) }}</span>
           <input class="edit num-in" name="price_{{ h.id }}" value="{{ h.price|num(6) }}" inputmode="decimal">{% endif %}
         </td>
         <td class="r num">{{ r.value|money(base) }}</td>
         <td class="r num hide-s muted">{{ r.share|pct(false) }}</td>
-        <td class="r num">{% if h.asset_class != 'Деньги' %}<span class="{{ 'pos' if r.pl >= 0 else 'neg' }}">{{ r.pl_pct|pct }}</span><span class="muted small block">{{ r.pl|signed(h.currency) }}</span>{% endif %}</td>
+        <td class="r num">{% if h.asset_class_code != 'cash' %}<span class="{{ 'pos' if r.pl >= 0 else 'neg' }}">{{ r.pl_pct|pct }}</span><span class="muted small block">{{ r.pl|signed(h.currency) }}</span>{% endif %}</td>
         <td class="r nowrap">
-          <button type="button" class="icon-btn" title="{{ _('Изменить') }}" data-open="dlg-holding" data-fill='{{ {"id": h.id, "account_id": h.account_id, "name": h.name, "ticker": h.ticker, "asset_class": h.asset_class, "currency": h.currency, "quantity": h.quantity, "avg_price": h.avg_price, "price": h.price}|tojson }}'>✎</button>
+          <button type="button" class="icon-btn" title="{{ _('Изменить') }}" data-open="dlg-holding" data-fill='{{ {"id": h.id, "account_id": h.account_id, "name": h.name, "ticker": h.ticker, "asset_class": h.asset_class, "asset_class_code": h.asset_class_code, "currency": h.currency, "quantity": h.quantity, "avg_price": h.avg_price, "price": h.price}|tojson }}'>✎</button>
         </td>
       </tr>
     {% endfor %}
@@ -91,7 +91,7 @@
   {% else %}
   <div class="pad empty-inline">
     <p class="muted">{{ _('Добавьте монеты и стейблкоины: тикер (BTC, ETH, USDT), количество и цену в долларах.') if acc.kind == 'crypto' else _('Добавьте бумаги, фонды и остаток денег на счёте.') }}</p>
-    <button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class": ("Крипто" if acc.kind == "crypto" else "Акции")}|tojson }}'>{{ _('+ Позиция') }}</button>
+    <button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class_code": ("crypto" if acc.kind == "crypto" else "stocks")}|tojson }}'>{{ _('+ Позиция') }}</button>
   </div>
   {% endif %}
 </section>
@@ -129,7 +129,8 @@
     <header><h3 data-title-new="{{ _('Новая позиция') }}" data-title-edit="{{ _('Позиция') }}">{{ _('Новая позиция') }}</h3><button type="button" class="x" data-close>×</button></header>
     <input type="hidden" name="id"><input type="hidden" name="account_id" value="{{ acc.id }}">
     <label class="fld"><span>{{ _('Класс актива') }}</span>
-      <select name="asset_class">{% for c in ASSET_CLASSES %}<option value="{{ c }}">{{ _(c) }}</option>{% endfor %}</select></label>
+      <select name="asset_class_code">{% for c in ASSET_CLASSES %}<option value="{{ c }}">{{ classification_label(c) }}</option>{% endfor %}<option value="custom">{{ _('Своя категория') }}</option></select></label>
+    <label class="fld"><span>{{ _('Название своей категории') }}</span><input name="asset_class" data-custom-asset></label>
     <div class="row2 not-cash">
       <label class="fld"><span>{{ _('Тикер') }}</span><input name="ticker" placeholder="SBER" autocapitalize="characters"></label>
       <label class="fld"><span>{{ _('Название') }}</span><input name="name" placeholder="{{ _('Сбербанк') }}"></label>
@@ -168,6 +169,6 @@
 <script>
   const BASE = {{ (sign.get(base, base))|tojson }};
   Charts.history('#acc-chart', {{ hist|tojson }}, BASE);
-  {% if by_class|length >= 2 %}Charts.donut('#acc-donut', '#acc-legend', {{ by_class|tojson }}, BASE);{% endif %}
+  {% if by_class|length >= 2 %}Charts.donut('#acc-donut', '#acc-legend', {{ by_class|class_labels|tojson }}, BASE);{% endif %}
 </script>
 {% endblock %}

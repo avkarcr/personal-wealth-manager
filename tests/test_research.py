@@ -134,7 +134,7 @@ class ResearchTests(unittest.TestCase):
                 return getattr(connection,name)
         self.vault.con=DumpOnly();self.vault.save(force=True);self.vault.lock();self.vault.unlock('password123')
         db.init_db(self.vault.con);self.assertEqual(self.dump(),before)
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],6)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.vault.lock()
         for reader in (CompanyReader(self.vault),ObservationReader(self.vault),TaxReader(self.vault)):
             with self.assertRaises(RuntimeError):reader.read()

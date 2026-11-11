@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<section class="card"><h1>{{ _('Не удалось сохранить изменения') }}</h1><p role="alert">{{ _(error) }}</p><p><a class="btn" href="{{ url_for('companies') }}">{{ _('Компании') }}</a> <a class="btn" href="{{ url_for('macroeconomics') }}">{{ _('Макроэкономика') }}</a> <a class="btn" href="{{ url_for('taxes') }}">{{ _('Налоги') }}</a></p></section>{% endblock %}

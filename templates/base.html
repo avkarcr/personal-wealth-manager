@@ -17,11 +17,14 @@
   <nav class="nav">
     <a href="{{ url_for('dashboard') }}" class="{{ 'on' if request.endpoint=='dashboard' }}">
       <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg>{{ _('Дашборд') }}</a>
+    <a href="{{ url_for('macroeconomics') }}" class="{{ 'on' if request.endpoint=='macroeconomics' }}"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l5-8 4 4 5-7"/></svg>{{ _('Макроэкономика') }}</a>
     <a href="{{ url_for('portfolios') }}" class="{{ 'on' if request.endpoint in ('portfolios','portfolio_detail') }}"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4"/></svg>{{ _('Портфели') }}</a>
+    <a href="{{ url_for('companies') }}" class="{{ 'on' if request.endpoint=='companies' }}"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l5-8 4 4 5-7"/></svg>{{ _('Компании') }}</a>
     <a href="{{ url_for('operations') }}" class="{{ 'on' if request.endpoint=='operations' }}">
       <svg viewBox="0 0 24 24"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>{{ _('Операции') }}</a>
     <a href="{{ url_for('income') }}" class="{{ 'on' if request.endpoint=='income' }}">
       <svg viewBox="0 0 24 24"><path d="M12 2v20M17 6.5C17 4.6 14.8 3.5 12 3.5S7 4.6 7 6.5 9.2 9.3 12 10s5 1.6 5 3.5-2.2 3-5 3-5-1.1-5-3"/></svg>{{ _('Доходы') }}</a>
+    <a href="{{ url_for('taxes') }}" class="{{ 'on' if request.endpoint=='taxes' }}"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l5-8 4 4 5-7"/></svg>{{ _('Налоги') }}</a>
     <a href="{{ url_for('settings') }}" class="{{ 'on' if request.endpoint=='settings' }}">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>{{ _('Настройки') }}</a>
   </nav>
@@ -75,7 +78,8 @@
   {% endwith %}
   {% if missing_rates %}
     <div class="banner">{{ _('Нет курса для:') }} <b>{{ missing_rates|join(', ') }}</b> {{ _('— суммы в этих валютах считаются как 1&nbsp;₽.') }}
-      <a href="{{ url_for('settings') }}">{{ _('Добавить курс →') }}</a></div>
+      <a href="{{ url_for('taxes') }}" class="{{ 'on' if request.endpoint=='taxes' }}"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l5-8 4 4 5-7"/></svg>{{ _('Налоги') }}</a>
+    <a href="{{ url_for('settings') }}">{{ _('Добавить курс →') }}</a></div>
   {% endif %}
   {% block content %}{% endblock %}
 </main>

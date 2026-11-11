@@ -25,9 +25,19 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.modules.planning.application import PlanningCommands
     from wealth_manager.modules.planning.reports import PlanningReports
     from wealth_manager.adapters.persistence.planning import SqlitePlanningReader
+    from wealth_manager.modules.companies.application import Commands as CompanyCommands
+    from wealth_manager.modules.companies.reports import Reports as CompanyReports
+    from wealth_manager.modules.macroeconomics.application import Commands as MacroCommands
+    from wealth_manager.modules.macroeconomics.reports import Reports as MacroReports
+    from wealth_manager.modules.taxes.application import Commands as TaxCommands
+    from wealth_manager.modules.taxes.reports import Reports as TaxReports
+    from wealth_manager.adapters.persistence.research import CompanyReader, ObservationReader, TaxReader
     reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault)
-    return {"planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault)),
+    return {"companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+            "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
+            "taxes": TaxCommands(factory), "tax_reports": TaxReports(TaxReader(vault)),
+            "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault)),
             "save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
             "save_income_source": SaveIncomeSource(factory), "reports": Reports(reports, today),
             "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),

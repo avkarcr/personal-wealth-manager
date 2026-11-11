@@ -1,0 +1,9 @@
+from typing import Protocol, Sequence
+from .domain import Observation
+
+class ObservationRepository(Protocol):
+    def save(self, record: Observation) -> int: ...
+    def delete(self, record_id: int) -> None: ...
+
+class Reader(Protocol):
+    def read(self) -> Sequence[dict]: ...

@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -251,7 +251,8 @@ def init_db(con):
             if version < 4:
                 _init_legacy(con)
                 _migrate_entities(con)
-            _migrate_planning(con)
+            if version < 5: _migrate_planning(con)
+            _migrate_research(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -300,7 +301,67 @@ def _migrate_planning(con):
                 WHERE ((NEW.holding_id IS NOT NULL AND holding_id=NEW.holding_id)
                     OR (NEW.asset_id IS NOT NULL AND asset_id=NEW.asset_id)){exclusion}),0)>10000
                 BEGIN SELECT RAISE(ABORT,'Allocation exceeds 100 percent'); END""")
-        con.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
+        con.execute('PRAGMA user_version=5')
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+
+
+RESEARCH_SCHEMA = """
+CREATE TABLE companies (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ ticker TEXT NOT NULL DEFAULT '',
+ exchange TEXT NOT NULL DEFAULT '',
+ country TEXT NOT NULL,
+ sector TEXT NOT NULL DEFAULT '',
+ website TEXT NOT NULL DEFAULT '',
+ thesis TEXT NOT NULL DEFAULT '',
+ status TEXT NOT NULL CHECK(status IN ('watch','owned','archived'))
+);
+CREATE UNIQUE INDEX company_listing ON companies(ticker COLLATE NOCASE,exchange COLLATE NOCASE) WHERE ticker<>'';
+CREATE TABLE macro_observations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ country TEXT NOT NULL,
+ indicator TEXT NOT NULL CHECK(indicator IN ('key_rate','refinancing_rate','cpi_yoy','gdp_yoy','yield_2y','yield_10y')),
+ date TEXT NOT NULL,
+ value TEXT NOT NULL,
+ source TEXT NOT NULL,
+ note TEXT NOT NULL DEFAULT '',
+ UNIQUE(country,indicator,date)
+);
+CREATE TABLE tax_entries (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ year INTEGER NOT NULL CHECK(year BETWEEN 1900 AND 9999),
+ country TEXT NOT NULL,
+ category TEXT NOT NULL,
+ currency TEXT NOT NULL,
+ base TEXT NOT NULL,
+ rate TEXT NOT NULL,
+ paid TEXT NOT NULL,
+ note TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE tax_deductions (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ year INTEGER NOT NULL CHECK(year BETWEEN 1900 AND 9999),
+ country TEXT NOT NULL,
+ category TEXT NOT NULL,
+ currency TEXT NOT NULL,
+ amount TEXT NOT NULL,
+ refund TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('collecting','ready','submitted','received','rejected')),
+ documents TEXT NOT NULL DEFAULT '',
+ note TEXT NOT NULL DEFAULT ''
+);
+"""
+
+
+def _migrate_research(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        for statement in _statements(RESEARCH_SCHEMA): con.execute(statement)
+        con.execute('PRAGMA user_version=6')
         con.commit()
     except BaseException:
         con.rollback()

@@ -1,0 +1,9 @@
+{% macro input(name,label,value='',type='text',required=false) -%}
+<label class="fld"><span>{{ _(label) }}</span><input name="{{ name }}" type="{{ type }}" value="{{ value }}" {{ 'required' if required }} {% if type=='number' %}step="any"{% endif %}></label>
+{%- endmacro %}
+{% macro area(name,label,value='') -%}
+<label class="fld"><span>{{ _(label) }}</span><textarea name="{{ name }}" rows="3">{{ value }}</textarea></label>
+{%- endmacro %}
+{% macro select(name,label,options,value='') -%}
+<label class="fld"><span>{{ _(label) }}</span><select name="{{ name }}" required>{% for key,label in options.items() %}<option value="{{ key }}" {{ 'selected' if key==value }}>{{ _(label) }}</option>{% endfor %}</select></label>
+{%- endmacro %}

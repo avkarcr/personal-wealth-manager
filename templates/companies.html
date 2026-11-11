@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Компании') }} — {{ _('Капитал') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ _('Компании') }}</h1><p class="muted">{{ _('Список наблюдения и инвестиционные идеи') }}</p></div></header>
+<section class="card"><details><summary>{{ _('Добавить компанию') }}</summary>{% with record=none %}{% include 'company_form.html' %}{% endwith %}</details></section>
+<p class="muted small">{{ _('Статус компании задаётся вручную и не меняет позиции на счетах.') }}</p>
+<div class="grid2">{% for company in companies %}<article class="card"><h2>{{ company.name }}</h2>
+<p>{{ company.ticker }}{% if company.exchange %} · {{ company.exchange }}{% endif %} · {{ company.country }}</p>
+<p>{{ company.sector }} · {{ _(statuses[company.status]) }}</p>
+{% if company.website %}<a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">{{ _('Сайт компании') }}</a>{% endif %}
+<p style="white-space:pre-wrap">{{ company.thesis }}</p>
+<details><summary>{{ _('Редактировать') }}</summary>{% with record=company %}{% include 'company_form.html' %}{% endwith %}</details>
+<form method="post" action="{{ url_for('company_delete',rid=company.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form>
+</article>{% else %}<section class="card"><p>{{ _('Пока нет компаний') }}</p></section>{% endfor %}</div>
+{% endblock %}

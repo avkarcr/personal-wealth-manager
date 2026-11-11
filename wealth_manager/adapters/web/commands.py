@@ -4,6 +4,7 @@ from decimal import InvalidOperation
 from functools import wraps
 from flask import abort, flash, redirect, request, url_for, render_template
 from wealth_manager.modules.planning.domain import PlanningError
+from wealth_manager.shared.records import RecordError
 
 from wealth_manager.shared.errors import EntityNotFound, RentalFlowProtected
 from wealth_manager.modules.accounts.domain import Purchase
@@ -24,6 +25,8 @@ def validated(handler):
             abort(404)
         except PlanningError as error:
             return render_template('planning_error.html', error=str(error), missing_rates=[]), 400
+        except RecordError as error:
+            return render_template('record_error.html', error=str(error)), 400
         except (ValueError, InvalidOperation):
             abort(400)
     return wrapped

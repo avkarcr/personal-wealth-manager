@@ -1,0 +1,9 @@
+from typing import Protocol, Sequence
+from .domain import Company
+
+class CompanyRepository(Protocol):
+    def save(self, record: Company) -> int: ...
+    def delete(self, record_id: int) -> None: ...
+
+class Reader(Protocol):
+    def read(self) -> Sequence[dict]: ...

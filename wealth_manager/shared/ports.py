@@ -44,7 +44,14 @@ from wealth_manager.modules.entities.ports import EntityRepository, AssetReposit
 
 from wealth_manager.modules.planning.ports import PlanningRepository
 
+from wealth_manager.modules.companies.ports import CompanyRepository
+from wealth_manager.modules.macroeconomics.ports import ObservationRepository
+from wealth_manager.modules.taxes.ports import TaxRepository
+
 class UnitOfWork(Protocol):
+    companies: CompanyRepository
+    macroeconomics: ObservationRepository
+    taxes: TaxRepository
     planning: PlanningRepository
     entities: EntityRepository
     assets: AssetRepository

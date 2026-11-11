@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Макроэкономика') }} — {{ _('Капитал') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ _('Макроэкономика') }}</h1><p class="muted">{{ _('Ставки, инфляция, рост экономики и доходности облигаций') }}</p></div></header>
+<p class="muted">{{ _('Ручной ввод. Дата относится к показателю или концу отчётного периода. Изменение показано в процентных пунктах относительно предыдущей записи той же страны.') }}</p>
+<section class="card"><details><summary>{{ _('Добавить наблюдение') }}</summary>{% with record=none %}{% include 'macro_form.html' %}{% endwith %}</details></section>
+<div class="grid2">{% for item in summary %}<section class="card"><h2>{{ _(indicators[item.indicator]) }}</h2><p>{{ item.country }} · {{ item.latest.date|rudate }}</p><p><strong>{{ item.latest.value|num(2) }}%</strong>{% if item.change is not none %} · {{ _('Изменение, п.п.') }}: {{ item.change|num(2) }}{% endif %}</p><p class="muted">{{ _('Источник') }}: {{ item.latest.source }}</p></section>{% else %}<section class="card"><p>{{ _('Пока нет наблюдений') }}</p></section>{% endfor %}</div>
+<section class="card"><h2>{{ _('История показателей') }}</h2>
+{% for record in observations %}<details><summary>{{ record.country }} · {{ _(indicators[record.indicator]) }} · {{ record.date|rudate }} · {{ record.value|num(2) }}%</summary>
+{% include 'macro_form.html' %}
+<form method="post" action="{{ url_for('macro_delete',rid=record.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form></details>{% endfor %}
+</section>
+{% endblock %}

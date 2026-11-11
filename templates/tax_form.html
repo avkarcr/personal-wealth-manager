@@ -1,0 +1,19 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('deduction_save' if deduction else 'tax_entry_save') }}">
+{% if record %}<input type="hidden" name="id" value="{{ record.id }}">{% endif %}
+<div class="row2">{{ fields.input('year','Налоговый год',record.year if record else today[:4],type='number',required=true) }}{{ fields.input('country','Код страны',record.country if record else 'RU',required=true) }}</div>
+{{ fields.input('category','Категория',record.category if record else '',required=true) }}
+{{ fields.input('currency','Валюта',record.currency if record else base,required=true) }}
+{% if deduction %}
+{{ fields.input('amount','Расходы для вычета',record.amount if record else '',type='number',required=true) }}
+{{ fields.input('refund','Возврат (ожидаемый или полученный)',record.refund if record else '0',type='number',required=true) }}
+{{ fields.select('status','Статус',statuses,record.status if record else 'collecting') }}
+{{ fields.area('documents','Документы: реквизиты и место хранения',record.documents if record else '') }}
+{% else %}
+{{ fields.input('base','Налоговая база',record.base if record else '',type='number',required=true) }}
+{{ fields.input('rate','Ставка, %',record.rate if record else '',type='number',required=true) }}
+{{ fields.input('paid','Уплачено / удержано',record.paid if record else '0',type='number',required=true) }}
+{% endif %}
+{{ fields.area('note','Заметка',record.note if record else '') }}
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

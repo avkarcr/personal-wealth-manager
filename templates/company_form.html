@@ -1,0 +1,11 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('company_save') }}">
+{% if record %}<input type="hidden" name="id" value="{{ record.id }}">{% endif %}
+{{ fields.input('name','Название компании',record.name if record else '',required=true) }}
+<div class="row2">{{ fields.input('ticker','Тикер',record.ticker if record else '') }}{{ fields.input('exchange','Биржа',record.exchange if record else '') }}</div>
+<div class="row2">{{ fields.input('country','Код страны',record.country if record else 'RU',required=true) }}{{ fields.input('sector','Сектор',record.sector if record else '') }}</div>
+{{ fields.input('website','Сайт компании',record.website if record else '',type='url') }}
+{{ fields.select('status','Статус',statuses,record.status if record else 'watch') }}
+{{ fields.area('thesis','Инвестиционная идея и заметки',record.thesis if record else '') }}
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

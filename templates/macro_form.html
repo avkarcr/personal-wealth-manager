@@ -1,0 +1,10 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('macro_save') }}">
+{% if record %}<input type="hidden" name="id" value="{{ record.id }}">{% endif %}
+{{ fields.input('country','Код страны',record.country if record else 'RU',required=true) }}
+{{ fields.select('indicator','Показатель',indicators,record.indicator if record else 'key_rate') }}
+<div class="row2">{{ fields.input('date','Дата показателя / конец периода',record.date if record else today,type='date',required=true) }}{{ fields.input('value','Значение, %',record.value if record else '',type='number',required=true) }}</div>
+{{ fields.input('source','Источник (название или ссылка)',record.source if record else '',required=true) }}
+{{ fields.area('note','Заметка',record.note if record else '') }}
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

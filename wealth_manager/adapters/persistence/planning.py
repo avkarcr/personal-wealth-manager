@@ -1,6 +1,8 @@
 """Planning storage. The unit of work owns transactions and encrypted persistence."""
 from dataclasses import asdict
 from decimal import Decimal
+from wealth_manager.modules.valuation.quality import holding_value
+from wealth_manager.shared.classifications import asset_key
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.modules.planning.domain import PlanningError
 from .operations import get_row
@@ -11,10 +13,11 @@ def sources(connection):
     for row in connection.execute('SELECT h.*,e.archived,e.name AS owner FROM holdings h JOIN financial_accounts f ON f.id=h.account_id JOIN entities e ON e.id=f.id'):
         result.append(dict(kind='holding', id=row['id'], name=row['name'], owner=row['owner'],
                            currency=row['currency'], active=not row['archived'],
-                           value=Decimal(str(row['quantity'])) * Decimal(str(row['price']))))
-    for row in connection.execute('SELECT a.id,a.current_value,e.name,e.currency,e.archived FROM assets a JOIN entities e ON e.id=a.id'):
+                           quantity=row['quantity'],updated_at=row['updated_at'],needs_quote=asset_key(row)!='cash',
+                           value=None if holding_value(row) is None else Decimal(str(row['quantity'])) * Decimal(str(1 if asset_key(row)=='cash' else row['price']))))
+    for row in connection.execute('SELECT a.id,a.current_value,a.valued_at,e.name,e.currency,e.archived FROM assets a JOIN entities e ON e.id=a.id'):
         result.append(dict(kind='asset', id=row['id'], name=row['name'], owner='',
-                           currency=row['currency'], active=not row['archived'], value=Decimal(str(row['current_value']))))
+                           currency=row['currency'], active=not row['archived'],needs_quote=True,updated_at=row['valued_at'], value=Decimal(str(row['current_value']))))
     return result
 
 
@@ -83,4 +86,4 @@ class SqlitePlanningReader:
             return dict(goals=[dict(r) for r in con.execute('SELECT * FROM goals ORDER BY id')],
                         portfolios=[dict(r) for r in con.execute('SELECT * FROM portfolios ORDER BY id')],
                         allocations=[dict(r) for r in con.execute('SELECT * FROM allocations ORDER BY id')],
-                        sources=sources(con), rates=dict(con.execute('SELECT currency,rate FROM rates')))
+                        sources=sources(con), rate_dates=dict(con.execute('SELECT currency,updated_at FROM rates')), rates=dict(con.execute('SELECT currency,rate FROM rates')))

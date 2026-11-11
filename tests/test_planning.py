@@ -175,7 +175,7 @@ class PlanningTests(unittest.TestCase):
         with client.session_transaction() as session:session['vault']=self.vault.token
         self.cmd.save_goal(Goal('FX',Decimal('10'),currency='ZZZ',id=self.gid))
         self.cmd.allocate(self.pid,'asset',self.asset,'100')
-        for lang,message in [('ru','Не хватает курсов валют для оценки'),('en','Exchange rates are missing')]:
+        for lang,message in [('ru','Недостаточно данных для полной оценки'),('en','Insufficient data for a complete valuation')]:
             self.s['change_language'].execute(lang)
             for url in ('/settings','/portfolios',f'/portfolios/{self.pid}'):
                 response=client.get(url)

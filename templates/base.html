@@ -76,11 +76,7 @@
   {% with msgs = get_flashed_messages() %}
     {% if msgs %}<div class="toast">{% for m in msgs %}<div>{{ _(m) }}</div>{% endfor %}</div>{% endif %}
   {% endwith %}
-  {% if missing_rates %}
-    <div class="banner">{{ _('Нет курса для:') }} <b>{{ missing_rates|join(', ') }}</b> {{ _('— суммы в этих валютах считаются как 1&nbsp;₽.') }}
-      <a href="{{ url_for('taxes') }}" class="{{ 'on' if request.endpoint=='taxes' }}"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l5-8 4 4 5-7"/></svg>{{ _('Налоги') }}</a>
-    <a href="{{ url_for('settings') }}">{{ _('Добавить курс →') }}</a></div>
-  {% endif %}
+  {% include '_valuation_quality.html' %}
   {% block content %}{% endblock %}
 </main>
 

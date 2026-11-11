@@ -1,3 +1,4 @@
+{% if not inc.complete %}<p class="banner">{{ _('Доходы: показаны только известные суммы; итог неполный.') }}</p>{% endif %}
 <section class="card">
   <div class="card-head">
     <h2>{{ _('Доходы за 12 месяцев ·') }} {{ inc.totals.get('income', 0)|money(base) }}</h2>

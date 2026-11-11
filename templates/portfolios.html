@@ -5,8 +5,8 @@
 <div class="grid2">
 {% for p in portfolios %}<section class="card"><h2><a href="{{ url_for('portfolio_detail',pid=p.id) }}">{{ p.name }}</a></h2>
 <p>{{ _('Цель') }}: {{ p.goal_name }}</p>
-<p>{{ _('Текущая стоимость') }}: {% if p.total is none %}{{ _('Не хватает курсов валют для оценки') }}{% else %}{{ p.total|money }} {{ p.currency }}{% endif %}</p>
-<p class="muted">{{ p.note }}</p></section>
+<p>{{ _('Текущая стоимость') }}: {% if p.total is none %}{{ _('Недостаточно данных для полной оценки') }} · {{ _('Известная часть') }}: {{ p.known_total|money }} {{ p.currency }}{% else %}{{ p.total|money }} {{ p.currency }}{% endif %}</p>
+<p class="muted">{{ p.note }}</p>{% with valuation_quality=p.valuation_quality %}{% include '_valuation_quality.html' %}{% endwith %}</section>
 {% else %}<section class="card"><p>{{ _('Пока нет портфелей') }}</p></section>{% endfor %}
 </div>
 <section class="card"><h2>{{ _('Новый портфель') }}</h2>

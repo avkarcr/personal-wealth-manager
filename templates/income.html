@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Доходы — Капитал') }}{% endblock %}
 {% block content %}
+{% if not inc.complete %}<p class="banner">{{ _('Доходы: показаны только известные суммы; итог неполный.') }}</p>{% endif %}
+
 {% set t = inc.totals %}
 <header class="page-head">
   <div><h1>{{ _('Доходы') }}</h1><p class="muted">{{ _('Пассивный доход от инвестиций и крипты плюс фриланс · в') }} {{ base }}</p></div>

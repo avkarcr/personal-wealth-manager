@@ -3,9 +3,9 @@
 <p class="muted">{{ _('Цели задаются здесь. Каждый портфель связан с одной целью; у цели может быть несколько портфелей.') }}</p>
 {% for goal in planning.goals %}
 <article class="card">
-  <h3>{{ goal.name }}</h3>
+  <h3>{{ goal.name }}</h3>{% with valuation_quality=goal.valuation_quality %}{% include '_valuation_quality.html' %}{% endwith %}
   <p>{{ _('Прогресс цели') }}:
-    {% if goal.total is none %}{{ _('Не хватает курсов валют для оценки') }}
+    {% if goal.total is none %}{{ _('Недостаточно данных для полной оценки') }} · {{ _('Известная часть') }}: {{ goal.known_total|money }} {{ goal.currency }}
     {% else %}{{ goal.total|money }} / {{ goal.target_amount|money }} {{ goal.currency }} · {{ goal.progress|num(1) }}%{% endif %}
   </p>
   {% if goal.progress is not none %}<progress max="100" value="{{ [goal.progress,100]|min }}" aria-label="{{ _('Прогресс цели') }}"></progress>{% endif %}

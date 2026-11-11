@@ -36,13 +36,14 @@ def portfolio(db, rates, include_archived=False):
 def take_snapshot(db, rates, *, commit=True):
     """Фиксирует сегодняшнюю стоимость всех активных счетов (в RUB)."""
     today = date.today().isoformat()
-    base_rate = rates.r.get(rates.base, 1.0)
+    rates = ExchangeRates(rates.r, "RUB")
     for acc in db.execute("SELECT * FROM accounts WHERE archived=0 AND kind<>'freelance'").fetchall():
         m = account_metrics(db, acc, rates)
+        if not m["complete"]: continue
         db.execute(
             "INSERT INTO snapshots(date, account_id, value_rub, invested_rub) VALUES (?,?,?,?) "
             "ON CONFLICT(date, account_id) DO UPDATE SET value_rub=excluded.value_rub, invested_rub=excluded.invested_rub",
-            (today, acc["id"], m["value"] * base_rate, m["invested"] * base_rate),
+            (today, acc["id"], m["value"], m["invested"]),
         )
     if commit:
         db.commit()
@@ -70,7 +71,7 @@ def income_report(db, rates, account_id=None, months=12, year=None):
 def missing_rates(db, rates):
     used = {r[0] for r in db.execute("SELECT DISTINCT currency FROM holdings UNION SELECT DISTINCT currency FROM cashflows "
                                      "UNION SELECT DISTINCT currency FROM accounts")}
-    return sorted(c for c in used if c and c not in rates.r)
+    return sorted(c for c in used if c and rates.to_rub(1,c) is None)
 
 
 # ───────────────────────── аренда ─────────────────────────

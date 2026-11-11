@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -253,7 +253,8 @@ def init_db(con):
                 _migrate_entities(con)
             if version < 5: _migrate_planning(con)
             if version < 6: _migrate_research(con)
-            _migrate_classifications(con)
+            if version < 7: _migrate_classifications(con)
+            _migrate_valuation_dates(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -401,3 +402,15 @@ def _migrate_classifications(con):
         raise
     finally:
         con.execute('PRAGMA foreign_keys=ON')
+
+
+def _migrate_valuation_dates(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        # Existing property estimates have no known valuation date; never invent one.
+        con.execute("ALTER TABLE assets ADD COLUMN valued_at TEXT NOT NULL DEFAULT ''")
+        con.execute('PRAGMA user_version=8')
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise

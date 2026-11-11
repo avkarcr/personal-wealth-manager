@@ -23,7 +23,7 @@ class PlanningCommands:
         with self.uow_factory() as uow:
             uow.planning.portfolio(portfolio_id)
             source=uow.planning.source(kind,record_id)
-            if not source['active'] or source['value']<0:raise PlanningError('Нельзя распределить архивный актив или короткую позицию')
+            if not source['active'] or (source.get('quantity',0)<0 or (source['value'] is not None and source['value']<0)):raise PlanningError('Нельзя распределить архивный актив или короткую позицию')
             if share+uow.planning.assigned(kind,record_id,portfolio_id)>10000:raise PlanningError('Сумма долей актива превышает 100 процентов')
             uow.planning.allocate(portfolio_id,kind,record_id,share);uow.commit()
     def remove_allocation(self,portfolio_id,record_id):

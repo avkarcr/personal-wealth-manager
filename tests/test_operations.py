@@ -191,4 +191,5 @@ class PureDomainTests(unittest.TestCase):
         self.assertIsNone(xirr([(date(2023,1,1),-1),(date(2024,1,1),100)]))
         acc={'kind':'broker','current_value':0,'currency':'RUB'}
         flows=[asdict(Cashflow(1,'2023-01-01',amount=100)),asdict(Cashflow(1,'2024-01-01','withdrawal',20)),asdict(Cashflow(1,'2024-01-01','expense',5))]
-        self.assertEqual(account_metrics(acc,ExchangeRates({},'bad'),[],flows,TODAY)['invested'],80)
+        self.assertEqual(account_metrics(acc,ExchangeRates({},'RUB'),[],flows,TODAY)['invested'],80)
+        self.assertFalse(account_metrics(acc,ExchangeRates({},'bad'),[],flows,TODAY)['complete'])

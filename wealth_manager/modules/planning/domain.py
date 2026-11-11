@@ -39,10 +39,10 @@ def share_basis_points(percent):
 
 
 def valued_share(source,share_bps,rates,currency):
+    from wealth_manager.modules.valuation.quality import rate_factor
     if not source['active']:return Decimal('0')
-    if source['currency'] == currency:
-        return Decimal(str(source['value']))*Decimal(share_bps)/10000
-    for code in (source['currency'],currency):
-        if code not in rates or not Decimal(str(rates[code])).is_finite() or Decimal(str(rates[code]))<=0:return None
+    if source['value'] is None:return None
     value=Decimal(str(source['value']))*Decimal(share_bps)/10000
-    return value*Decimal(str(rates[source['currency']]))/Decimal(str(rates[currency]))
+    if value == 0:return Decimal('0')
+    factor=rate_factor(rates,source['currency'],currency)
+    return None if factor is None else value*factor

@@ -22,17 +22,18 @@
   </div>
 </header>
 
+{% if not m.complete %}<p class="banner">{{ _('Оценка неполная: показаны известные суммы. Прибыль и доходность не рассчитаны.') }}</p>{% endif %}
 <section class="kpis">
-  <div class="kpi main-kpi"><span class="lbl">{{ _('Стоимость') }}</span><span class="val">{{ m.value|money(base) }}</span></div>
+  <div class="kpi main-kpi"><span class="lbl">{{ _('Стоимость') if m.value_complete else _('Известная часть') }}</span><span class="val">{{ m.value|money(base) }}</span></div>
   <div class="kpi"><span class="lbl">{{ _('Вложено') }}</span><span class="val">{{ m.invested|money(base) }}</span>
     {% if m.invested_from_cost and m.positions %}<span class="sub muted" title="{{ _('Пополнения не внесены — считаем по средней цене позиций') }}">{{ _('по средней цене покупки') }}</span>{% endif %}</div>
   <div class="kpi"><span class="lbl">{{ _('Прибыль') }}</span>
-    <span class="val {{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit|signed(base) }}</span>
-    <span class="sub {{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit_pct|pct }}</span></div>
+    <span class="val {{ 'pos' if (m.profit or 0) >= 0 else 'neg' }}">{{ m.profit|signed(base) }}</span>
+    <span class="sub {{ 'pos' if (m.profit or 0) >= 0 else 'neg' }}">{{ m.profit_pct|pct }}</span></div>
   <div class="kpi"><span class="lbl" title="{{ _('Годовая доходность с учётом дат пополнений и выводов') }}">{{ _('Годовая доходность') }}</span>
     <span class="val">{{ m.xirr|pct }}</span></div>
   <div class="kpi"><span class="lbl">{{ _('Доход за 12 мес.') }}</span><span class="val">{{ m.income_12m|money(base) }}</span>
-    {% if acc.kind == 'realty' and m.value %}<span class="sub muted">{{ (m.income_12m / m.value)|pct(false) }} {{ _('годовых к оценке') }}</span>{% endif %}</div>
+    {% if acc.kind == 'realty' and m.value and m.complete %}<span class="sub muted">{{ (m.income_12m / m.value)|pct(false) }} {{ _('годовых к оценке') }}</span>{% endif %}</div>
 </section>
 
 {% if acc.kind == 'realty' %}
@@ -68,7 +69,7 @@
     <tbody>
     {% for r in rows %}{% set h = r.h %}
       <tr>
-        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ asset_label(h) }}</span></td>
+        <td><b>{{ h.ticker or h.name }}</b><span class="muted small block">{{ h.name if h.ticker else '' }}{{ ' · ' if h.ticker }}{{ asset_label(h) }}</span>{% if h.asset_class_code != 'cash' %}<span class="muted small block">{{ _('Дата цены') }}: {{ h.updated_at|rudate or '—' }}</span>{% endif %}</td>
         <td class="r num hide-s">{{ h.quantity|num(4) }}</td>
         <td class="r num hide-s muted">{% if h.asset_class_code != 'cash' %}{{ h.avg_price|num(4) }}{% endif %}</td>
         <td class="r num">
@@ -78,7 +79,7 @@
         </td>
         <td class="r num">{{ r.value|money(base) }}</td>
         <td class="r num hide-s muted">{{ r.share|pct(false) }}</td>
-        <td class="r num">{% if h.asset_class_code != 'cash' %}<span class="{{ 'pos' if r.pl >= 0 else 'neg' }}">{{ r.pl_pct|pct }}</span><span class="muted small block">{{ r.pl|signed(h.currency) }}</span>{% endif %}</td>
+        <td class="r num">{% if h.asset_class_code != 'cash' %}<span class="{{ 'pos' if (r.pl or 0) >= 0 else 'neg' }}">{{ r.pl_pct|pct }}</span><span class="muted small block">{{ r.pl|signed(h.currency) }}</span>{% endif %}</td>
         <td class="r nowrap">
           <button type="button" class="icon-btn" title="{{ _('Изменить') }}" data-open="dlg-holding" data-fill='{{ {"id": h.id, "account_id": h.account_id, "name": h.name, "ticker": h.ticker, "asset_class": h.asset_class, "asset_class_code": h.asset_class_code, "currency": h.currency, "quantity": h.quantity, "avg_price": h.avg_price, "price": h.price}|tojson }}'>✎</button>
         </td>

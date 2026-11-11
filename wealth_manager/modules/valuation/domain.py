@@ -1,22 +1,32 @@
 """Pure calculations using legacy numeric semantics; no persistence or transport."""
 from collections import defaultdict
+from math import isfinite
 from wealth_manager.shared.classifications import asset_key
 from datetime import datetime, timedelta
+from .quality import rate_factor, holding_value
 
 class ExchangeRates:
     def __init__(self, rates, base="RUB"):
         self.r = dict(rates)
-        self.r.setdefault("RUB", 1.0)
-        self.base = base if base in self.r else "RUB"
+        self.r['RUB'] = 1.0
+        self.base = base
 
-    def to_rub(self, amount, cur):
-        return (amount or 0) * self.r.get(cur, 1.0)
+    def convert(self, amount, source, target):
+        if amount is None: return None
+        if amount == 0: return 0.0
+        factor = rate_factor(self.r, source, target)
+        if factor is None: return None
+        result = float(amount) * float(factor)
+        return result if isfinite(result) else None
 
-    def to_base(self, amount, cur):
-        return self.to_rub(amount, cur) / self.r.get(self.base, 1.0)
+    def to_rub(self, amount, cur): return self.convert(amount, cur, 'RUB')
+    def to_base(self, amount, cur): return self.convert(amount, cur, self.base)
+    def rub_to_base(self, rub): return self.convert(rub, 'RUB', self.base)
 
-    def rub_to_base(self, rub):
-        return rub / self.r.get(self.base, 1.0)
+
+def complete_sum(values):
+    values = list(values)
+    return None if any(value is None for value in values) else sum(values)
 
 def parse_date(s):
     return datetime.strptime(s, "%Y-%m-%d").date()
@@ -53,19 +63,27 @@ def xirr(flows):
 def account_metrics(acc, rates, holdings, flows, today):
     flows = [f for f in flows if not f["pending"]]
 
+    complete = True
+    value_complete = True
     by_class = defaultdict(float)
     by_cur = defaultdict(float)
     if acc["kind"] == "realty":
         value = rates.to_base(acc["current_value"], acc["currency"])
         cost = 0.0
+        value_complete = value is not None
+        value = value if value is not None else 0.0
         by_class["real_estate"] += value
         by_cur[acc["currency"]] += value
     else:
         value = cost = 0.0
         for h in holdings:
-            v = rates.to_base(h["quantity"] * h["price"], h["currency"])
+            v = rates.to_base(holding_value(h), h["currency"])
+            converted_cost = rates.to_base(h["quantity"] * h["avg_price"], h["currency"])
+            if v is None: value_complete = False
+            if converted_cost is None: complete = False
+            cost += converted_cost if converted_cost is not None else 0.0
+            if v is None: continue
             value += v
-            cost += rates.to_base(h["quantity"] * h["avg_price"], h["currency"])
             by_class[asset_key(h)] += v
             by_cur[h["currency"]] += v
 
@@ -76,6 +94,9 @@ def account_metrics(acc, rates, holdings, flows, today):
     external = acc["kind"] == "realty"  # аренда/расходы по недвижимости идут мимо «стоимости»
     for f in flows:
         amt = rates.to_base(f["amount"], f["currency"])
+        if amt is None:
+            complete = False
+            continue
         sums[f["type"]] += amt
         if f["type"] == "income" and f["date"] >= year_ago:
             income_12m += amt
@@ -89,7 +110,8 @@ def account_metrics(acc, rates, holdings, flows, today):
         elif external and f["type"] == "expense":
             x_flows.append((d, -amt))
 
-    has_deposits = sums["deposit"] > 0
+    complete = complete and value_complete
+    has_deposits = any(f["type"] == "deposit" and f["amount"] > 0 for f in flows)
     invested = sums["deposit"] - sums["withdrawal"] if has_deposits else cost
     profit = value - invested
     if external:
@@ -102,12 +124,13 @@ def account_metrics(acc, rates, holdings, flows, today):
         "cost": cost,
         "invested": invested,
         "invested_from_cost": not has_deposits,
-        "profit": profit,
-        "profit_pct": (profit / invested) if invested > 0 else None,
+        "profit": profit if complete else None,
+        "complete": complete, "value_complete": value_complete,
+        "profit_pct": (profit / invested) if complete and invested > 0 else None,
         "income": sums["income"],
         "expense": sums["expense"],
         "income_12m": income_12m,
-        "xirr": irr,
+        "xirr": irr if complete else None,
         "by_class": dict(by_class),
         "by_cur": dict(by_cur),
         "positions": len(holdings),

@@ -71,7 +71,7 @@ class MarketTests(unittest.TestCase):
         r=self.client.post(f'/accounts/{self.aid}/crypto');self.assertEqual(r.status_code,302)
         with self.client.session_transaction() as session:self.assertTrue(any('bybit' in m for _,m in session['_flashes']))
 
-    def test_rate_commands_and_fallback_base(self):
+    def test_rate_commands_preserve_selected_base(self):
         self.market.save_rates({'USD':100,'BTC':1},'USD')
         self.market.save_preferences('RU',['okx']);self.market.crypto.quote.return_value=Quote(2,'USDT','okx')
         self.assertEqual(self.market.refresh_crypto_rates()['count'],1)
@@ -80,10 +80,10 @@ class MarketTests(unittest.TestCase):
         self.market.cbr.rates.return_value=({'USD':90.5,'RUB':1,'ZZZ':5},'10.11.2026')
         self.assertEqual(self.market.refresh_cbr()['count'],1)
         self.assertEqual(self.market.historical_rate('USD','2026-11-10')['rate'],90.5)
-        self.market.delete_rate('USD');self.assertEqual(self.s['reports'].navigation()['base'],'RUB')
+        self.market.delete_rate('USD');self.assertEqual(self.s['reports'].navigation()['base'],'USD')
         self.market.delete_rate('RUB');self.assertIn('RUB',self.s['reports'].navigation()['currencies'])
         with self.assertRaises(MissingRate):self.market.refresh_crypto_rates()
-        with self.assertRaises(MissingRate):self.market.refresh_account(self.aid,'crypto')
+        self.assertEqual(self.market.refresh_account(self.aid,'crypto')['count'],0)
         with self.assertRaises(ValueError):self.market.save_rates({'USD':float('nan')})
         with self.assertRaises(ValueError):self.market.save_rates({},'MISSING')
 

@@ -26,25 +26,25 @@
 {% if items %}
 <section class="kpis">
   <div class="kpi main-kpi">
-    <span class="lbl">{{ _('Капитал') }}</span>
+    <span class="lbl">{{ _('Капитал') if total.value_complete else _('Известная часть капитала') }}</span>
     <span class="val">{{ total.value|money(base) }}</span>
   </div>
   <div class="kpi">
-    <span class="lbl">{{ _('Вложено') }}</span>
+    <span class="lbl">{{ _('Вложено') if total.complete else _('Вложено: известная часть') }}</span>
     <span class="val">{{ total.invested|money(base) }}</span>
   </div>
   <div class="kpi">
     <span class="lbl">{{ _('Прибыль') }}</span>
-    <span class="val {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit|signed(base) }}</span>
-    <span class="sub {{ 'pos' if total.profit >= 0 else 'neg' }}">{{ total.profit_pct|pct }}</span>
+    <span class="val {{ 'pos' if (total.profit or 0) >= 0 else 'neg' }}">{{ total.profit|signed(base) }}</span>
+    <span class="sub {{ 'pos' if (total.profit or 0) >= 0 else 'neg' }}">{{ total.profit_pct|pct }}</span>
   </div>
   <div class="kpi">
     <span class="lbl" title="{{ _('Годовая доходность с учётом дат пополнений и выводов (XIRR)') }}">{{ _('Годовая доходность') }} <i class="q">?</i></span>
     <span class="val {{ 'pos' if (total.xirr or 0) >= 0 else 'neg' }}">{{ total.xirr|pct }}</span>
-    {% if total.xirr is none %}<span class="sub muted">{{ _('нужны пополнения с датами') }}</span>{% endif %}
+    {% if total.xirr is none and total.complete %}<span class="sub muted">{{ _('нужны пополнения с датами') }}</span>{% endif %}
   </div>
   <div class="kpi">
-    <span class="lbl">{{ _('Доход за 12 мес.') }}</span>
+    <span class="lbl">{{ _('Доход за 12 мес.') if total.complete else _('Доход: известная часть') }}</span>
     <span class="val">{{ total.income_12m|money(base) }}</span>
     <span class="sub muted">{{ _('пассивный') }}{% if inc.totals.get('freelance') %}{{ _('; + фриланс') }} {{ inc.totals.freelance|money(base) }}{% endif %}</span>
   </div>
@@ -61,7 +61,7 @@
   </div>
   <div class="chart" id="hist-chart"></div>
   <div class="legend inline"><span><i class="sw sw-a"></i>{{ _('Стоимость') }}</span><span><i class="sw sw-dash"></i>{{ _('Вложено') }}</span></div>
-  {% if hist|length < 2 %}<p class="muted small">{{ _('График наполняется сам: каждый день, когда вы открываете приложение, сохраняется снимок. Прошлые значения можно добавить на странице счёта.') }}</p>{% endif %}
+  {% if hist|length < 2 %}<p class="muted small">{{ _('Снимки создаются при изменении данных, если оценка полна. Прошлые значения можно добавить на странице счёта.') }}</p>{% endif %}
 </section>
 
 {% include "_income_card.html" %}
@@ -94,9 +94,9 @@
     {% for i in items %}{% set a, m = i.acc, i.m %}
       <tr class="link" data-href="{{ url_for('account', aid=a.id) }}">
         <td><div class="name"><i class="dot k-{{ a.kind }}"></i><div><b>{{ a.name }}</b><span class="muted small">{{ _(KIND_LABELS[a.kind]) }}{{ ' · ' ~ a.institution if a.institution }}</span></div></div></td>
-        <td class="r num">{{ m.value|money(base) }}</td>
+        <td class="r num">{{ m.value|money(base) }}{% if not m.value_complete %}<span class="muted small block">{{ _('Известная часть') }}</span>{% endif %}</td>
         <td class="r num hide-s muted">{{ ((m.value / total.value) if total.value else 0)|pct(false) }}</td>
-        <td class="r num"><span class="{{ 'pos' if m.profit >= 0 else 'neg' }}">{{ m.profit|signed }}</span><span class="small muted block">{{ m.profit_pct|pct }}</span></td>
+        <td class="r num"><span class="{{ 'pos' if (m.profit or 0) >= 0 else 'neg' }}">{{ m.profit|signed }}</span><span class="small muted block">{{ m.profit_pct|pct }}</span></td>
         <td class="r num hide-s">{{ m.xirr|pct }}</td>
       </tr>
     {% endfor %}

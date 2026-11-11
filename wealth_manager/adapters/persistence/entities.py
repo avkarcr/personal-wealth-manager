@@ -1,4 +1,5 @@
 """Typed entity storage with a shared identity and read-only legacy projection."""
+from datetime import date
 from wealth_manager.modules.accounts.domain import AccountNotFound
 from wealth_manager.modules.planning.domain import PlanningError
 
@@ -44,12 +45,15 @@ class SqliteFinancialAccountRepository(TypedRepository):
 class SqliteAssetRepository(TypedRepository):
     table='assets';entity_type='asset'
     def save(self,asset):
+        old=self.get(asset.id) if asset.id is not None else None
         record_id=self.save_common(asset)
         self.connection.execute('INSERT INTO assets(id,current_value,institution) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET current_value=excluded.current_value,institution=excluded.institution',(record_id,float(asset.current_value),asset.institution))
+        if old is None or old['current_value']!=float(asset.current_value) or old['currency']!=asset.currency:
+            self.connection.execute('UPDATE assets SET valued_at=? WHERE id=?',(date.today().isoformat(),record_id))
         return record_id
     def set_value(self,record_id,value):
         self.get(record_id)
-        self.connection.execute('UPDATE assets SET current_value=? WHERE id=?',(value,record_id))
+        self.connection.execute('UPDATE assets SET current_value=?,valued_at=? WHERE id=?',(value,date.today().isoformat(),record_id))
     def record_purchase(self,record_id,currency,purchase):
         self.connection.execute('INSERT INTO cashflows(account_id,date,type,amount,currency,note) VALUES (?,?,?,?,?,?)',(record_id,purchase.date.isoformat(),'deposit',float(purchase.amount),currency,'Покупка объекта'))
 

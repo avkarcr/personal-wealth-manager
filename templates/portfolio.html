@@ -2,12 +2,12 @@
 {% block title %}{{ portfolio.name }} — {{ _('Портфели') }}{% endblock %}
 {% block content %}
 <header class="page-head"><div><h1>{{ portfolio.name }}</h1><p>{{ _('Цель') }}: <a href="{{ url_for('settings') }}#goals">{{ portfolio.goal_name }}</a></p></div><a href="{{ url_for('portfolios') }}">{{ _('Все портфели') }}</a></header>
-<section class="card"><h2>{{ _('Текущая стоимость') }}</h2><p>{% if portfolio.total is none %}{{ _('Не хватает курсов валют для оценки') }} · <a href="{{ url_for('settings') }}">{{ _('Курсы валют к рублю') }}</a>{% else %}{{ portfolio.total|money }} {{ portfolio.currency }}{% endif %}</p><p>{{ portfolio.note }}</p></section>
+<section class="card"><h2>{{ _('Текущая стоимость') }}</h2><p>{% if portfolio.total is none %}{{ _('Недостаточно данных для полной оценки') }} · {{ _('Известная часть') }}: {{ portfolio.known_total|money }} {{ portfolio.currency }} · <a href="{{ url_for('settings') }}">{{ _('Курсы валют к рублю') }}</a>{% else %}{{ portfolio.total|money }} {{ portfolio.currency }}{% endif %}</p><p>{{ portfolio.note }}</p></section>
 <section class="card"><h2>{{ _('Состав портфеля') }}</h2>
 <p class="muted">{{ _('Доли применяются к текущей стоимости позиций и недвижимости. Изменение количества или оценки меняет стоимость доли. Общий капитал не увеличивается при распределении.') }}</p>
 {% for row in portfolio.rows %}
 <article class="card"><h3>{{ row.source.name }}{% if row.source.owner %} · {{ row.source.owner }}{% endif %}</h3>
-<p>{{ row.percent|num(2) }}% · {% if row.value is none %}{{ _('Не хватает курсов валют для оценки') }}{% else %}{{ row.value|money }} {{ portfolio.currency }}{% endif %}
+<p>{{ row.percent|num(2) }}% · {% if row.value is none %}{{ _('Недостаточно данных для полной оценки') }}{% else %}{{ row.value|money }} {{ portfolio.currency }}{% endif %}
 {% if not row.source.active %} · {{ _('Архивный актив: доля сохранена, стоимость не учитывается') }}{% endif %}</p>
 <form method="post" action="{{ url_for('allocation_delete',pid=portfolio.id,rid=row.id) }}"><button class="btn sm ghost">{{ _('Убрать из портфеля') }}</button></form>
 </article>

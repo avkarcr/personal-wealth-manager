@@ -9,5 +9,9 @@ class SqliteReportRepository:
 
 
 def read_connection(connection):
-    return {table: [dict(row) for row in connection.execute('SELECT * FROM ' + table)]
+    data = {table: [dict(row) for row in connection.execute('SELECT * FROM ' + table)]
             for table in ('accounts','holdings','cashflows','leases','rent_payments','rates','snapshots','settings')}
+
+    if connection.execute('PRAGMA user_version').fetchone()[0] >= 8:
+        data['asset_dates'] = dict(connection.execute('SELECT id,valued_at FROM assets'))
+    return data

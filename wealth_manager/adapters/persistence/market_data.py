@@ -20,6 +20,5 @@ class SqliteRateRepository:
     def delete(self,currency):
         if currency=='RUB': return
         self.connection.execute('DELETE FROM rates WHERE currency=?',(currency,))
-        self.connection.execute("UPDATE settings SET value='RUB' WHERE key='base_currency' AND value=?",(currency,))
     def set_base(self,currency):
         self.connection.execute("INSERT INTO settings(key,value) VALUES ('base_currency',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",(currency,))

@@ -1,3 +1,5 @@
+from datetime import datetime
+from wealth_manager.modules.valuation.quality import rate_factor
 from wealth_manager.shared.classifications import asset_key
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.modules.reporting.application import rates_for
@@ -31,12 +33,12 @@ class MarketData:
         if not p['exchanges']: raise NoExchangeSelected('Select country and exchanges in settings')
         return p['exchanges']
 
-    def save_rates(self,values,base=''):
+    def save_rates(self,values,base='',as_of=None):
         values={symbol(k):positive(v) for k,v in values.items()}
         with self.uow_factory() as uow:
             known=uow.valuations.rates().r
             if base and base not in set(known)|set(values): raise ValueError('Unknown base currency')
-            for code,value in values.items():uow.rates.save(code,value,self.today().isoformat())
+            for code,value in values.items():uow.rates.save(code,value,as_of or self.today().isoformat())
             uow.rates.save('RUB',1,self.today().isoformat())
             if base:uow.rates.set_base(base)
             uow.take_snapshot();uow.commit()
@@ -52,8 +54,6 @@ class MarketData:
         if account['kind'] in ('realty','freelance'):raise ValueError('Quotes require a financial account')
         if kind not in ('crypto','moex'): raise ValueError('Unknown market')
         exchanges=self.active_exchanges() if kind=='crypto' else ()
-        usd=rates.r.get('USD')
-        if kind=='crypto' and not usd: raise MissingRate('USD')
         prices={}; failed=[]; sources={}
         for h in data['holdings']:
             if h['account_id']!=aid or not h['ticker'] or asset_key(h)=='cash':continue
@@ -61,9 +61,10 @@ class MarketData:
                 if kind=='crypto':
                     q=self.crypto.quote(h['ticker'],exchanges)
                     if q is None: raise ProviderError('No quote')
-                    if h['currency'] not in rates.r: raise MissingRate(h['currency'])
+                    factor=rate_factor(rates.r,'USD',h['currency'])
+                    if factor is None: raise MissingRate(h['currency'])
                     # Existing USD approximation is explicit in the interface.
-                    price=q.price*usd/rates.r[h['currency']];sources[h['ticker']]=q.provider
+                    price=q.price*float(factor);sources[h['ticker']]=q.provider
                 else:
                     price=self.stocks.price(h['ticker']);sources[h['ticker']]='MOEX'
                 prices[h['id']]=positive(price)
@@ -77,7 +78,7 @@ class MarketData:
 
     def refresh_crypto_rates(self):
         exchanges=self.active_exchanges();data=self.reports.read();rates=rates_for(data)
-        if not rates.r.get('USD'): raise MissingRate('USD')
+        if rates.to_rub(1,'USD') is None: raise MissingRate('USD')
         values={};failed=[];sources={}
         for code in rates.r:
             if code in FIAT:continue
@@ -91,7 +92,7 @@ class MarketData:
         values,published=self.cbr.rates()
         known=rates_for(self.reports.read()).r
         selected={k:round(v,4) for k,v in values.items() if k in known and k!='RUB'}
-        if selected:self.save_rates(selected)
+        if selected:self.save_rates(selected,as_of=datetime.strptime(published,'%d.%m.%Y').date().isoformat())
         return dict(count=len(selected),date=published)
 
     def historical_rate(self,currency,day):

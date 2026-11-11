@@ -73,7 +73,7 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(self.dump(),before);self.assertEqual(Path(self.vault.path).read_bytes(),encrypted)
         self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],6)
         initialize_vault(self.vault)
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],7)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
 
     def test_codes_custom_collisions_cash_behavior_and_validation(self):
         initialize_vault(self.vault)

@@ -1,0 +1,9 @@
+{% if valuation_quality %}
+<section class="banner" role="status">
+<strong>{{ _('Качество оценки') }}</strong>
+<p>{{ _('При отсутствии цены или курса показана только известная часть. Устаревшие значения включены в расчёт; свежесть — не более 7 календарных дней. Доли на неполных диаграммах относятся только к известной части.') }}</p>
+<ul>{% for issue in valuation_quality %}<li>{{ _('Курс') if issue.kind=='rate' else _('Оценка актива') }}: <b>{{ issue.name }}</b> —
+{{ _('Нет данных или значение некорректно') if issue.status=='missing' else _('Устарело') if issue.status=='stale' else _('Дата в будущем') if issue.status=='future' else _('Дата оценки неизвестна') }}{% if issue.date %} · {{ issue.date|rudate }}{% endif %}</li>{% endfor %}</ul>
+<a href="{{ url_for('settings') }}">{{ _('Настройки') }}</a>
+</section>
+{% endif %}

@@ -2,7 +2,7 @@ from wealth_manager.shared.classifications import category_key
 """Pure read models. Inputs are detached records, never database connections."""
 from collections import defaultdict
 from datetime import timedelta
-from wealth_manager.modules.valuation.domain import account_metrics, parse_date, xirr
+from wealth_manager.modules.valuation.domain import account_metrics, parse_date, xirr, complete_sum
 from .labels import KIND_SHORT
 
 
@@ -24,18 +24,22 @@ def portfolio(data, rates, today, include_archived=False):
     items, total = [], defaultdict(float)
     by_class, by_cur = defaultdict(float), defaultdict(float)
     all_x = []
+    complete = True
+    value_complete = True
     for acc in accounts:
         m = metrics(data, acc, rates, today)
         items.append({"acc": acc, "m": m})
         if acc["archived"]:
             continue
+        complete = complete and m["complete"]
+        value_complete = value_complete and m["value_complete"]
         for k in ("value", "invested", "profit", "income_12m", "income"):
-            total[k] += m[k]
+            total[k] += m[k] if m[k] is not None else 0.0
         for k, v in m["by_class"].items():
             by_class[k] += v
         for k, v in m["by_cur"].items():
             by_cur[k] += v
-    total["profit_pct"] = total["profit"] / total["invested"] if total["invested"] > 0 else None
+    total["profit_pct"] = total["profit"] / total["invested"] if complete and total["invested"] > 0 else None
 
     # Общий XIRR по всем счетам с пополнениями
     flows = [f for f in joined_flows(data) if not f['archived'] and f['kind'] != 'freelance' and not f['pending']]
@@ -44,6 +48,9 @@ def portfolio(data, rates, today, include_archived=False):
         if f["account_id"] not in dep_accounts:
             continue
         amt = rates.to_base(f["amount"], f["currency"])
+        if amt is None:
+            complete = False
+            continue
         d = parse_date(f["date"])
         if f["type"] == "deposit":
             all_x.append((d, -amt))
@@ -55,7 +62,10 @@ def portfolio(data, rates, today, include_archived=False):
             all_x.append((d, -amt))
     end_val = sum(i["m"]["value"] for i in items if i["acc"]["id"] in dep_accounts and not i["acc"]["archived"])
     all_x.append((today, end_val))
-    total["xirr"] = xirr(all_x)
+    total["xirr"] = xirr(all_x) if complete else None
+    total["complete"] = complete
+    total["value_complete"] = value_complete
+    if not complete: total["profit"] = None
     return items, dict(total), dict(by_class), dict(by_cur)
 
 def history(data, rates, account_id=None):
@@ -67,6 +77,7 @@ def history(data, rates, account_id=None):
     by_date = defaultdict(list)
     for r in rows:
         by_date[r["date"]].append(r)
+    if rates.rub_to_base(1) is None: return []
     out = []
     for d in dates:
         for r in by_date[d]:
@@ -109,16 +120,21 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     by_cat, by_src = defaultdict(float), defaultdict(float)
     tot = defaultdict(float)
     pending = []
+    complete = True
     this_month = today.strftime("%Y-%m")
     for r in rows:
         amt = rates.to_base(r["amount"], r["currency"])
         if r["pending"]:
             if r["type"] == "income":
                 pending.append({"row": r, "amount": amt})
-                tot["pending"] += amt
+                if amt is None: complete = False
+                else: tot["pending"] += amt
             continue
         m = r["date"][:7]
         if not (start <= m <= end):
+            continue
+        if amt is None:
+            complete = False
             continue
         if r["type"] == "expense":
             tot["expense"] += amt
@@ -143,6 +159,7 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     series = [{"key": g, "name": KIND_SHORT[g], "values": [round(v, 2) for v in monthly[g]]}
               for g in groups if any(monthly[g])]
     return {
+        "complete": complete,
         "months": month_keys,
         "series": series,
         "totals": dict(tot),

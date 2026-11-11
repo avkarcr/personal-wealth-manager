@@ -1,3 +1,4 @@
+from dataclasses import replace
 from wealth_manager.shared.ports import UowFactory, Clock
 from wealth_manager.shared.validation import finite
 from .domain import Position
@@ -11,6 +12,10 @@ class PositionCommands:
         position = position.normalized(self.today())
         with self.uow_factory() as uow:
             uow.accounts.get(position.account_id)
+            if position.id is not None:
+                old=uow.positions.get(position.id)
+                if (old.price,old.currency,old.ticker,old.asset_class_code)==(position.price,position.currency,position.ticker,position.asset_class_code):
+                    position=replace(position,updated_at=old.updated_at)
             record_id = uow.positions.save(position)
             uow.take_snapshot()
             uow.commit()

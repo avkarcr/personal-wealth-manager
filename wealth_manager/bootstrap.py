@@ -37,7 +37,7 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     return {"companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
             "taxes": TaxCommands(factory), "tax_reports": TaxReports(TaxReader(vault)),
-            "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault)),
+            "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),
             "save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
             "save_income_source": SaveIncomeSource(factory), "reports": Reports(reports, today),
             "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),

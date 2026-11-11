@@ -1,0 +1,20 @@
+<section class="card" id="goals">
+<h2>{{ _('Цели') }}</h2>
+<p class="muted">{{ _('Цели задаются здесь. Каждый портфель связан с одной целью; у цели может быть несколько портфелей.') }}</p>
+{% for goal in planning.goals %}
+<article class="card">
+  <h3>{{ goal.name }}</h3>
+  <p>{{ _('Прогресс цели') }}:
+    {% if goal.total is none %}{{ _('Не хватает курсов валют для оценки') }}
+    {% else %}{{ goal.total|money }} / {{ goal.target_amount|money }} {{ goal.currency }} · {{ goal.progress|num(1) }}%{% endif %}
+  </p>
+  {% if goal.progress is not none %}<progress max="100" value="{{ [goal.progress,100]|min }}" aria-label="{{ _('Прогресс цели') }}"></progress>{% endif %}
+  {% if goal.due_date %}<p>{{ _('Срок цели') }}: {{ goal.due_date|rudate }}</p>{% endif %}
+  <p>{% for p in goal.portfolios %}<a href="{{ url_for('portfolio_detail',pid=p.id) }}">{{ p.name }}</a>{{ ', ' if not loop.last }}{% else %}{{ _('Нет привязанных портфелей') }}{% endfor %}</p>
+  <details><summary>{{ _('Редактировать цель') }}</summary>{% include 'goal_form.html' %}</details>
+  <form method="post" action="{{ url_for('goal_delete',gid=goal.id) }}" data-confirm="{{ _('Удалить цель?') }}"><button class="btn sm ghost" {{ 'disabled' if goal.portfolios }}>{{ _('Удалить цель') }}</button></form>
+  {% if goal.portfolios %}<p class="small muted">{{ _('Сначала переназначьте или удалите портфели этой цели') }}</p>{% endif %}
+</article>
+{% else %}<p>{{ _('Пока нет целей') }}</p>{% endfor %}
+<details><summary>{{ _('Новая цель') }}</summary>{% with goal=none %}{% include 'goal_form.html' %}{% endwith %}</details>
+</section>

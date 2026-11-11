@@ -1,5 +1,6 @@
 """SQLite adapters for existing tables. No commits: UnitOfWork owns durability."""
 from dataclasses import asdict, replace
+from wealth_manager.modules.planning.domain import PlanningError
 
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.modules.positions.domain import Position
@@ -36,10 +37,14 @@ class SqlitePositionRepository:
         return Position(**get_row(self.connection, 'holdings', record_id))
 
     def save(self, position):
+        if position.quantity < 0 and self.connection.execute('SELECT 1 FROM allocations WHERE holding_id=?', (position.id,)).fetchone():
+            raise PlanningError('Сначала удалите распределение актива из портфелей')
         return save_row(self.connection, 'holdings', position)
 
     def delete(self, record_id):
         self.get(record_id)
+        if self.connection.execute('SELECT 1 FROM allocations WHERE holding_id=?', (record_id,)).fetchone():
+            raise PlanningError('Сначала удалите распределение актива из портфелей')
         self.connection.execute('DELETE FROM holdings WHERE id=?', (record_id,))
 
     def set_price(self, record_id, account_id, price, updated_at):

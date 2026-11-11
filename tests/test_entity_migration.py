@@ -50,7 +50,7 @@ class MigrationTests(unittest.TestCase):
         original={t:self.rows(t) for t in ('accounts','holdings','cashflows','leases','rent_payments','snapshots','rates','settings')}
         expected=self.summaries()
         initialize_vault(self.vault)
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],4)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(self.rows('accounts'),original['accounts'])
         for table in ('holdings','cashflows','rent_payments','snapshots','rates','settings'):
             self.assertEqual(self.rows(table),original[table],table)
@@ -83,7 +83,7 @@ class MigrationTests(unittest.TestCase):
         self.vault.con=DumpOnlyConnection()
         self.vault.save(force=True)
         self.vault.lock();self.vault.unlock('password123')
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],4)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         before=self.summaries();db.init_db(self.vault.con)
         self.assertEqual(self.summaries(),before)
 
@@ -96,7 +96,7 @@ class MigrationTests(unittest.TestCase):
         self.assertFalse(self.vault.unlocked)
         self.assertEqual(Path(self.vault.path).read_bytes(),encrypted)
         self.assertEqual(client.post('/unlock',data={'password':'password123'}).status_code,302)
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],4)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(client.get('/assets/20').status_code,200)
 
     def test_schema_failure_rolls_back_and_can_be_retried(self):

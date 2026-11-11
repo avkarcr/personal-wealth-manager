@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ portfolio.name }} — {{ _('Портфели') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ portfolio.name }}</h1><p>{{ _('Цель') }}: <a href="{{ url_for('settings') }}#goals">{{ portfolio.goal_name }}</a></p></div><a href="{{ url_for('portfolios') }}">{{ _('Все портфели') }}</a></header>
+<section class="card"><h2>{{ _('Текущая стоимость') }}</h2><p>{% if portfolio.total is none %}{{ _('Не хватает курсов валют для оценки') }} · <a href="{{ url_for('settings') }}">{{ _('Курсы валют к рублю') }}</a>{% else %}{{ portfolio.total|money }} {{ portfolio.currency }}{% endif %}</p><p>{{ portfolio.note }}</p></section>
+<section class="card"><h2>{{ _('Состав портфеля') }}</h2>
+<p class="muted">{{ _('Доли применяются к текущей стоимости позиций и недвижимости. Изменение количества или оценки меняет стоимость доли. Общий капитал не увеличивается при распределении.') }}</p>
+{% for row in portfolio.rows %}
+<article class="card"><h3>{{ row.source.name }}{% if row.source.owner %} · {{ row.source.owner }}{% endif %}</h3>
+<p>{{ row.percent|num(2) }}% · {% if row.value is none %}{{ _('Не хватает курсов валют для оценки') }}{% else %}{{ row.value|money }} {{ portfolio.currency }}{% endif %}
+{% if not row.source.active %} · {{ _('Архивный актив: доля сохранена, стоимость не учитывается') }}{% endif %}</p>
+<form method="post" action="{{ url_for('allocation_delete',pid=portfolio.id,rid=row.id) }}"><button class="btn sm ghost">{{ _('Убрать из портфеля') }}</button></form>
+</article>
+{% else %}<p>{{ _('Портфель пока пуст') }}</p>{% endfor %}
+</section>
+<section class="card"><h2>{{ _('Добавить или изменить долю') }}</h2>
+{% if choices %}<form method="post" action="{{ url_for('portfolio_allocate',pid=portfolio.id) }}">
+<label class="fld"><span>{{ _('Актив') }}</span><select name="source" required>
+{% for s in choices %}<option value="{{ s.key }}">{{ s.name }}{% if s.owner %} · {{ s.owner }}{% endif %} · {{ _('В этом портфеле') }}: {{ s.assigned|num(2) }}% · {{ _('Максимальная доля') }}: {{ s.available|num(2) }}%</option>{% endfor %}
+</select></label>
+<label class="fld"><span>{{ _('Новая доля, % (заменяет прежнюю)') }}</span><input name="percent" type="number" min="0.01" max="100" step="0.01" required></label>
+<button class="btn primary">{{ _('Сохранить') }}</button></form>
+{% else %}<p>{{ _('Сначала добавьте позиции на счетах или недвижимость') }}</p>{% endif %}
+</section>
+<section class="card"><details><summary>{{ _('Редактировать портфель') }}</summary>{% include 'portfolio_form.html' %}</details>
+<form method="post" action="{{ url_for('portfolio_delete',pid=portfolio.id) }}" data-confirm="{{ _('Удалить портфель и его распределение? Активы сохранятся.') }}"><button class="btn ghost">{{ _('Удалить портфель') }}</button></form></section>
+{% endblock %}

@@ -42,7 +42,10 @@ from wealth_manager.modules.market_data.ports import MarketPreferences, RateRepo
 
 from wealth_manager.modules.entities.ports import EntityRepository, AssetRepository, IncomeSourceRepository
 
+from wealth_manager.modules.planning.ports import PlanningRepository
+
 class UnitOfWork(Protocol):
+    planning: PlanningRepository
     entities: EntityRepository
     assets: AssetRepository
     income_sources: IncomeSourceRepository

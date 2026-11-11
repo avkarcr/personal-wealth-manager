@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Портфели') }} — {{ _('Капитал') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ _('Портфели') }}</h1><p class="muted">{{ _('Распределение активов по финансовым целям') }}</p></div><a class="btn" href="{{ url_for('settings') }}#goals">{{ _('Управление целями') }}</a></header>
+<div class="grid2">
+{% for p in portfolios %}<section class="card"><h2><a href="{{ url_for('portfolio_detail',pid=p.id) }}">{{ p.name }}</a></h2>
+<p>{{ _('Цель') }}: {{ p.goal_name }}</p>
+<p>{{ _('Текущая стоимость') }}: {% if p.total is none %}{{ _('Не хватает курсов валют для оценки') }}{% else %}{{ p.total|money }} {{ p.currency }}{% endif %}</p>
+<p class="muted">{{ p.note }}</p></section>
+{% else %}<section class="card"><p>{{ _('Пока нет портфелей') }}</p></section>{% endfor %}
+</div>
+<section class="card"><h2>{{ _('Новый портфель') }}</h2>
+{% if goals %}{% with portfolio=none %}{% include 'portfolio_form.html' %}{% endwith %}
+{% else %}<p>{{ _('Сначала создайте цель в настройках') }}</p><a href="{{ url_for('settings') }}#goals">{{ _('Новая цель') }}</a>{% endif %}
+</section>
+{% endblock %}

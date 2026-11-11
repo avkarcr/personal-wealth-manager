@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -230,7 +230,7 @@ def _migrate_entities(con):
             con.execute(f"CREATE TRIGGER guard_{table} BEFORE INSERT ON {table} WHEN (SELECT entity_type FROM entities WHERE id=NEW.id)<>'{kind}' BEGIN SELECT RAISE(ABORT,'Entity type mismatch'); END")
         violations = con.execute('PRAGMA foreign_key_check').fetchall()
         if violations: raise ValueError('Migration would break foreign key links')
-        con.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
+        con.execute('PRAGMA user_version=4')
         con.commit()
     except BaseException:
         con.rollback()
@@ -248,8 +248,10 @@ def init_db(con):
         before=sqlite3.connect(':memory:')
         con.backup(before)
         try:
-            _init_legacy(con)
-            _migrate_entities(con)
+            if version < 4:
+                _init_legacy(con)
+                _migrate_entities(con)
+            _migrate_planning(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -257,3 +259,49 @@ def init_db(con):
         finally:
             before.close()
     con.execute('PRAGMA foreign_keys=ON')
+
+
+PLANNING_SCHEMA = """
+CREATE TABLE goals (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ target_amount TEXT NOT NULL,
+ currency TEXT NOT NULL,
+ due_date TEXT NOT NULL DEFAULT '',
+ note TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE portfolios (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL,
+ goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE RESTRICT,
+ note TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE allocations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ portfolio_id INTEGER NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
+ holding_id INTEGER REFERENCES holdings(id) ON DELETE RESTRICT,
+ asset_id INTEGER REFERENCES assets(id) ON DELETE RESTRICT,
+ share_bps INTEGER NOT NULL CHECK(typeof(share_bps)='integer' AND share_bps>0 AND share_bps<=10000),
+ CHECK((holding_id IS NOT NULL AND asset_id IS NULL) OR (holding_id IS NULL AND asset_id IS NOT NULL))
+);
+CREATE UNIQUE INDEX allocation_holding ON allocations(portfolio_id,holding_id) WHERE holding_id IS NOT NULL;
+CREATE UNIQUE INDEX allocation_asset ON allocations(portfolio_id,asset_id) WHERE asset_id IS NOT NULL;
+"""
+
+
+def _migrate_planning(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        for statement in _statements(PLANNING_SCHEMA):con.execute(statement)
+        for operation in ('INSERT','UPDATE'):
+            exclusion = ' AND id<>OLD.id' if operation=='UPDATE' else ''
+            con.execute(f"""CREATE TRIGGER allocation_limit_{operation.lower()} BEFORE {operation} ON allocations
+                WHEN NEW.share_bps + COALESCE((SELECT SUM(share_bps) FROM allocations
+                WHERE ((NEW.holding_id IS NOT NULL AND holding_id=NEW.holding_id)
+                    OR (NEW.asset_id IS NOT NULL AND asset_id=NEW.asset_id)){exclusion}),0)>10000
+                BEGIN SELECT RAISE(ABORT,'Allocation exceeds 100 percent'); END""")
+        con.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise

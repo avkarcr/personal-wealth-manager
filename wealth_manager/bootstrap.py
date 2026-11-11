@@ -22,9 +22,13 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.adapters.market_data.providers import HttpClient, CryptoProvider, MoexProvider, CbrProvider
     http = http or HttpClient()
     catalog = catalog or ExchangeCatalog(json.loads((Path(__file__).parent / 'adapters/market_data/exchanges.json').read_text()))
+    from wealth_manager.modules.planning.application import PlanningCommands
+    from wealth_manager.modules.planning.reports import PlanningReports
+    from wealth_manager.adapters.persistence.planning import SqlitePlanningReader
     reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault)
-    return {"save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
+    return {"planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault)),
+            "save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
             "save_income_source": SaveIncomeSource(factory), "reports": Reports(reports, today),
             "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),
             "save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),

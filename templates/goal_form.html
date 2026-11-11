@@ -1,0 +1,11 @@
+<form method="post" action="{{ url_for('goal_save') }}">
+  {% if goal %}<input type="hidden" name="id" value="{{ goal.id }}">{% endif %}
+  <label class="fld"><span>{{ _('Название цели') }}</span><input name="name" required value="{{ goal.name if goal else '' }}"></label>
+  <div class="row2">
+    <label class="fld"><span>{{ _('Сумма цели') }}</span><input name="target_amount" type="number" step="any" min="0.01" required value="{{ goal.target_amount if goal else '' }}"></label>
+    <label class="fld"><span>{{ _('Валюта') }}</span><input name="currency" required value="{{ goal.currency if goal else base }}" maxlength="10"></label>
+  </div>
+  <label class="fld"><span>{{ _('Срок цели (необязательно)') }}</span><input name="due_date" type="date" value="{{ goal.due_date if goal else '' }}"></label>
+  <label class="fld"><span>{{ _('Заметка') }}</span><input name="note" value="{{ goal.note if goal else '' }}"></label>
+  <button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

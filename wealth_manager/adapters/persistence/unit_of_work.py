@@ -1,6 +1,7 @@
 """Serialize mutations with vault locking and restore memory if persistence fails."""
 import sqlite3
 import calc
+from .planning import SqlitePlanningRepository
 from .entities import SqliteEntityRepository, SqliteAssetRepository, SqliteIncomeSourceRepository
 from .market_data import SqliteMarketPreferences, SqliteRateRepository
 from .operations import SqlitePositionRepository, SqliteCashflowRepository, SqliteRentalRepository, SqliteValuationRepository
@@ -23,6 +24,7 @@ class VaultUnitOfWork:
             self.connection.backup(self.before)
             self.market_preferences = SqliteMarketPreferences(self.connection)
             self.rates = SqliteRateRepository(self.connection)
+            self.planning = SqlitePlanningRepository(self.connection)
             self.positions = SqlitePositionRepository(self.connection)
             self.cashflows = SqliteCashflowRepository(self.connection)
             self.rentals = SqliteRentalRepository(self.connection)

@@ -1,5 +1,6 @@
 """Typed entity storage with a shared identity and read-only legacy projection."""
 from wealth_manager.modules.accounts.domain import AccountNotFound
+from wealth_manager.modules.planning.domain import PlanningError
 
 class SqliteEntityRepository:
     def __init__(self,connection): self.connection=connection
@@ -12,6 +13,8 @@ class SqliteEntityRepository:
         self.connection.execute('UPDATE entities SET archived=1-archived WHERE id=?',(record_id,))
     def delete(self,record_id):
         self.get(record_id)
+        if self.connection.execute('SELECT 1 FROM allocations WHERE asset_id=? OR holding_id IN (SELECT id FROM holdings WHERE account_id=?)', (record_id,record_id)).fetchone():
+            raise PlanningError('Сначала удалите распределение актива из портфелей')
         self.connection.execute('DELETE FROM entities WHERE id=?',(record_id,))
         self.connection.execute('DELETE FROM legacy_accounts_v3 WHERE id=?',(record_id,))
 

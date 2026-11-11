@@ -18,6 +18,8 @@
   </form>
 </section>
 
+{% include 'goals.html' %}
+
 <section class="card" id="market">
   <h2>{{ _('Страна и криптобиржи') }}</h2>
   <form method="get" action="{{ url_for('settings') }}#market">

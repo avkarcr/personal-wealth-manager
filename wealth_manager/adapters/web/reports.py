@@ -23,5 +23,5 @@ def register_reports(app,runtime):
 
     @app.get('/settings')
     def settings():
-        return render_template('settings.html',**reports.settings(),db_path=runtime.vault.path,idle=runtime.vault.idle_minutes,
+        return render_template('settings.html',**reports.settings(),planning=runtime.services['planning_reports'].overview(),db_path=runtime.vault.path,idle=runtime.vault.idle_minutes,
                                market=runtime.services['market_data'].preferences(request.args.get('country')))

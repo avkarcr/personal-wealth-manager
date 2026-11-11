@@ -1,0 +1,9 @@
+<form method="post" action="{{ url_for('portfolio_save') }}">
+{% if portfolio %}<input type="hidden" name="id" value="{{ portfolio.id }}">{% endif %}
+<label class="fld"><span>{{ _('Название портфеля') }}</span><input name="name" required value="{{ portfolio.name if portfolio else '' }}"></label>
+<label class="fld"><span>{{ _('Цель') }}</span><select name="goal_id" required>
+{% for g in goals %}<option value="{{ g.id }}" {{ 'selected' if portfolio and portfolio.goal_id == g.id }}>{{ g.name }} · {{ g.currency }}</option>{% endfor %}
+</select></label>
+<label class="fld"><span>{{ _('Заметка') }}</span><input name="note" value="{{ portfolio.note if portfolio else '' }}"></label>
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

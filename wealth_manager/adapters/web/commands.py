@@ -70,6 +70,18 @@ def register_commands(app, runtime):
         flash('Статус счёта изменён')
         return back()
 
+    @app.post('/accounts/<int:aid>/close')
+    @validated
+    def account_close(aid):
+        services['accounts'].close(aid)
+        return redirect(url_for('account',aid=aid))
+
+    @app.post('/accounts/<int:aid>/reopen')
+    @validated
+    def account_reopen(aid):
+        services['accounts'].reopen(aid)
+        return redirect(url_for('account',aid=aid))
+
     @app.post('/accounts/<int:aid>/delete')
     @validated
     def account_delete(aid):

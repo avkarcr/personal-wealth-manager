@@ -61,7 +61,7 @@ def unique_issues(issues):
 
 def report_quality(data, target, today, account_ids=None):
     accounts = {a['id']: a for a in data['accounts'] if
-                (a['id'] in account_ids if account_ids is not None else not a['archived'])}
+                (a['id'] in account_ids if account_ids is not None else not a.get('closed_at'))}
     rates = {r['currency']: r['rate'] for r in data['rates']}
     dates = {r['currency']: r.get('updated_at') for r in data['rates']}
     sources = [dict(name=h['name'], currency=h['currency'], value=holding_value(h),quantity=h['quantity'],

@@ -6,6 +6,7 @@
   <div>
     <p class="crumb"><i class="dot k-{{ acc.kind }}"></i>{{ _(KIND_LABELS[acc.kind]) }}{{ ' · ' ~ acc.institution if acc.institution }}{% if acc.archived %} · <b>{{ _('в архиве') }}</b>{% endif %}</p>
     <h1>{{ acc.name }}</h1>
+    {% if acc.closed_at %}<p class="banner">{{ _('Счёт закрыт') }}: {{ acc.closed_at }}. {{ _('История сохранена') }}</p>{% endif %}
     {% if acc.note %}<p class="muted">{{ acc.note }}</p>{% endif %}
   </div>
   <div class="actions">
@@ -16,6 +17,7 @@
       <div class="menu-pop">
         <button data-open="dlg-account" data-fill='{{ acc_json|tojson }}'>{{ _('Редактировать') }}</button>
         <form method="post" action="{{ url_for('account_archive', aid=acc.id) }}"><button>{{ _('Вернуть из архива') if acc.archived else _('В архив') }}</button></form>
+        {% if acc.kind != 'realty' %}<form method="post" action="{{ url_for('account_reopen' if acc.closed_at else 'account_close', aid=acc.id) }}"><button>{{ _('Открыть снова') if acc.closed_at else _('Закрыть счёт') }}</button></form>{% endif %}
         <form method="post" action="{{ url_for('account_delete', aid=acc.id) }}" data-confirm="{{ _('Удалить счёт «') }}{{ acc.name }}{{ _('» со всеми позициями и операциями?') }}"><button class="danger">{{ _('Удалить') }}</button></form>
       </div>
     </details>
@@ -23,6 +25,7 @@
 </header>
 
 {% if not m.complete %}<p class="banner">{{ _('Оценка неполная: показаны известные суммы. Прибыль и доходность не рассчитаны.') }}</p>{% endif %}
+<p class="muted small">{{ _('Архив скрывает счёт из меню, но сохраняет его в расчётах. Закрыть можно финансовый счёт без остатков и ожидаемых операций.') }}</p>
 <section class="kpis">
   <div class="kpi main-kpi"><span class="lbl">{{ _('Стоимость') if m.value_complete else _('Известная часть') }}</span><span class="val">{{ m.value|money(base) }}</span></div>
   <div class="kpi"><span class="lbl">{{ _('Вложено') }}</span><span class="val">{{ m.invested|money(base) }}</span>

@@ -8,7 +8,7 @@
 {% for row in portfolio.rows %}
 <article class="card"><h3>{{ row.source.name }}{% if row.source.owner %} · {{ row.source.owner }}{% endif %}</h3>
 <p>{{ row.percent|num(2) }}% · {% if row.value is none %}{{ _('Недостаточно данных для полной оценки') }}{% else %}{{ row.value|money }} {{ portfolio.currency }}{% endif %}
-{% if not row.source.active %} · {{ _('Архивный актив: доля сохранена, стоимость не учитывается') }}{% endif %}</p>
+{% if not row.source.active %} · {{ _('Счёт закрыт: доля сохранена, стоимость не учитывается') }}{% endif %}</p>
 <form method="post" action="{{ url_for('allocation_delete',pid=portfolio.id,rid=row.id) }}"><button class="btn sm ghost">{{ _('Убрать из портфеля') }}</button></form>
 </article>
 {% else %}<p>{{ _('Портфель пока пуст') }}</p>{% endfor %}

@@ -115,6 +115,9 @@ class SqliteValuationRepository:
         return ExchangeRates(dict(self.connection.execute('SELECT currency,rate FROM rates')),
                              row[0] if row else 'RUB')
 
+    def historical_rates(self, day):
+        return ExchangeRates(dict(self.connection.execute('SELECT currency,rate FROM historical_rates WHERE date=?',(day,))))
+
     def save_history(self, account_id, day, value_rub, invested_rub):
         self.connection.execute(
             'INSERT INTO snapshots(date,account_id,value_rub,invested_rub) VALUES (?,?,?,?) '

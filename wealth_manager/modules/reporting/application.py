@@ -23,7 +23,7 @@ class Reports:
         items,total,classes,currencies = portfolio(data,rates,today)
         return dict(valuation_quality=report_quality(data,rates.base,today),items=items,total=total,by_class=sorted(classes.items(),key=lambda x:-x[1]),
                     by_cur=sorted(currencies.items(),key=lambda x:-x[1]),hist=history(data,rates),
-                    inc=income_report(data,rates,today),has_any=any(not a['archived'] for a in data['accounts']),
+                    inc=income_report(data,rates,today),has_any=bool(data['accounts']),
                     recent=sorted(joined_flows(data),key=lambda f:(f['date'],f['id']),reverse=True)[:6])
 
     def account(self, aid):
@@ -90,7 +90,7 @@ class Reports:
 
     def navigation(self):
         data=self.repository.read(); rates=rates_for(data)
-        nav=sorted((a for a in data['accounts'] if not a['archived']),key=lambda a:({'broker':0,'crypto':1,'realty':2,'other':3}.get(a['kind'],4),a['name']))
+        nav=sorted((a for a in data['accounts'] if not a['archived'] and not a.get('closed_at')),key=lambda a:({'broker':0,'crypto':1,'realty':2,'other':3}.get(a['kind'],4),a['name']))
         used={r['currency'] for table in ('accounts','holdings','cashflows') for r in data[table]}
         return dict(base=rates.base,currencies=sorted(set(rates.r)|used|{rates.base}),nav_accounts=nav,
                     nav_financial=[a for a in nav if a['kind'] not in ('realty','freelance')],
@@ -100,8 +100,8 @@ class Reports:
 
     def settings(self):
         data=self.repository.read()
-        return dict(rates=sorted(data['rates'],key=lambda r:(r['currency']!='RUB',r['currency'])),
-                    archived=sorted((a for a in data['accounts'] if a['archived']),key=lambda a:a['name']))
+        return dict(historical_rates=sorted(data.get('historical_rates',[]),key=lambda r:(r['date'],r['currency']),reverse=True),rates=sorted(data['rates'],key=lambda r:(r['currency']!='RUB',r['currency'])),
+                    archived=sorted((a for a in data['accounts'] if a['archived'] or a.get('closed_at')),key=lambda a:a['name']))
 
     def export(self):
         data=self.repository.read(); names={a['id']:a['name'] for a in data['accounts']}

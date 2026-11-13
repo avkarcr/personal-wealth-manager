@@ -23,23 +23,23 @@ class ReportDomainTests(unittest.TestCase):
         self.flow(1,'income',50,'2020-01-01',pending=1);self.flow(1,'expense',9,pending=1)
         self.flow(1,'income',1000,'2020-01-01');self.flow(4,'income',999)
         r=income_report(self.data,self.rates,self.today,year='2026')
-        self.assertEqual((r['totals']['income'],r['totals']['expense'],r['totals']['freelance'],r['totals']['pending']),(300,50,200,50))
-        self.assertEqual(r['totals']['this_month'],300);self.assertEqual(r['by_src'][0],('Work','freelance',200))
+        self.assertEqual((r['totals']['income'],r['totals']['expense'],r['totals']['freelance'],r['totals']['pending']),(1299,50,200,50))
+        self.assertEqual(r['totals']['this_month'],1299);self.assertEqual(r['by_src'][0],('Old','broker',999))
         self.assertEqual(income_report(self.data,self.rates,self.today,account_id=4)['totals']['income'],999)
         with self.assertRaises(ValueError):income_report(self.data,self.rates,self.today,months=0)
         self.assertEqual(last_months(date(2026,1,1),2),['2025-12','2026-01'])
 
-    def test_portfolio_excludes_archives_and_no_deposit_accounts_from_xirr(self):
+    def test_portfolio_retains_archives_and_excludes_no_deposit_accounts_from_xirr(self):
         self.flow(1,'deposit',1000,'2025-01-01');self.flow(1,'withdrawal',100);self.flow(1,'income',100);self.flow(1,'expense',20)
         self.flow(2,'income',5);self.flow(3,'income',999);self.flow(4,'deposit',10000)
         items,total,_,_=portfolio(self.data,self.rates,self.today,include_archived=True)
-        self.assertEqual(len(items),3);self.assertEqual(total['value'],1500);self.assertEqual(total['invested'],900)
-        self.assertAlmostEqual(total['profit'],680);self.assertIsNotNone(total['xirr'])
-        self.assertEqual(len(portfolio(self.data,self.rates,self.today)[0]),2)
+        self.assertEqual(len(items),3);self.assertEqual(total['value'],1500);self.assertEqual(total['invested'],10900)
+        self.assertAlmostEqual(total['profit'],-9320);self.assertIsNone(total['xirr'])
+        self.assertEqual(len(portfolio(self.data,self.rates,self.today)[0]),3)
 
     def test_history_forward_fill_and_archived_account_detail(self):
         self.data['snapshots']=[dict(account_id=1,date='2026-01-01',value_rub=100,invested_rub=80),dict(account_id=2,date='2026-02-01',value_rub=50,invested_rub=40),dict(account_id=1,date='2026-03-01',value_rub=120,invested_rub=80),dict(account_id=4,date='2026-03-01',value_rub=999,invested_rub=500)]
-        self.assertEqual([r['value'] for r in history(self.data,self.rates)],[100,150,170])
+        self.assertEqual([r['value'] for r in history(self.data,self.rates)],[100,150,1169])
         self.assertEqual(history(self.data,self.rates,4)[0]['value'],999)
 
 class ReportIntegrationTests(unittest.TestCase):

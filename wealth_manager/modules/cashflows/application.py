@@ -17,7 +17,9 @@ class CashflowCommands:
         flow = flow.normalized()
         self.ensure_manual(flow)
         with self.uow_factory() as uow:
-            uow.entities.get(flow.account_id)
+            account=uow.entities.get(flow.account_id)
+            if account.get('closed_at') and (flow.pending or flow.date>account['closed_at']):
+                raise ValueError('Operation after closure')
             if flow.id is not None: self.ensure_manual(uow.cashflows.get(flow.id))
             record_id = uow.cashflows.save(flow)
             uow.take_snapshot()
@@ -28,6 +30,9 @@ class CashflowCommands:
         with self.uow_factory() as uow:
             flow = uow.cashflows.get(record_id)
             self.ensure_manual(flow)
+            account=uow.entities.get(flow.account_id)
+            if account.get('closed_at') and self.today().isoformat()>account['closed_at']:
+                raise ValueError('Operation after closure')
             uow.cashflows.save(replace(flow, pending=False, date=self.today().isoformat()))
             uow.commit()
 

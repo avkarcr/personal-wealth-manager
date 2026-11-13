@@ -19,7 +19,7 @@ def metrics(data, acc, rates, today):
 
 
 def portfolio(data, rates, today, include_archived=False):
-    accounts = [a for a in data['accounts'] if a['kind'] != 'freelance' and (include_archived or not a['archived'])]
+    accounts = [a for a in data['accounts'] if a['kind'] != 'freelance' ]
     accounts.sort(key=lambda a: ({'broker':0,'crypto':1,'realty':2}.get(a['kind'],3),a['name']))
     items, total = [], defaultdict(float)
     by_class, by_cur = defaultdict(float), defaultdict(float)
@@ -29,8 +29,6 @@ def portfolio(data, rates, today, include_archived=False):
     for acc in accounts:
         m = metrics(data, acc, rates, today)
         items.append({"acc": acc, "m": m})
-        if acc["archived"]:
-            continue
         complete = complete and m["complete"]
         value_complete = value_complete and m["value_complete"]
         for k in ("value", "invested", "profit", "income_12m", "income"):
@@ -42,7 +40,7 @@ def portfolio(data, rates, today, include_archived=False):
     total["profit_pct"] = total["profit"] / total["invested"] if complete and total["invested"] > 0 else None
 
     # Общий XIRR по всем счетам с пополнениями
-    flows = [f for f in joined_flows(data) if not f['archived'] and f['kind'] != 'freelance' and not f['pending']]
+    flows = [f for f in joined_flows(data) if f['kind'] != 'freelance' and not f['pending']]
     dep_accounts = {f["account_id"] for f in flows if f["type"] == "deposit"}
     for f in flows:
         if f["account_id"] not in dep_accounts:
@@ -60,7 +58,7 @@ def portfolio(data, rates, today, include_archived=False):
             all_x.append((d, amt))
         elif f["kind"] == "realty" and f["type"] == "expense":
             all_x.append((d, -amt))
-    end_val = sum(i["m"]["value"] for i in items if i["acc"]["id"] in dep_accounts and not i["acc"]["archived"])
+    end_val = sum(i["m"]["value"] for i in items if i["acc"]["id"] in dep_accounts)
     all_x.append((today, end_val))
     total["xirr"] = xirr(all_x) if complete else None
     total["complete"] = complete
@@ -70,23 +68,33 @@ def portfolio(data, rates, today, include_archived=False):
 
 def history(data, rates, account_id=None):
     """Ряд стоимости по датам; для каждого счёта берётся последнее известное значение (forward fill)."""
-    ids = {a['id'] for a in data['accounts'] if not a['archived'] and a['kind'] != 'freelance'}
+    ids = {a['id'] for a in data['accounts'] if a['kind'] != 'freelance'}
     rows = [r for r in data['snapshots'] if (r['account_id'] == account_id if account_id else r['account_id'] in ids)]
     dates = sorted({r["date"] for r in rows})
     last = {}
     by_date = defaultdict(list)
     for r in rows:
         by_date[r["date"]].append(r)
-    if rates.rub_to_base(1) is None: return []
+    from wealth_manager.modules.valuation.history import rates_on
+    events = [e for e in data.get('account_status_events',[]) if (e['account_id']==account_id if account_id else e['account_id'] in ids)]
+    closed = {}
+    dates = sorted(set(dates) | {e['date'] for e in events})
     out = []
     for d in dates:
+        for e in events:
+            if e['date']==d:
+                closed[e['account_id']]=e['closed']
+                if e['closed'] and e['account_id'] in last:
+                    last[e['account_id']]=(0,last[e['account_id']][1])
         for r in by_date[d]:
-            last[r["account_id"]] = (r["value_rub"], r["invested_rub"])
-        out.append({
-            "date": d,
-            "value": round(rates.rub_to_base(sum(v for v, _ in last.values())), 2),
-            "invested": round(rates.rub_to_base(sum(i for _, i in last.values())), 2),
-        })
+            last[r['account_id']] = (r['value_rub'],r['invested_rub'])
+        # Closure ends the balance, never erases contributions or creates a withdrawal.
+        value = sum(0 if closed.get(aid) else v for aid,(v,i) in last.items())
+        invested = sum(i for v,i in last.values())
+        dated = rates_on(data.get('historical_rates',[]),d,rates.base)
+        v,i = dated.rub_to_base(value),dated.rub_to_base(invested)
+        out.append(dict(date=d,value=round(v,2) if v is not None else None,
+                        invested=round(i,2) if i is not None else None))
     return out
 
 def last_months(today, n=12):
@@ -106,7 +114,7 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     if months < 1:
         raise ValueError('months must be positive')
     rows = sorted((r for r in joined_flows(data) if r['type'] in ('income','expense') and
-                   (r['account_id'] == account_id if account_id else not r['archived'])), key=lambda r:r['date'])
+                   (r['account_id'] == account_id if account_id else True)), key=lambda r:r['date'])
 
     if year:
         month_keys = [f"{year}-{m:02d}" for m in range(1, 13)]

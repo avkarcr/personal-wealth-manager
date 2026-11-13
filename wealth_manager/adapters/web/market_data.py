@@ -56,6 +56,13 @@ def register_market_data(app,runtime):
     @feedback
     def rates_crypto(): return market.refresh_crypto_rates()
 
+    @app.post('/rates/history')
+    @validated
+    def historical_rate_save():
+        market.save_historical_rate(f_str('currency'),f_float('rate'),f_str('date'))
+        flash(_('Сохранено'))
+        return redirect(url_for('settings',_anchor='historical-rates'))
+
     @app.post('/rates/save')
     @validated
     def rates_save():

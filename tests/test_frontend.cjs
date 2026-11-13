@@ -88,3 +88,21 @@ test('Donut displays custom labels as escaped text, including on hover',()=>{
   for(const n of nodes)assert.ok(!n.innerHTML.includes('<img'),n.innerHTML);
   assert.ok(legend.children[0].innerHTML.includes('&lt;img'));
 });
+
+for (const language of ['ru','en']) {
+  test(`Historical chart never renders missing FX as zero (${language})`,()=>{
+    const children=[];
+    const box={innerHTML:'',appendChild:child=>children.push(child)};
+    const {window}=boot(language,async()=>({}),{
+      querySelector:s=>s==='#history'?box:null,
+      createElement:()=>({className:'',textContent:''}),
+    });
+    window.Charts.history('#history',[
+      {date:'2026-01-01',value:100,invested:90},
+      {date:'2026-02-01',value:null,invested:null},
+      {date:'2026-03-01',value:120,invested:90},
+    ],'USD');
+    assert.equal(children.length,1);
+    assert.match(children[0].textContent,language==='en'?/Historical rates are missing/:/не хватает курсов/);
+  });
+}

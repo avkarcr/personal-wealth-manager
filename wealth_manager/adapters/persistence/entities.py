@@ -12,6 +12,12 @@ class SqliteEntityRepository:
     def toggle_archived(self,record_id):
         self.get(record_id)
         self.connection.execute('UPDATE entities SET archived=1-archived WHERE id=?',(record_id,))
+    def can_close(self,record_id,day):
+        return not self.connection.execute('SELECT 1 FROM holdings WHERE account_id=? AND quantity<>0',(record_id,)).fetchone() and not self.connection.execute('SELECT 1 FROM cashflows WHERE account_id=? AND (pending=1 OR date>?)',(record_id,day)).fetchone()
+    def set_closed(self,record_id,day,event_day=None):
+        self.get(record_id)
+        self.connection.execute('UPDATE entities SET closed_at=? WHERE id=?',(day,record_id))
+        self.connection.execute('INSERT INTO account_status_events(account_id,date,closed) VALUES (?,?,?) ON CONFLICT(account_id,date) DO UPDATE SET closed=excluded.closed',(record_id,event_day or day,int(bool(day))))
     def delete(self,record_id):
         self.get(record_id)
         if self.connection.execute('SELECT 1 FROM allocations WHERE asset_id=? OR holding_id IN (SELECT id FROM holdings WHERE account_id=?)', (record_id,record_id)).fetchone():

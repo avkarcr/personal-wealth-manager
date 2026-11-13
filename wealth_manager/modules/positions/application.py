@@ -11,6 +11,8 @@ class PositionCommands:
     def save(self, position: Position):
         position = position.normalized(self.today())
         with self.uow_factory() as uow:
+            account=uow.entities.get(position.account_id)
+            if account.get('closed_at'): raise ValueError('Reopen the account before changing positions')
             uow.accounts.get(position.account_id)
             if position.id is not None:
                 old=uow.positions.get(position.id)

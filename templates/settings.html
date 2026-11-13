@@ -109,13 +109,28 @@
   </section>
 </div>
 
+<section class="card" id="historical-rates">
+  <h2>{{ _('Курсы на дату') }}</h2>
+  <p class="muted small">{{ _('История использует курс на выбранную дату. Текущий курс не подставляется. Для выходного дня внесите действовавший в этот день курс.') }}</p>
+  <form method="post" action="{{ url_for('historical_rate_save') }}" class="form-grid">
+    <label class="fld"><span>{{ _('Дата') }}</span><input type="date" name="date" required></label>
+    <label class="fld"><span>{{ _('Валюта') }}</span><input name="currency" placeholder="USD" required></label>
+    <label class="fld"><span>{{ _('Курс в RUB') }}</span><input name="rate" inputmode="decimal" required></label>
+    <button class="btn">{{ _('Сохранить') }}</button>
+  </form>
+  <p class="muted small">{{ _('Изменение курса на дату меняет отображение истории в выбранной валюте; сохранённые суммы в RUB остаются прежними.') }}</p>
+  <details><summary>{{ _('Сохранённые курсы') }}</summary><table class="tbl"><tbody>
+  {% for r in historical_rates %}<tr><td>{{ r.date }}</td><td>{{ r.currency }}</td><td>{{ r.rate }}</td></tr>{% endfor %}
+  </tbody></table></details>
+</section>
 {% if archived %}
 <section class="card flush">
-  <div class="card-head pad"><h2>{{ _('Архив счетов') }}</h2></div>
+  <div class="card-head pad"><h2>{{ _('Архив и закрытые счета') }}</h2></div>
   <table class="tbl"><tbody>
   {% for a in archived %}
     <tr><td><a href="{{ url_for('account', aid=a.id) }}">{{ a.name }}</a> <span class="muted small">{{ _(KIND_LABELS[a.kind]) }}</span></td>
-      <td class="r"><form method="post" action="{{ url_for('account_archive', aid=a.id) }}"><button class="btn sm ghost">{{ _('Вернуть') }}</button></form></td></tr>
+      <td>{{ _('Счёт закрыт') ~ ': ' ~ a.closed_at if a.closed_at else _('в архиве') }}</td>
+      <td class="r"><form method="post" action="{{ url_for('account_reopen' if a.closed_at else 'account_archive', aid=a.id) }}"><button class="btn sm ghost">{{ _('Открыть снова') if a.closed_at else _('Вернуть') }}</button></form></td></tr>
   {% endfor %}
   </tbody></table>
 </section>

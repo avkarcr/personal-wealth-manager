@@ -64,6 +64,7 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(self.rows('cashflows')[0]['date'],TODAY.isoformat())
         self.s['cashflows'].delete(fid)
         self.assertEqual(len(self.rows('cashflows')),3)
+        self.s['market_data'].save_historical_rate('USD',90,'2024-02-01')
         self.s['accounts'].record_history(self.other,'2024-02-01',50,'USD')
         snap = next(r for r in self.rows('snapshots') if r['account_id']==self.other and r['date']=='2024-02-01')
         self.assertEqual(snap['value_rub'],snap['invested_rub'])

@@ -43,6 +43,15 @@ class MarketData:
             if base:uow.rates.set_base(base)
             uow.take_snapshot();uow.commit()
 
+    def save_historical_rate(self,currency,rate,day):
+        from wealth_manager.shared.validation import valid_date
+        valid_date(day)
+        if day > self.today().isoformat(): raise ValueError('Future rate')
+        currency,rate=symbol(currency),positive(rate)
+        with self.uow_factory() as uow:
+            uow.rates.save_historical(currency,rate,day)
+            uow.commit()
+
     def delete_rate(self,currency):
         with self.uow_factory() as uow:
             uow.rates.delete(currency);uow.commit()

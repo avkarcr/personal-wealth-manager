@@ -241,6 +241,13 @@
       box.innerHTML = '';
       let pts = data.map(d => ({ t: parse(d.date), v: d.value, i: d.invested }));
       if (days) { const from = Date.now() - days * 864e5; pts = pts.filter(p => +p.t >= from); }
+      if (pts.some(p => p.v == null || p.i == null)) {
+        const msg = document.createElement('div');
+        msg.className = 'empty-chart';
+        msg.textContent = t('Для графика не хватает курсов на даты снимков. Добавьте курсы в настройках или выберите RUB.');
+        box.appendChild(msg);
+        return;
+      }
       if (pts.length < 2) {
         const msg = document.createElement('div');
         msg.className = 'empty-chart';

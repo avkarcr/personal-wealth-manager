@@ -37,9 +37,18 @@ def take_snapshot(db, rates, *, commit=True):
     """Фиксирует сегодняшнюю стоимость всех активных счетов (в RUB)."""
     today = date.today().isoformat()
     rates = ExchangeRates(rates.r, "RUB")
-    for acc in db.execute("SELECT * FROM accounts WHERE archived=0 AND kind<>'freelance'").fetchall():
+    for acc in db.execute("SELECT * FROM accounts WHERE closed_at='' AND kind<>'freelance'").fetchall():
         m = account_metrics(db, acc, rates)
         if not m["complete"]: continue
+        contributions = db.execute("SELECT * FROM cashflows WHERE account_id=? AND pending=0 AND date<=? AND type IN ('deposit','withdrawal')",(acc['id'],today)).fetchall()
+        if contributions:
+            amounts=[]
+            for flow in contributions:
+                dated=ExchangeRates(dict(db.execute('SELECT currency,rate FROM historical_rates WHERE date=?',(flow['date'],))))
+                amount=dated.to_rub(flow['amount'],flow['currency'])
+                amounts.append(None if amount is None else amount*(1 if flow['type']=='deposit' else -1))
+            if any(a is None for a in amounts): continue
+            m['invested']=sum(amounts)
         db.execute(
             "INSERT INTO snapshots(date, account_id, value_rub, invested_rub) VALUES (?,?,?,?) "
             "ON CONFLICT(date, account_id) DO UPDATE SET value_rub=excluded.value_rub, invested_rub=excluded.invested_rub",

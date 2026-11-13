@@ -42,7 +42,7 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
             "save_income_source": SaveIncomeSource(factory), "reports": Reports(reports, today),
             "market_data": MarketData(factory,reports,catalog,CryptoProvider(http),MoexProvider(http),CbrProvider(http),today),
             "save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),
-            "accounts": AccountCommands(factory), "positions": PositionCommands(factory, today),
+            "accounts": AccountCommands(factory,today), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
 
 

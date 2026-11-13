@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -254,7 +254,8 @@ def init_db(con):
             if version < 5: _migrate_planning(con)
             if version < 6: _migrate_research(con)
             if version < 7: _migrate_classifications(con)
-            _migrate_valuation_dates(con)
+            if version < 8: _migrate_valuation_dates(con)
+            _migrate_history(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -414,3 +415,16 @@ def _migrate_valuation_dates(con):
     except BaseException:
         con.rollback()
         raise
+
+
+def _migrate_history(con):
+    con.execute("ALTER TABLE entities ADD COLUMN closed_at TEXT NOT NULL DEFAULT ''")
+    view = con.execute("SELECT sql FROM sqlite_master WHERE type='view' AND name='accounts'").fetchone()[0]
+    con.execute('DROP VIEW accounts')
+    con.execute(view.replace('e.created_at', 'e.created_at,e.closed_at'))
+    con.execute("CREATE TABLE historical_rates (date TEXT NOT NULL, currency TEXT NOT NULL, rate REAL NOT NULL CHECK(rate>0), PRIMARY KEY(date,currency))")
+    con.execute("CREATE TABLE account_status_events (account_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE, date TEXT NOT NULL, closed INTEGER NOT NULL CHECK(closed IN (0,1)), PRIMARY KEY(account_id,date))")
+    # Retain only the known observation date; never manufacture earlier rates.
+    con.execute("INSERT INTO historical_rates SELECT updated_at,currency,rate FROM rates WHERE rate>0 AND length(updated_at)=10")
+    con.execute('PRAGMA user_version=9')
+    con.commit()

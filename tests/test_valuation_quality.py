@@ -101,7 +101,7 @@ class ValuationIntegrationTests(unittest.TestCase):
         self.assertEqual(self.s['planning_reports'].overview()['goals'][0]['total'],10)
         self.s['positions'].save(Position(self.aid,name='RUB cash',quantity=50,asset_class_code='cash'))
         self.assertFalse(self.s['reports'].dashboard()['total']['complete'])
-        self.assertEqual(self.s['reports'].dashboard()['hist'],[])
+        self.assertEqual(self.s['reports'].dashboard()['hist'][-1]['value'],10)  # Saved historical FX survives current-rate deletion.
 
     def test_income_pending_operations_and_manual_history_with_missing_rate(self):
         self.s['cashflows'].save(Cashflow(self.aid,self.day,'income',10))

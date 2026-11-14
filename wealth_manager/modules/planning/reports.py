@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import arithmetic
 """Current goal progress, without creating cashflows or duplicating capital."""
 from decimal import Decimal
 from datetime import date
@@ -10,6 +11,7 @@ from .ports import PlanningReader
 class PlanningReports:
     def __init__(self, reader: PlanningReader, today=date.today): self.reader, self.today = reader, today
 
+    @arithmetic
     def overview(self):
         data = self.reader.read()
         goals = {g['id']: dict(g, target_amount=Decimal(g['target_amount']), portfolios=[]) for g in data['goals']}

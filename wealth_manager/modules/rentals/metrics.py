@@ -1,9 +1,13 @@
 """Pure rental reporting calculations with an explicit clock."""
 from datetime import timedelta
+from wealth_manager.shared.decimal import decimal, arithmetic
 from wealth_manager.modules.valuation.domain import parse_date
 
+@arithmetic
 def payment_view(p, rates, today):
     """Доп. поля для отображения платежа: просрочка, эффективный курс, разница с ЦБ."""
+    p=dict(p)
+    for key in ('amount','received_amount','cb_rate'): p[key]=decimal(p[key])
     today = today.isoformat()
     d = dict(p)
     d["overdue"] = p["status"] == "expected" and p["due_date"] < today

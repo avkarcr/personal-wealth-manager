@@ -1,6 +1,7 @@
-"""Pure calculations using legacy numeric semantics; no persistence or transport."""
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic
+"""Decimal monetary calculations; XIRR uses an approximate numerical solver; no persistence or transport."""
 from collections import defaultdict
-from math import isfinite
 from wealth_manager.shared.classifications import asset_key
 from datetime import datetime, timedelta
 from .quality import rate_factor, holding_value
@@ -8,16 +9,18 @@ from .quality import rate_factor, holding_value
 class ExchangeRates:
     def __init__(self, rates, base="RUB"):
         self.r = dict(rates)
-        self.r['RUB'] = 1.0
+        self.r['RUB'] = Decimal(1)
         self.base = base
 
+    @arithmetic
     def convert(self, amount, source, target):
         if amount is None: return None
-        if amount == 0: return 0.0
+        if amount == 0: return Decimal(0)
         factor = rate_factor(self.r, source, target)
         if factor is None: return None
-        result = float(amount) * float(factor)
-        return result if isfinite(result) else None
+        try: result = decimal(amount) * factor
+        except ValueError: return None
+        return result if result.is_finite() else None
 
     def to_rub(self, amount, cur): return self.convert(amount, cur, 'RUB')
     def to_base(self, amount, cur): return self.convert(amount, cur, self.base)
@@ -33,7 +36,7 @@ def parse_date(s):
 
 def xirr(flows):
     """flows: [(date, amount)], вложения < 0, получения > 0. Возвращает годовую доходность или None."""
-    flows = [(d, a) for d, a in flows if a]
+    flows = [(d, float(a)) for d, a in flows if a]
     if len(flows) < 2 or not any(a < 0 for _, a in flows) or not any(a > 0 for _, a in flows):
         return None
     flows.sort()
@@ -60,36 +63,37 @@ def xirr(flows):
             lo, f_lo = mid, f_mid
     return (lo + hi) / 2
 
+@arithmetic
 def account_metrics(acc, rates, holdings, flows, today):
     flows = [f for f in flows if not f["pending"]]
 
     complete = True
     value_complete = True
-    by_class = defaultdict(float)
-    by_cur = defaultdict(float)
+    by_class = defaultdict(Decimal)
+    by_cur = defaultdict(Decimal)
     if acc["kind"] == "realty":
         value = rates.to_base(acc["current_value"], acc["currency"])
-        cost = 0.0
+        cost = Decimal(0)
         value_complete = value is not None
-        value = value if value is not None else 0.0
+        value = value if value is not None else Decimal(0)
         by_class["real_estate"] += value
         by_cur[acc["currency"]] += value
     else:
-        value = cost = 0.0
+        value = cost = Decimal(0)
         for h in holdings:
             v = rates.to_base(holding_value(h), h["currency"])
-            converted_cost = rates.to_base(h["quantity"] * h["avg_price"], h["currency"])
+            converted_cost = rates.to_base(decimal(h["quantity"]) * decimal(h["avg_price"]), h["currency"])
             if v is None: value_complete = False
             if converted_cost is None: complete = False
-            cost += converted_cost if converted_cost is not None else 0.0
+            cost += converted_cost if converted_cost is not None else Decimal(0)
             if v is None: continue
             value += v
             by_class[asset_key(h)] += v
             by_cur[h["currency"]] += v
 
-    sums = defaultdict(float)
+    sums = defaultdict(Decimal)
     year_ago = (today - timedelta(days=365)).isoformat()
-    income_12m = 0.0
+    income_12m = Decimal(0)
     x_flows = []
     external = acc["kind"] == "realty"  # аренда/расходы по недвижимости идут мимо «стоимости»
     for f in flows:

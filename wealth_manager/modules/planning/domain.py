@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import arithmetic
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Optional
@@ -38,6 +39,7 @@ def share_basis_points(percent):
     return int(value*100)
 
 
+@arithmetic
 def valued_share(source,share_bps,rates,currency):
     from wealth_manager.modules.valuation.quality import rate_factor
     if not source['active']:return Decimal('0')

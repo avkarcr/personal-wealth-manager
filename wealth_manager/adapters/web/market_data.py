@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import decimal
 """Inbound market adapters: forms and localized outcomes only."""
 from functools import wraps
 from flask import request, redirect, url_for, flash
@@ -5,7 +6,7 @@ from wealth_manager.modules.market_data.domain import ProviderError, MissingRate
 from wealth_manager.shared.errors import EntityNotFound
 from .commands import validated
 from .i18n import gettext as _
-from .forms import f_str, f_float
+from .forms import f_str, f_decimal
 
 
 def register_market_data(app,runtime):
@@ -59,7 +60,7 @@ def register_market_data(app,runtime):
     @app.post('/rates/history')
     @validated
     def historical_rate_save():
-        market.save_historical_rate(f_str('currency'),f_float('rate'),f_str('date'))
+        market.save_historical_rate(f_str('currency'),f_decimal('rate'),f_str('date'))
         flash(_('Сохранено'))
         return redirect(url_for('settings',_anchor='historical-rates'))
 
@@ -69,9 +70,8 @@ def register_market_data(app,runtime):
         values={}
         for key,value in request.form.items():
             if key.startswith('rate_'):
-                try: values[key[5:]]=float(value.replace(',','.').replace(' ',''))
-                except ValueError: continue
-        if f_str('new_currency'):values[f_str('new_currency').upper()]=f_float('new_rate')
+                values[key[5:]]=decimal(value.replace(',','.').replace(' ',''))
+        if f_str('new_currency'):values[f_str('new_currency').upper()]=f_decimal('new_rate')
         market.save_rates(values,f_str('base_currency'))
         flash(_('Сохранено'))
         return redirect(url_for('settings'))

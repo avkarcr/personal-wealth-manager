@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import decimal, arithmetic
 from datetime import date
 from wealth_manager.shared.ports import UowFactory
 from wealth_manager.shared.records import RecordError
@@ -42,6 +43,7 @@ class EntityCommands:
             uow.entities.delete(account_id)
             uow.commit()
 
+    @arithmetic
     def record_history(self, account_id, day, value, currency=''):
         finite(value)
         valid_date(day)

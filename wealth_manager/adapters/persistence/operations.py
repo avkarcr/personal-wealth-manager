@@ -1,5 +1,7 @@
 """SQLite adapters for existing tables. No commits: UnitOfWork owns durability."""
 from dataclasses import asdict, replace
+from .decimals import COLUMNS
+from wealth_manager.shared.decimal import decimal
 from wealth_manager.modules.planning.domain import PlanningError
 
 from wealth_manager.shared.errors import EntityNotFound
@@ -18,7 +20,7 @@ def get_row(connection, table, record_id):
 
 
 def save_row(connection, table, record):
-    data = asdict(record)
+    data = {k: decimal(v) if k in COLUMNS and v is not None else v for k,v in asdict(record).items()}
     record_id = data.pop('id')
     columns = tuple(data)
     if record_id is not None:
@@ -49,7 +51,7 @@ class SqlitePositionRepository:
 
     def set_price(self, record_id, account_id, price, updated_at):
         self.connection.execute('UPDATE holdings SET price=?,updated_at=? WHERE id=? AND account_id=?',
-                                (price, updated_at, record_id, account_id))
+                                (decimal(price), updated_at, record_id, account_id))
 
 
 class SqliteCashflowRepository:
@@ -122,4 +124,4 @@ class SqliteValuationRepository:
         self.connection.execute(
             'INSERT INTO snapshots(date,account_id,value_rub,invested_rub) VALUES (?,?,?,?) '
             'ON CONFLICT(date,account_id) DO UPDATE SET value_rub=excluded.value_rub,invested_rub=excluded.invested_rub',
-            (day, account_id, value_rub, invested_rub))
+            (day, account_id, decimal(value_rub), decimal(invested_rub)))

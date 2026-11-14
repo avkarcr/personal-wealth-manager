@@ -106,3 +106,15 @@ for (const language of ['ru','en']) {
     assert.match(children[0].textContent,language==='en'?/Historical rates are missing/:/не хватает курсов/);
   });
 }
+
+test('Decimal strings are converted only for donut rendering, without concatenation',()=>{
+  function node(){return {innerHTML:'',children:[],handlers:{},classList:{add:()=>{},remove:()=>{}},
+    appendChild(child){this.children.push(child)},setAttribute:()=>{},addEventListener(event,fn){this.handlers[event]=fn}};}
+  const box=node(),legend=node();
+  const {window}=boot('en',async()=>({}),{querySelector:s=>s==='#decimal-chart'?box:s==='#decimal-legend'?legend:null,createElement:node,createElementNS:node});
+  const entries=[['A','0.1'],['B','0.2']];
+  window.Charts.donut('#decimal-chart','#decimal-legend',entries,'RUB');
+  assert.match(legend.children[0].innerHTML,/33,3%/);
+  assert.match(legend.children[1].innerHTML,/66,7%/);
+  assert.equal(entries[0][1],'0.1');
+});

@@ -1,10 +1,9 @@
 from datetime import date
-from math import isfinite
+from wealth_manager.shared.decimal import input_decimal
 
 
 def finite(*values):
-    if not all(isfinite(value) for value in values):
-        raise ValueError("Amounts must be finite")
+    for value in values: input_decimal(value)
 
 
 def valid_date(value, *, optional=False):

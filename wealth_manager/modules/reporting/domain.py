@@ -1,3 +1,5 @@
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic, rounded
 from wealth_manager.shared.classifications import category_key
 """Pure read models. Inputs are detached records, never database connections."""
 from collections import defaultdict
@@ -18,11 +20,12 @@ def metrics(data, acc, rates, today):
         [f for f in data['cashflows'] if f['account_id']==acc['id']], today)
 
 
+@arithmetic
 def portfolio(data, rates, today, include_archived=False):
     accounts = [a for a in data['accounts'] if a['kind'] != 'freelance' ]
     accounts.sort(key=lambda a: ({'broker':0,'crypto':1,'realty':2}.get(a['kind'],3),a['name']))
-    items, total = [], defaultdict(float)
-    by_class, by_cur = defaultdict(float), defaultdict(float)
+    items, total = [], defaultdict(Decimal)
+    by_class, by_cur = defaultdict(Decimal), defaultdict(Decimal)
     all_x = []
     complete = True
     value_complete = True
@@ -32,7 +35,7 @@ def portfolio(data, rates, today, include_archived=False):
         complete = complete and m["complete"]
         value_complete = value_complete and m["value_complete"]
         for k in ("value", "invested", "profit", "income_12m", "income"):
-            total[k] += m[k] if m[k] is not None else 0.0
+            total[k] += m[k] if m[k] is not None else Decimal(0)
         for k, v in m["by_class"].items():
             by_class[k] += v
         for k, v in m["by_cur"].items():
@@ -66,6 +69,7 @@ def portfolio(data, rates, today, include_archived=False):
     if not complete: total["profit"] = None
     return items, dict(total), dict(by_class), dict(by_cur)
 
+@arithmetic
 def history(data, rates, account_id=None):
     """Ряд стоимости по датам; для каждого счёта берётся последнее известное значение (forward fill)."""
     ids = {a['id'] for a in data['accounts'] if a['kind'] != 'freelance'}
@@ -93,8 +97,8 @@ def history(data, rates, account_id=None):
         invested = sum(i for v,i in last.values())
         dated = rates_on(data.get('historical_rates',[]),d,rates.base)
         v,i = dated.rub_to_base(value),dated.rub_to_base(invested)
-        out.append(dict(date=d,value=round(v,2) if v is not None else None,
-                        invested=round(i,2) if i is not None else None))
+        out.append(dict(date=d,value=rounded(v,2) if v is not None else None,
+                        invested=rounded(i,2) if i is not None else None))
     return out
 
 def last_months(today, n=12):
@@ -109,6 +113,7 @@ def last_months(today, n=12):
             y, m = y - 1, 12
     return out[::-1]
 
+@arithmetic
 def income_report(data, rates, today, account_id=None, months=12, year=None):
     """Сводка доходов: по месяцам и группам, по категориям, по источникам, ожидаемые оплаты."""
     if months < 1:
@@ -123,10 +128,10 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     start, end = month_keys[0], month_keys[-1]
 
     groups = [k for k in KIND_SHORT]  # порядок групп для графика
-    monthly = {g: [0.0] * len(month_keys) for g in groups}
+    monthly = {g: [Decimal(0)] * len(month_keys) for g in groups}
     idx = {k: i for i, k in enumerate(month_keys)}
-    by_cat, by_src = defaultdict(float), defaultdict(float)
-    tot = defaultdict(float)
+    by_cat, by_src = defaultdict(Decimal), defaultdict(Decimal)
+    tot = defaultdict(Decimal)
     pending = []
     complete = True
     this_month = today.strftime("%Y-%m")
@@ -164,7 +169,7 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     tot["avg_month"] = tot["income"] / n_active
     tot["freelance_avg"] = tot["freelance"] / n_active
 
-    series = [{"key": g, "name": KIND_SHORT[g], "values": [round(v, 2) for v in monthly[g]]}
+    series = [{"key": g, "name": KIND_SHORT[g], "values": [rounded(v, 2) for v in monthly[g]]}
               for g in groups if any(monthly[g])]
     return {
         "complete": complete,

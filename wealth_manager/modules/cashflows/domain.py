@@ -1,3 +1,5 @@
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic
 from dataclasses import dataclass, replace
 from typing import Optional
 from wealth_manager.shared.validation import finite, valid_date
@@ -11,7 +13,7 @@ class Cashflow:
     account_id: int
     date: str
     type: str = "deposit"
-    amount: float = 0
+    amount: Decimal = Decimal(0)
     currency: str = "RUB"
     category: str = ""
     source: str = ""
@@ -22,11 +24,12 @@ class Cashflow:
 
     category_code: str = ""
 
+    @arithmetic
     def normalized(self):
         if self.category_code and self.category_code not in CATEGORY_LABELS: raise ValueError("Invalid category code")
         if self.type not in FLOW_TYPES:
             raise ValueError("Invalid cashflow type")
         finite(self.amount)
         valid_date(self.date)
-        return replace(self, category="" if self.category_code else self.category, amount=abs(self.amount), currency=self.currency.upper(),
+        return replace(self, category="" if self.category_code else self.category, amount=abs(decimal(self.amount)), currency=self.currency.upper(),
                        pending=bool(self.pending and self.type == "income"))

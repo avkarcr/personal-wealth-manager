@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import arithmetic
 """Расчёты: стоимость, вложения, прибыль, XIRR, структура портфеля."""
 from wealth_manager.modules.valuation.domain import ExchangeRates, parse_date, xirr
 from wealth_manager.modules.valuation.domain import account_metrics as calculate_account_metrics
@@ -33,6 +34,7 @@ def portfolio(db, rates, include_archived=False):
     return calculate(read_connection(db), rates, date.today(), include_archived)
 
 
+@arithmetic
 def take_snapshot(db, rates, *, commit=True):
     """Фиксирует сегодняшнюю стоимость всех активных счетов (в RUB)."""
     today = date.today().isoformat()

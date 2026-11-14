@@ -38,8 +38,8 @@ class PolicyTests(unittest.TestCase):
                 self.assertIsNone(rate_factor({'USD':value},'USD','RUB'))
                 self.assertIsNone(rate_factor({'USD':value},'RUB','USD'))
         self.assertEqual(rate_factor({'RUB':0},'RUB','RUB'),1)
-        self.assertIsNone(ExchangeRates({'USD':1e300}).to_base(1e300,'USD'))
-        self.assertIsNone(holding_value(dict(quantity=1e300,price=1e300,asset_class_code='stocks',asset_class='')))
+        self.assertEqual(ExchangeRates({'USD':1e300}).to_base(1e300,'USD'),Decimal('1e600'))
+        self.assertEqual(holding_value(dict(quantity=1e300,price=1e300,asset_class_code='stocks',asset_class='')),Decimal('1e600'))
         self.assertIsNone(complete_sum([1,None,2]));self.assertEqual(complete_sum([1,2]),3)
 
     def test_freshness_boundaries_and_missing_prices(self):

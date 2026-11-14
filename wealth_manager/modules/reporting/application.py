@@ -1,3 +1,5 @@
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic, rounded
 from datetime import timedelta
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.modules.valuation.domain import ExchangeRates, complete_sum
@@ -18,6 +20,7 @@ class Reports:
     def __init__(self, repository: ReportRepository, today):
         self.repository, self.today = repository, today
 
+    @arithmetic
     def dashboard(self):
         data = self.repository.read(); rates = rates_for(data); today = self.today()
         items,total,classes,currencies = portfolio(data,rates,today)
@@ -26,6 +29,7 @@ class Reports:
                     inc=income_report(data,rates,today),has_any=bool(data['accounts']),
                     recent=sorted(joined_flows(data),key=lambda f:(f['date'],f['id']),reverse=True)[:6])
 
+    @arithmetic
     def account(self, aid):
         data=self.repository.read(); rates=rates_for(data); today=self.today()
         acc=next((a for a in data['accounts'] if a['id']==aid),None)
@@ -48,6 +52,7 @@ class Reports:
                                   by_class=sorted(m['by_class'].items(),key=lambda x:-x[1]))
 
     @staticmethod
+    @arithmetic
     def rental(data,acc,rates,today):
         leases=sorted((l for l in data['leases'] if l['asset_id']==acc['id']),key=lambda l:l['start_date'],reverse=True)
         by_id={l['id']:l for l in leases}
@@ -64,11 +69,12 @@ class Reports:
                    monthly=l['rent_amount']/FREQ_MONTHS[l['frequency']] if l['frequency'] in FREQ_MONTHS else None) for l in leases]
         return dict(leases=info,payments=pays,summary=summary,occ=occupancy(acc,leases,owned,today),FREQ=FREQ_LABELS,STATUS=RENT_STATUS)
 
+    @arithmetic
     def operations(self, account=None, type=None, year=None):
         data=self.repository.read(); rates=rates_for(data); all_flows=joined_flows(data)
         flows=sorted((f for f in all_flows if (not account or str(f['account_id'])==account) and
                      (not type or f['type']==type) and (not year or f['date'][:4]==year)),key=lambda f:(f['date'],f['id']),reverse=True)
-        totals={k:0.0 for k in FLOW_LABELS}; monthly={}; complete=True
+        totals={k:Decimal(0) for k in FLOW_LABELS}; monthly={}; complete=True
         for f in flows:
             if not f['pending']:
                 value=rates.to_base(f['amount'],f['currency'])
@@ -83,6 +89,7 @@ class Reports:
         return dict(complete=complete,valuation_quality=report_quality(data,rates.base,self.today()),flows=flows,totals=totals,years=sorted({f['date'][:4] for f in all_flows},reverse=True),
                     f=dict(account=account,type=type,year=year),monthly=sorted(monthly.items()))
 
+    @arithmetic
     def income(self,year=None):
         data=self.repository.read()
         return dict(valuation_quality=report_quality(data,rates_for(data).base,self.today()),inc=income_report(data,rates_for(data),self.today(),year=year),year=year,

@@ -1,5 +1,7 @@
 """Public read-only market APIs. No balances, credentials or order execution."""
 import json
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import date
@@ -17,7 +19,7 @@ class HttpClient:
         except Exception as error:
             raise ProviderError('Market data request failed') from error
     def json(self,url):
-        try: return json.loads(self.get(url))
+        try: return json.loads(self.get(url),parse_float=Decimal)
         except (ValueError,TypeError) as error: raise ProviderError('Invalid JSON response') from error
 
 
@@ -26,7 +28,7 @@ class CryptoProvider:
     def quote(self,ticker,exchanges):
         ticker=symbol(ticker)
         if not exchanges: return None
-        if ticker=='USDT': return Quote(1.0,'USDT','parity')
+        if ticker=='USDT': return Quote(Decimal(1),'USDT','parity')
         for exchange in exchanges:
             try:
                 if exchange=='binance':
@@ -75,7 +77,7 @@ class MoexProvider:
                 p = md.get("LAST") or md.get("MARKETPRICE") or md.get("LCURRENTPRICE") or sec.get("PREVPRICE")
                 if p:
                     if market == "bonds":
-                        p = p * (sec.get("FACEVALUE") or 1000) / 100
+                        p = decimal(p) * decimal(sec.get("FACEVALUE") or 1000) / 100
                     return positive(p)
         return None
 
@@ -89,7 +91,7 @@ class CbrProvider:
             suffix='?date_req='+parsed.strftime('%d/%m/%Y')
         try:
             root=ET.fromstring(self.http.get('https://www.cbr.ru/scripts/XML_daily.asp'+suffix))
-            values={'RUB':1.0}
+            values={'RUB':Decimal(1)}
             for v in root.findall('Valute'):
                 nominal=positive(v.findtext('Nominal').replace(',','.'))
                 values[symbol(v.findtext('CharCode'))]=positive(positive(v.findtext('Value').replace(',','.'))/nominal)

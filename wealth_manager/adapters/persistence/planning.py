@@ -1,6 +1,7 @@
 """Planning storage. The unit of work owns transactions and encrypted persistence."""
 from dataclasses import asdict
 from decimal import Decimal
+from wealth_manager.shared.decimal import arithmetic
 from wealth_manager.modules.valuation.quality import holding_value
 from wealth_manager.shared.classifications import asset_key
 from wealth_manager.shared.errors import EntityNotFound
@@ -8,6 +9,7 @@ from wealth_manager.modules.planning.domain import PlanningError
 from .operations import get_row
 
 
+@arithmetic
 def sources(connection):
     result = []
     for row in connection.execute('SELECT h.*,e.closed_at,e.name AS owner FROM holdings h JOIN financial_accounts f ON f.id=h.account_id JOIN entities e ON e.id=f.id'):

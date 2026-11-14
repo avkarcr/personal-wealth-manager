@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import decimal, arithmetic
 """Shared current-valuation policy. No network, storage or historical FX rules."""
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -7,6 +8,7 @@ from wealth_manager.shared.classifications import asset_key
 MAX_AGE_DAYS = 7
 
 
+@arithmetic
 def rate_factor(rates, source, target):
     if source == target and source: return Decimal(1)
     values = []
@@ -19,13 +21,16 @@ def rate_factor(rates, source, target):
     return values[0] / values[1]
 
 
+@arithmetic
 def holding_value(holding):
-    quantity = holding['quantity']
+    quantity = decimal(holding['quantity'])
     price = 1 if asset_key(holding) == 'cash' else holding['price']
     if quantity == 0: return 0
-    if price is None or not isfinite(price) or price <= 0: return None
+    try: price=decimal(price)
+    except ValueError: return None
+    if price <= 0: return None
     result = quantity * price
-    return result if isfinite(result) else None
+    return result if result.is_finite() else None
 
 
 def freshness(day, today):

@@ -1,4 +1,4 @@
-"""Adapters for the existing schema; REAL conversion is a migration boundary."""
+"""Adapters for the typed local schema. Monetary values use decimal text."""
 from wealth_manager.modules.accounts.domain import AccountNotFound
 from wealth_manager.modules.preferences.application import SUPPORTED_LANGUAGES
 

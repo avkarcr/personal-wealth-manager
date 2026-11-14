@@ -28,13 +28,13 @@ class CommandRouteTests(unittest.TestCase):
         self.assertEqual(self.rows('accounts')[0]['current_value'],1000.5)
         self.post(f'/accounts/{self.aid}/archive',next='/settings')
         self.assertEqual(self.rows('accounts')[0]['archived'],1)
-        self.post(f'/accounts/{self.aid}/history',date='2020-01-01',value='bad')
+        self.assertEqual(self.client.post(f'/accounts/{self.aid}/history',data=dict(date='2020-01-01',value='bad')).status_code,400)
         self.post('/accounts/save',name='Broker',kind='broker')
         broker=self.rows('accounts')[-1]['id']
         self.post('/holdings/save',account_id=broker,ticker='sber',quantity='2',price='100')
         hid=self.rows('holdings')[0]['id']
         self.post('/holdings/save',id=hid,account_id=broker,name='Stock',quantity=2,price=110)
-        self.post(f'/accounts/{broker}/prices',**{f'price_{hid}':'120,50','price_999':'bad','next':'/settings'})
+        self.post(f'/accounts/{broker}/prices',**{f'price_{hid}':'120,50','next':'/settings'})
         self.assertEqual(self.rows('holdings')[0]['price'],120.5)
         self.post(f'/holdings/{hid}/delete')
         self.post(f'/accounts/{self.aid}/delete')

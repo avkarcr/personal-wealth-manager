@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import decimal, rounded, exact_text, arithmetic
 from .i18n import asset_label, category_label
 """Access lifecycle, presentation filters and export formatting retained for compatibility."""
 import csv
@@ -24,24 +25,29 @@ def register_routes(app, runtime):
 
 
     # ───────────────────────── форматирование ─────────────────────────
+    @arithmetic
     def _fmt(x, dec):
         s = f"{abs(x):,.{dec}f}".replace(",", " ").replace(".", ",")
         return ("−" if x < 0 else "") + s
 
 
     @app.template_filter("money")
-    def money(x, cur=None, dec=0):
-        if x is None:
-            return "—"
-        if x and x != int(x) and (abs(x) < 1 or (dec == 0 and abs(x) < 10)):
-            s = f"{abs(x):.6f}".rstrip("0").rstrip(".").replace(".", ",")
-            s = ("−" if x < 0 else "") + s
-        else:
-            s = _fmt(x, dec)
-        return f"{s} {CUR_SIGN.get(cur, cur)}" if cur else s
+    @arithmetic
+    def money(x, cur=None, dec=None):
+        if x is None: return "—"
+        x=decimal(x)
+        places = (0 if cur in ('JPY','KRW') else 2) if dec is None else dec
+        # Preserve sub-unit amounts (including crypto) rather than displaying zero.
+        shown = x if x and abs(x)<1 else rounded(x,places)
+        if x and abs(x)<1:
+            s=exact_text(abs(shown)).replace('.',',')
+            s=("−" if shown<0 else "")+s
+        else: s=_fmt(shown,places)
+        return f"{s} {CUR_SIGN.get(cur,cur)}" if cur else s
 
 
     @app.template_filter("num")
+    @arithmetic
     def num(x, dec=2):
         if x is None:
             return "—"
@@ -50,6 +56,7 @@ def register_routes(app, runtime):
 
 
     @app.template_filter("pct")
+    @arithmetic
     def pct(x, sign=True):
         if x is None:
             return "—"

@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import decimal
 """Inbound adapters: parse forms, call application commands, render responses."""
 from datetime import date
 from decimal import InvalidOperation
@@ -14,7 +15,7 @@ from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.modules.rentals.domain import Lease, RentPayment
 from .i18n import gettext
-from .forms import f_str, f_float, f_decimal, back
+from .forms import f_str, f_decimal, back
 
 
 def validated(handler):
@@ -60,7 +61,7 @@ def register_commands(app, runtime):
     @app.post('/accounts/<int:aid>/value')
     @validated
     def account_value(aid):
-        services['accounts'].set_value(aid, f_float('current_value'))
+        services['accounts'].set_value(aid, f_decimal('current_value'))
         return redirect(url_for('account', aid=aid))
 
     @app.post('/accounts/<int:aid>/archive')
@@ -92,7 +93,7 @@ def register_commands(app, runtime):
     @app.post('/accounts/<int:aid>/history')
     @validated
     def account_history_point(aid):
-        services['accounts'].record_history(aid, f_str('date') or date.today().isoformat(), f_float('value'), f_str('currency'))
+        services['accounts'].record_history(aid, f_str('date') or date.today().isoformat(), f_decimal('value'), f_str('currency'))
         flash('Точка истории добавлена')
         return redirect(url_for('account', aid=aid))
 
@@ -101,8 +102,8 @@ def register_commands(app, runtime):
     def holding_save():
         position = Position(id=optional_id(), account_id=int(f_str('account_id')),
                             name=f_str('name'), ticker=f_str('ticker'), asset_class=f_str('asset_class') if request.form.get('asset_class_code') in (None,'custom') else '', asset_class_code=f_str('asset_class_code','stocks'),
-                            currency=f_str('currency', 'RUB'), quantity=f_float('quantity'),
-                            avg_price=f_float('avg_price'), price=f_float('price'))
+                            currency=f_str('currency', 'RUB'), quantity=f_decimal('quantity'),
+                            avg_price=f_decimal('avg_price'), price=f_decimal('price'))
         services['positions'].save(position)
         return back()
 
@@ -118,10 +119,7 @@ def register_commands(app, runtime):
         prices = {}
         for key, value in request.form.items():
             if key.startswith('price_'):
-                try:
-                    price = float(value.replace(',', '.').replace(' ', '').replace(' ', ''))
-                except ValueError:
-                    continue
+                price = decimal(value.replace(',', '.').replace(' ', '').replace(' ', ''))
                 prices[int(key[6:])] = price
         services['positions'].update_prices(aid, prices)
         flash('Цены обновлены')
@@ -132,7 +130,7 @@ def register_commands(app, runtime):
     def flow_save():
         flow = Cashflow(id=optional_id(), account_id=int(f_str('account_id')),
                         date=f_str('date') or date.today().isoformat(), type=f_str('type', 'deposit'),
-                        amount=f_float('amount'), currency=f_str('currency', 'RUB'),
+                        amount=f_decimal('amount'), currency=f_str('currency', 'RUB'),
                         category=f_str('category'), category_code=f_str('category_code') if 'category_code' in request.form else CATEGORY_ALIASES.get(f_str('category'),''), source=f_str('source'),
                         pending=bool(request.form.get('pending')), note=f_str('note'))
         try:
@@ -170,8 +168,8 @@ def register_commands(app, runtime):
             pay_day = 0
         lease = Lease(id=optional_id(), asset_id=int(f_str('account_id')), tenant=f_str('tenant') or 'Арендатор',
                       contact=f_str('contact'), start_date=f_str('start_date') or date.today().isoformat(),
-                      end_date=f_str('end_date'), rent_amount=f_float('rent_amount'), currency=f_str('currency', 'RUB'),
-                      frequency=f_str('frequency', 'month'), pay_day=pay_day, deposit_amount=f_float('deposit_amount'),
+                      end_date=f_str('end_date'), rent_amount=f_decimal('rent_amount'), currency=f_str('currency', 'RUB'),
+                      frequency=f_str('frequency', 'month'), pay_day=pay_day, deposit_amount=f_decimal('deposit_amount'),
                       deposit_currency=f_str('deposit_currency', 'RUB'), agent=f_str('agent'), agent_fee=f_str('agent_fee'),
                       utilities=f_str('utilities'), terms=f_str('terms'))
         _, count = services['rentals'].save_lease(lease, bool(request.form.get('schedule')))
@@ -197,10 +195,10 @@ def register_commands(app, runtime):
     def rent_save():
         payment = RentPayment(id=optional_id(), lease_id=int(f_str('lease_id')),
                               period_start=f_str('period_start') or date.today().isoformat(), period_end=f_str('period_end'),
-                              due_date=f_str('due_date'), amount=f_float('amount'), currency=f_str('currency'),
+                              due_date=f_str('due_date'), amount=f_decimal('amount'), currency=f_str('currency'),
                               status=f_str('status', 'expected'), tenant_paid_date=f_str('tenant_paid_date'),
-                              received_date=f_str('received_date'), received_amount=f_float('received_amount'),
-                              received_currency=f_str('received_currency', 'RUB'), cb_rate=f_float('cb_rate'), note=f_str('note'))
+                              received_date=f_str('received_date'), received_amount=f_decimal('received_amount'),
+                              received_currency=f_str('received_currency', 'RUB'), cb_rate=f_decimal('cb_rate'), note=f_str('note'))
         _, aid = services['rentals'].save_payment(payment)
         return rent_redirect(aid)
 

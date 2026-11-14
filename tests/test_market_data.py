@@ -1,3 +1,4 @@
+from decimal import Decimal
 import json
 import tempfile
 import unittest
@@ -100,7 +101,8 @@ class MarketTests(unittest.TestCase):
     def test_market_routes_error_and_success_contracts(self):
         self.assertEqual(self.client.post(f'/accounts/{self.aid}/crypto').status_code,302)
         self.assertEqual(self.client.post('/accounts/999/moex').status_code,404)
-        self.assertEqual(self.client.post('/rates/save',data={'rate_USD':'bad','new_currency':'BTC','new_rate':'1','base_currency':'RUB'}).status_code,302)
+        self.assertEqual(self.client.post('/rates/save',data={'rate_USD':'bad','new_currency':'BTC','new_rate':'1','base_currency':'RUB'}).status_code,400)
+        self.assertEqual(self.client.post('/rates/save',data={'new_currency':'BTC','new_rate':'1','base_currency':'RUB'}).status_code,302)
         self.assertEqual(self.client.post('/rates/save',data={'rate_USD':'NaN'}).status_code,400)
         self.client.post('/settings/market',data={'country':'RU','exchanges':'okx'})
         self.market.crypto.quote.return_value=None
@@ -113,7 +115,7 @@ class MarketTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/cbr?date=bad').status_code,400)
         self.market.cbr.rates.side_effect=None;self.market.cbr.rates.return_value=({'RUB':1},'today')
         self.assertEqual(self.client.get('/api/cbr?cur=XYZ').status_code,404)
-        self.assertEqual(self.client.get('/api/cbr?cur=RUB').json['rate'],1)
+        self.assertEqual(self.client.get('/api/cbr?cur=RUB').json['rate'],'1')
         self.assertEqual(self.client.post('/rates/cbr').status_code,302)
         self.assertEqual(self.client.post('/rates/BTC/delete').status_code,302)
         self.s['positions'].save(Position(self.aid,ticker='SBER',price=1))
@@ -138,11 +140,11 @@ class ProviderTests(unittest.TestCase):
         http.json.return_value={'result':{'list':[{'lastPrice':'11'}]}};self.assertEqual(provider.quote('BTC',('bybit',)).price,11)
         with self.assertRaises(ValueError):provider.quote('../BTC',('okx',))
         # Stablecoins other than the quote currency get real market quotes (depegging).
-        http.json.return_value={'data':[{'last':'0.8'}]};self.assertEqual(provider.quote('USDC',('okx',)).price,0.8)
+        http.json.return_value={'data':[{'last':'0.8'}]};self.assertEqual(provider.quote('USDC',('okx',)).price,Decimal('0.8'))
 
     def test_cbr_nominal_historical_and_invalid_payload(self):
         http=Mock();http.get.return_value=CBR;p=CbrProvider(http)
-        rates,day=p.rates('2026-11-10');self.assertEqual(rates['JPY'],0.6);self.assertEqual(day,'10.11.2026')
+        rates,day=p.rates('2026-11-10');self.assertEqual(rates['JPY'],Decimal('0.6'));self.assertEqual(day,'10.11.2026')
         self.assertIn('date_req=10/11/2026',http.get.call_args.args[0])
         with self.assertRaises(ValueError):p.rates('bad')
         for body in (b'bad',b'<ValCurs><Valute/></ValCurs>',CBR.replace(b'<Nominal>1</Nominal>',b'<Nominal>0</Nominal>')):

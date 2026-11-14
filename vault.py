@@ -33,7 +33,8 @@ def derive_key(password: str, salt: bytes, n=SCRYPT[0], r=SCRYPT[1], p=SCRYPT[2]
 
 def _connect_memory():
     con = sqlite3.connect(":memory:", check_same_thread=False)
-    con.row_factory = sqlite3.Row
+    from wealth_manager.adapters.persistence.decimals import configure
+    configure(con)
     return con
 
 
@@ -104,7 +105,8 @@ class Vault:
                 con.deserialize(data)
             else:
                 con.executescript(data.decode("utf-8"))
-            con.row_factory = sqlite3.Row
+            from wealth_manager.adapters.persistence.decimals import configure
+            configure(con)
             con.execute("PRAGMA foreign_keys = ON")
             self.con, self._key, self._salt, self._params = con, key, salt, (n, r, p)
             self._start_session()

@@ -6,17 +6,11 @@ def f_str(name, default=""):
     return (request.form.get(name) or default).strip()
 
 
-def f_float(name, default=0.0):
-    v = (request.form.get(name) or "").strip().replace(" ", "").replace(" ", "").replace(",", ".")
-    try:
-        return float(v) if v else default
-    except ValueError:
-        return default
-
-
 def f_decimal(name):
     value = (request.form.get(name) or "0").strip().replace(" ", "").replace(" ", "").replace(",", ".")
-    return Decimal(value)
+    if len(value)>200: raise ValueError('Amount is too long')
+    from wealth_manager.shared.decimal import input_decimal
+    return input_decimal(value)
 
 
 def back(default="dashboard", **kw):

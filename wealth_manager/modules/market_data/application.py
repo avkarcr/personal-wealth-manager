@@ -1,4 +1,5 @@
 from datetime import datetime
+from wealth_manager.shared.decimal import decimal, arithmetic
 from wealth_manager.modules.valuation.quality import rate_factor
 from wealth_manager.shared.classifications import asset_key
 from wealth_manager.shared.errors import EntityNotFound
@@ -56,6 +57,7 @@ class MarketData:
         with self.uow_factory() as uow:
             uow.rates.delete(currency);uow.commit()
 
+    @arithmetic
     def refresh_account(self,aid,kind):
         data=self.reports.read();rates=rates_for(data)
         account=next((a for a in data['accounts'] if a['id']==aid),None)
@@ -73,7 +75,7 @@ class MarketData:
                     factor=rate_factor(rates.r,'USD',h['currency'])
                     if factor is None: raise MissingRate(h['currency'])
                     # Existing USD approximation is explicit in the interface.
-                    price=q.price*float(factor);sources[h['ticker']]=q.provider
+                    price=decimal(q.price)*factor;sources[h['ticker']]=q.provider
                 else:
                     price=self.stocks.price(h['ticker']);sources[h['ticker']]='MOEX'
                 prices[h['id']]=positive(price)
@@ -85,6 +87,7 @@ class MarketData:
                 uow.take_snapshot();uow.commit()
         return dict(count=len(prices),failed=failed,sources=sources)
 
+    @arithmetic
     def refresh_crypto_rates(self):
         exchanges=self.active_exchanges();data=self.reports.read();rates=rates_for(data)
         if rates.to_rub(1,'USD') is None: raise MissingRate('USD')
@@ -93,18 +96,20 @@ class MarketData:
             if code in FIAT:continue
             q=self.crypto.quote(code,exchanges)
             if q is None:failed.append(code)
-            else:values[code]=round(positive(q.price)*rates.r['USD'],6);sources[code]=q.provider
+            else:values[code]=positive(q.price)*decimal(rates.r['USD']);sources[code]=q.provider
         if values:self.save_rates(values)
         return dict(count=len(values),failed=failed,sources=sources)
 
+    @arithmetic
     def refresh_cbr(self):
         values,published=self.cbr.rates()
         known=rates_for(self.reports.read()).r
-        selected={k:round(v,4) for k,v in values.items() if k in known and k!='RUB'}
+        selected={k:decimal(v) for k,v in values.items() if k in known and k!='RUB'}
         if selected:self.save_rates(selected,as_of=datetime.strptime(published,'%d.%m.%Y').date().isoformat())
         return dict(count=len(selected),date=published)
 
+    @arithmetic
     def historical_rate(self,currency,day):
         values,published=self.cbr.rates(day)
         if currency not in values:raise EntityNotFound(currency)
-        return dict(rate=round(values[currency],4),date=published)
+        return dict(rate=decimal(values[currency]),date=published)

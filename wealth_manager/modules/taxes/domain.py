@@ -1,3 +1,4 @@
+from wealth_manager.shared.decimal import arithmetic
 """User-entered tax estimates; no statutory rates or deduction eligibility rules."""
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
@@ -39,10 +40,12 @@ class Deduction:
         if self.status not in STATUSES: raise RecordError('Некорректный статус')
 
 
+@arithmetic
 def estimate(entry):
     return (Decimal(entry['base'])*Decimal(entry['rate'])/100).quantize(Decimal('0.01'),rounding=ROUND_HALF_UP)
 
 
+@arithmetic
 def summarize(entries,deductions):
     groups={}
     def group(row):

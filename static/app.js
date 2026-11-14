@@ -239,7 +239,7 @@
     let days = 0;
     const draw = () => {
       box.innerHTML = '';
-      let pts = data.map(d => ({ t: parse(d.date), v: d.value, i: d.invested }));
+      let pts = data.map(d => ({ t: parse(d.date), v: d.value == null ? null : Number(d.value), i: d.invested == null ? null : Number(d.invested) }));
       if (days) { const from = Date.now() - days * 864e5; pts = pts.filter(p => +p.t >= from); }
       if (pts.some(p => p.v == null || p.i == null)) {
         const msg = document.createElement('div');
@@ -310,6 +310,7 @@
 
   const escapeLabel = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function donut(sel, legendSel, entries, cur) {
+    entries = entries.map(([label, value]) => [label, Number(value)]);
     const box = $(sel), legend = $(legendSel);
     if (!box) return;
     const colors = ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c8', '--c7'];
@@ -346,6 +347,7 @@
   }
 
   function bars(sel, data, cur) {
+    data = data.map(([label, value]) => [label, Number(value)]);
     const box = $(sel);
     if (!box) return;
     const draw = () => {
@@ -375,6 +377,7 @@
   /* помесячные столбики с разбивкой по группам */
   const GROUP_COLOR = { broker: '--c1', crypto: '--c4', realty: '--c2', other: '--c5', freelance: '--c3' };
   function stacked(sel, legendSel, months, series, cur) {
+    series = series.map(s => ({...s, values: s.values.map(Number)}));
     const box = $(sel);
     if (!box) return;
     const draw = () => {

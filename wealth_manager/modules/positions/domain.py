@@ -1,3 +1,5 @@
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic
 from dataclasses import dataclass, replace
 from typing import Optional
 from wealth_manager.shared.validation import finite
@@ -11,9 +13,9 @@ class Position:
     ticker: str = ""
     asset_class: str = ""
     currency: str = "RUB"
-    quantity: float = 0
-    avg_price: float = 0
-    price: float = 0
+    quantity: Decimal = Decimal(0)
+    avg_price: Decimal = Decimal(0)
+    price: Decimal = Decimal(0)
     updated_at: str = ""
     id: Optional[int] = None
 
@@ -29,8 +31,8 @@ class Position:
             code=ASSET_ALIASES.get(text,'custom')
             if code!='custom': text=''
         if code=='custom' and not text.strip(): raise ValueError('Custom asset class is required')
-        price = 1.0 if code == "cash" else self.price
-        average = 1.0 if code == "cash" else (self.avg_price or price)
+        price = Decimal(1) if code == "cash" else self.price
+        average = Decimal(1) if code == "cash" else (self.avg_price or price)
         return replace(self, name=self.name or self.ticker or "Позиция",
-                       ticker=self.ticker.upper(), price=price, avg_price=average, asset_class=text, asset_class_code=code,
+                       ticker=self.ticker.upper(), quantity=decimal(self.quantity), price=decimal(price), avg_price=decimal(average), asset_class=text, asset_class_code=code,
                        updated_at=today.isoformat())

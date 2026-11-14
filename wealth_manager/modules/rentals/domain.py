@@ -1,3 +1,5 @@
+from decimal import Decimal
+from wealth_manager.shared.decimal import decimal, arithmetic
 from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from typing import Optional
@@ -15,11 +17,11 @@ class Lease:
     start_date: str
     contact: str = ""
     end_date: str = ""
-    rent_amount: float = 0
+    rent_amount: Decimal = Decimal(0)
     currency: str = "RUB"
     frequency: str = "month"
     pay_day: int = 0
-    deposit_amount: float = 0
+    deposit_amount: Decimal = Decimal(0)
     deposit_currency: str = "RUB"
     agent: str = ""
     agent_fee: str = ""
@@ -43,17 +45,18 @@ class RentPayment:
     period_start: str
     period_end: str = ""
     due_date: str = ""
-    amount: float = 0
+    amount: Decimal = Decimal(0)
     currency: str = ""
     status: str = "expected"
     tenant_paid_date: str = ""
     received_date: str = ""
-    received_amount: float = 0
+    received_amount: Decimal = Decimal(0)
     received_currency: str = "RUB"
-    cb_rate: float = 0
+    cb_rate: Decimal = Decimal(0)
     note: str = ""
     id: Optional[int] = None
 
+    @arithmetic
     def normalized(self, lease, today):
         if self.status not in RENT_STATUSES:
             raise ValueError("Invalid rent payment status")
@@ -61,8 +64,8 @@ class RentPayment:
         amount, currency = self.amount or lease.rent_amount, self.currency or lease.currency
         received = self.status == "received"
         payment = replace(self, period_end=self.period_end or self.period_start,
-                          due_date=self.due_date or self.period_start, amount=amount, currency=currency,
-                          received_amount=(self.received_amount or amount) if received else 0,
+                          due_date=self.due_date or self.period_start, amount=decimal(amount), currency=currency,
+                          received_amount=decimal(self.received_amount or amount) if received else Decimal(0), cb_rate=decimal(self.cb_rate),
                           received_currency=(currency if received and not self.received_amount else self.received_currency),
                           received_date=(self.received_date or today.isoformat()) if received else "")
         for value in (payment.period_start, payment.period_end, payment.due_date): valid_date(value)
@@ -72,6 +75,7 @@ class RentPayment:
         return payment
 
 
+@arithmetic
 def rent_cashflow(payment, lease):
     """A payment owns its generated income; expected payments have no cashflow."""
     if payment.status == "expected":

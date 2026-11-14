@@ -1,3 +1,4 @@
+from decimal import Decimal
 from dataclasses import dataclass
 import math
 import re
@@ -8,8 +9,9 @@ class NoExchangeSelected(ValueError): pass
 
 
 def positive(value):
-    value=float(value)
-    if not math.isfinite(value) or value<=0: raise ValueError('Rate must be finite and positive')
+    from wealth_manager.shared.decimal import input_decimal
+    value=input_decimal(value)
+    if not value.is_finite() or value<=0: raise ValueError('Rate must be finite and positive')
     return value
 
 
@@ -21,7 +23,7 @@ def symbol(value):
 
 @dataclass(frozen=True)
 class Quote:
-    price: float
+    price: Decimal
     currency: str
     provider: str
 

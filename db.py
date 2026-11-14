@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -255,7 +255,8 @@ def init_db(con):
             if version < 6: _migrate_research(con)
             if version < 7: _migrate_classifications(con)
             if version < 8: _migrate_valuation_dates(con)
-            _migrate_history(con)
+            if version < 9: _migrate_history(con)
+            _migrate_decimals(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -263,6 +264,8 @@ def init_db(con):
         finally:
             before.close()
     con.execute('PRAGMA foreign_keys=ON')
+    from wealth_manager.adapters.persistence.decimals import configure
+    configure(con)
 
 
 PLANNING_SCHEMA = """
@@ -428,3 +431,40 @@ def _migrate_history(con):
     con.execute("INSERT INTO historical_rates SELECT updated_at,currency,rate FROM rates WHERE rate>0 AND length(updated_at)=10")
     con.execute('PRAGMA user_version=9')
     con.commit()
+
+
+def _migrate_decimals(con):
+    import re
+    from wealth_manager.shared.decimal import exact_text
+    tables = ('assets','income_sources','holdings','cashflows','leases','rent_payments','rates','historical_rates','snapshots')
+    con.execute('PRAGMA foreign_keys=OFF')
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        views = con.execute("SELECT sql FROM sqlite_master WHERE type='view'").fetchall()
+        for row in con.execute("SELECT name FROM sqlite_master WHERE type='view'").fetchall():
+            con.execute('DROP VIEW "'+row[0]+'"')
+        for table in tables:
+            columns = con.execute('PRAGMA table_info('+table+')').fetchall()
+            numeric = {i for i,c in enumerate(columns) if c[2].upper()=='REAL'}
+            rows = con.execute('SELECT * FROM '+table).fetchall()
+            schema = con.execute("SELECT sql FROM sqlite_master WHERE name=?",(table,)).fetchone()[0]
+            extras = con.execute("SELECT sql FROM sqlite_master WHERE tbl_name=? AND type IN ('index','trigger') AND sql IS NOT NULL",(table,)).fetchall()
+            sequence = con.execute('SELECT seq FROM sqlite_sequence WHERE name=?',(table,)).fetchone()
+            con.execute('DROP TABLE '+table)
+            con.execute(re.sub(r'\bREAL\b','DECIMAL_TEXT',schema,flags=re.I))
+            if rows:
+                values=[tuple(exact_text(v) if i in numeric and v is not None else v for i,v in enumerate(r)) for r in rows]
+                con.executemany('INSERT INTO '+table+' VALUES ('+','.join('?' for _ in columns)+')',values)
+            for extra in extras: con.execute(extra[0])
+            if sequence:
+                con.execute('DELETE FROM sqlite_sequence WHERE name=?',(table,))
+                con.execute('INSERT INTO sqlite_sequence(name,seq) VALUES (?,?)',(table,sequence[0]))
+        for view in views:con.execute(view[0])
+        if con.execute('PRAGMA foreign_key_check').fetchall():raise ValueError('Decimal migration broke links')
+        con.execute('PRAGMA user_version=10')
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    finally:
+        con.execute('PRAGMA foreign_keys=ON')

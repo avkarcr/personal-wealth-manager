@@ -103,7 +103,7 @@ for (const language of ['ru','en']) {
       {date:'2026-03-01',value:120,invested:90},
     ],'USD');
     assert.equal(children.length,1);
-    assert.match(children[0].textContent,language==='en'?/Historical rates are missing/:/не хватает курсов/);
+    assert.match(children[0].textContent,language==='en'?/History is incomplete/:/История неполная/);
   });
 }
 

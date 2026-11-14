@@ -32,9 +32,10 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.modules.taxes.application import Commands as TaxCommands
     from wealth_manager.modules.taxes.reports import Reports as TaxReports
     from wealth_manager.adapters.persistence.research import CompanyReader, ObservationReader, TaxReader
+    from wealth_manager.modules.ledger.application import Commands as LedgerCommands, Reports as LedgerReports
     reports = SqliteReportRepository(vault)
-    factory = lambda: VaultUnitOfWork(vault)
-    return {"companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+    factory = lambda: VaultUnitOfWork(vault,today)
+    return {"ledger": LedgerCommands(factory,today), "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
             "taxes": TaxCommands(factory), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),

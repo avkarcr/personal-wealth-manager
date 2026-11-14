@@ -52,7 +52,7 @@ class MigrationTests(unittest.TestCase):
         initialize_vault(self.vault)
         self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(self.rows('accounts'),[dict(a,closed_at='') for a in original['accounts']])
-        for item in expected[0][0]: item['acc']['closed_at']=''
+        for item in expected[0][0]: item['acc'].update(closed_at='',ledger_started_on='',ledger_baseline_rub=0)
         for table in ('rent_payments','snapshots','rates','settings'):
             self.assertEqual(self.rows(table),original[table],table)
         self.assertEqual(self.rows('holdings'),[dict(r,asset_class='',asset_class_code='stocks') for r in original['holdings']])

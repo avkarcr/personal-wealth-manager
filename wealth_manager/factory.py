@@ -9,6 +9,7 @@ from wealth_manager.bootstrap import build_runtime
 from wealth_manager.adapters.web.i18n import install_i18n
 from wealth_manager.adapters.web.legacy_routes import register_routes
 from wealth_manager.adapters.web.commands import register_commands
+from wealth_manager.adapters.web.ledger import register_ledger
 from wealth_manager.adapters.web.reports import register_reports
 from wealth_manager.adapters.web.planning import register_planning
 from wealth_manager.adapters.web.research import register_research
@@ -46,6 +47,7 @@ def create_app(config=None, *, vault=None):
     install_i18n(app, runtime.vault)
     register_routes(app, runtime)
     register_commands(app, runtime)
+    register_ledger(app, runtime)
     register_reports(app, runtime)
     register_planning(app, runtime)
     register_research(app, runtime)

@@ -63,7 +63,7 @@ def portfolio(data, rates, today, include_archived=False):
             all_x.append((d, -amt))
     end_val = sum(i["m"]["value"] for i in items if i["acc"]["id"] in dep_accounts)
     all_x.append((today, end_val))
-    total["xirr"] = xirr(all_x) if complete else None
+    total["xirr"] = xirr(all_x) if complete and not any(i["acc"].get("ledger_baseline_rub") for i in items) else None
     total["complete"] = complete
     total["value_complete"] = value_complete
     if not complete: total["profit"] = None
@@ -82,6 +82,7 @@ def history(data, rates, account_id=None):
     from wealth_manager.modules.valuation.history import rates_on
     events = [e for e in data.get('account_status_events',[]) if (e['account_id']==account_id if account_id else e['account_id'] in ids)]
     closed = {}
+    invalidated = {}
     dates = sorted(set(dates) | {e['date'] for e in events})
     out = []
     for d in dates:
@@ -91,12 +92,14 @@ def history(data, rates, account_id=None):
                 if e['closed'] and e['account_id'] in last:
                     last[e['account_id']]=(0,last[e['account_id']][1])
         for r in by_date[d]:
+            invalidated[r['account_id']]=r.get('invalidated',False)
             last[r['account_id']] = (r['value_rub'],r['invested_rub'])
         # Closure ends the balance, never erases contributions or creates a withdrawal.
         value = sum(0 if closed.get(aid) else v for aid,(v,i) in last.items())
         invested = sum(i for v,i in last.values())
         dated = rates_on(data.get('historical_rates',[]),d,rates.base)
         v,i = dated.rub_to_base(value),dated.rub_to_base(invested)
+        if any(invalidated.values()):v=i=None
         out.append(dict(date=d,value=rounded(v,2) if v is not None else None,
                         invested=rounded(i,2) if i is not None else None))
     return out

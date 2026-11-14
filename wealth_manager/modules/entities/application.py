@@ -40,6 +40,7 @@ class EntityCommands:
 
     def delete(self, account_id):
         with self.uow_factory() as uow:
+            if uow.ledger.enabled(account_id):raise RecordError('Счёт с журналом можно закрыть или архивировать, но нельзя удалить')
             uow.entities.delete(account_id)
             uow.commit()
 
@@ -59,6 +60,8 @@ class EntityCommands:
             if value_rub is None or any(v is None for v in converted):
                 raise RecordError('Недостаточно курсов для сохранения оценки')
             relevant = [f for f in uow.cashflows.through(account_id,day) if f.type in ('deposit','withdrawal')]
+            mode=uow.ledger.data()['accounts'][account_id] if uow.ledger.enabled(account_id) else None
+            baseline=mode['ledger_baseline_rub'] if mode and day>=mode['ledger_started_on'] else 0
             invested = sum(v*(1 if f.type=='deposit' else -1) for f,v in zip(relevant,converted))
-            uow.valuations.save_history(account_id, day, value_rub, invested if relevant else value_rub)
+            uow.valuations.save_history(account_id, day, value_rub, invested+baseline if mode and day>=mode['ledger_started_on'] else (invested if relevant else value_rub))
             uow.commit()

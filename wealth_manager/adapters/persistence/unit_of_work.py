@@ -1,6 +1,8 @@
 """Serialize mutations with vault locking and restore memory if persistence fails."""
 import sqlite3
+from datetime import date
 import calc
+from .ledger import SqliteLedgerRepository
 from .planning import SqlitePlanningRepository
 from .research import CompanyRepository, ObservationRepository, TaxRepository
 from .entities import SqliteEntityRepository, SqliteAssetRepository, SqliteIncomeSourceRepository
@@ -9,8 +11,9 @@ from .operations import SqlitePositionRepository, SqliteCashflowRepository, Sqli
 from .sqlite import SqliteAccountRepository, SqlitePreferencesRepository
 
 class VaultUnitOfWork:
-    def __init__(self, vault):
+    def __init__(self, vault, today=date.today):
         self.vault = vault
+        self.today = today
         self.committed = False
 
     def __enter__(self):
@@ -29,6 +32,7 @@ class VaultUnitOfWork:
             self.macroeconomics = ObservationRepository(self.connection)
             self.taxes = TaxRepository(self.connection)
             self.planning = SqlitePlanningRepository(self.connection)
+            self.ledger = SqliteLedgerRepository(self.connection)
             self.positions = SqlitePositionRepository(self.connection)
             self.cashflows = SqliteCashflowRepository(self.connection)
             self.rentals = SqliteRentalRepository(self.connection)
@@ -45,7 +49,7 @@ class VaultUnitOfWork:
 
     def take_snapshot(self):
         # Transitional bridge; calc remains legacy until reporting is extracted.
-        calc.take_snapshot(self.connection, calc.Rates(self.connection), commit=False)
+        calc.take_snapshot(self.connection, calc.Rates(self.connection), commit=False, today=self.today())
 
     def commit(self):
         self.connection.commit()

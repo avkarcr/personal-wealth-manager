@@ -119,7 +119,7 @@ class DecimalIntegrationTests(unittest.TestCase):
 class DecimalMigrationTests(unittest.TestCase):
     def test_v9_real_migration_preserves_links_sequences_and_rolls_back(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_decimals'):db.init_db(con)
+        with patch('db._migrate_decimals'), patch('db._migrate_ledger'):db.init_db(con)
         con.execute("INSERT INTO entities(id,entity_type,name) VALUES (7,'account','Old')")
         con.execute("INSERT INTO financial_accounts(id,kind) VALUES (7,'broker')")
         con.execute("INSERT INTO holdings(id,account_id,name,quantity,price,avg_price) VALUES (123,7,'Old',?,?,?)",(0.1+0.2,1.25,0.1))
@@ -131,7 +131,7 @@ class DecimalMigrationTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):db.init_db(con)
         self.assertEqual(list(con.iterdump()),before)
         db.init_db(con)
-        self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],10)
+        self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         row=con.execute('SELECT id,account_id,quantity,price FROM holdings').fetchone()
         self.assertEqual(tuple(row),(123,7,Decimal(str(0.1+0.2)),Decimal('1.25')))
         self.assertEqual(con.execute('PRAGMA foreign_key_check').fetchall(),[])
@@ -145,7 +145,7 @@ class DecimalMigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             vault=Vault(str(Path(directory)/'migration.enc'))
             try:
-                with patch('db._migrate_decimals'):db.init_db(vault.create('password123'))
+                with patch('db._migrate_decimals'), patch('db._migrate_ledger'):db.init_db(vault.create('password123'))
                 vault.save(force=True)
                 before=list(vault.con.iterdump());disk=Path(vault.path).read_bytes()
                 with patch('vault.os.replace',side_effect=OSError('full')):
@@ -154,6 +154,6 @@ class DecimalMigrationTests(unittest.TestCase):
                 self.assertEqual(Path(vault.path).read_bytes(),disk)
                 initialize_vault(vault)
                 vault.lock();vault.unlock('password123')
-                self.assertEqual(vault.con.execute('PRAGMA user_version').fetchone()[0],10)
+                self.assertEqual(vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
                 self.assertIsInstance(vault.con.execute("SELECT rate FROM rates WHERE currency='USD'").fetchone()[0],Decimal)
             finally:vault.lock()

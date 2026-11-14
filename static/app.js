@@ -244,7 +244,7 @@
       if (pts.some(p => p.v == null || p.i == null)) {
         const msg = document.createElement('div');
         msg.className = 'empty-chart';
-        msg.textContent = t('Для графика не хватает курсов на даты снимков. Добавьте курсы в настройках или выберите RUB.');
+        msg.textContent = t('История неполная: проверьте курсы на даты снимков и пересохраните оценки, затронутые исправлениями журнала.');
         box.appendChild(msg);
         return;
       }

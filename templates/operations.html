@@ -4,7 +4,7 @@
 {% if not complete %}<p class="banner">{{ _('Операции: показаны только известные суммы; итог неполный.') }}</p>{% endif %}
 <header class="page-head">
   <div><h1>{{ _('Операции') }}</h1><p class="muted">{{ _('Журнал всех движений денег. Аналитика доходов — в разделе') }} <a href="{{ url_for('income') }}">{{ _('«Доходы»') }}</a></p></div>
-  <div class="actions">{% if nav_accounts %}<button class="btn primary" data-open="dlg-flow">{{ _('+ Операция') }}</button>{% endif %}</div>
+  <div class="actions"><a class="btn" href="{{ url_for('ledger') }}">{{ _('Журнал сделок и остатков') }}</a>{% if nav_accounts %}<button class="btn primary" data-open="dlg-flow">{{ _('+ Операция') }}</button>{% endif %}</div>
 </header>
 
 <section class="kpis four">

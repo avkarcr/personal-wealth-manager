@@ -117,6 +117,10 @@ def account_metrics(acc, rates, holdings, flows, today):
     complete = complete and value_complete
     has_deposits = any(f["type"] == "deposit" and f["amount"] > 0 for f in flows)
     invested = sums["deposit"] - sums["withdrawal"] if has_deposits else cost
+    baseline = rates.rub_to_base(acc.get('ledger_baseline_rub',0))
+    if acc.get('ledger_started_on'):
+        if baseline is None: complete=False
+        invested=sums['deposit']-sums['withdrawal']+(baseline or Decimal(0))
     profit = value - invested
     if external:
         profit += sums["income"] - sums["expense"]
@@ -134,7 +138,8 @@ def account_metrics(acc, rates, holdings, flows, today):
         "income": sums["income"],
         "expense": sums["expense"],
         "income_12m": income_12m,
-        "xirr": irr if complete else None,
+        "xirr": irr if complete and not acc.get("ledger_baseline_rub") else None,
+        "baseline_invested": baseline or Decimal(0),
         "by_class": dict(by_class),
         "by_cur": dict(by_cur),
         "positions": len(holdings),

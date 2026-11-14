@@ -10,7 +10,7 @@
     {% if acc.note %}<p class="muted">{{ acc.note }}</p>{% endif %}
   </div>
   <div class="actions">
-    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>{{ _('+ Операция') }}</button>
+    {% if acc.ledger_started_on %}<a class="btn" href="{{ url_for('ledger') }}">{{ _('Журнал сделок и остатков') }}</a>{% else %}    <button class="btn" data-open="dlg-flow" data-fill='{{ {"account_id": acc.id, "currency": acc.currency}|tojson }}'>{{ _('+ Операция') }}</button>{% endif %}
     {% if acc.kind != 'realty' %}<button class="btn primary" data-open="dlg-holding" data-fill='{{ {"account_id": acc.id, "currency": acc.currency, "asset_class_code": ("crypto" if acc.kind == "crypto" else "stocks")}|tojson }}'>{{ _('+ Позиция') }}</button>{% endif %}
     <details class="menu">
       <summary class="btn icon" title="{{ _('Ещё') }}">⋯</summary>
@@ -26,6 +26,7 @@
 
 {% if not m.complete %}<p class="banner">{{ _('Оценка неполная: показаны известные суммы. Прибыль и доходность не рассчитаны.') }}</p>{% endif %}
 <p class="muted small">{{ _('Архив скрывает счёт из меню, но сохраняет его в расчётах. Закрыть можно финансовый счёт без остатков и ожидаемых операций.') }}</p>
+{% if acc.ledger_started_on %}<p class="banner">{{ _('Учёт по журналу') }} · {{ acc.ledger_started_on }}. {{ _('Остатки меняются через журнал, котировки обновляются отдельно.') }}{% if acc.ledger_baseline_rub %} {{ _('XIRR не рассчитан: неизвестны даты приобретения входящих остатков.') }}{% endif %}</p>{% elif acc.kind != 'realty' %}<p><a class="btn" href="{{ url_for('ledger') }}">{{ _('Включить журнал') }}</a></p>{% endif %}
 <section class="kpis">
   <div class="kpi main-kpi"><span class="lbl">{{ _('Стоимость') if m.value_complete else _('Известная часть') }}</span><span class="val">{{ m.value|money(base) }}</span></div>
   <div class="kpi"><span class="lbl">{{ _('Вложено') }}</span><span class="val">{{ m.invested|money(base) }}</span>

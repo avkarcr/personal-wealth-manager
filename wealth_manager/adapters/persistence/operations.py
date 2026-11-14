@@ -125,3 +125,6 @@ class SqliteValuationRepository:
             'INSERT INTO snapshots(date,account_id,value_rub,invested_rub) VALUES (?,?,?,?) '
             'ON CONFLICT(date,account_id) DO UPDATE SET value_rub=excluded.value_rub,invested_rub=excluded.invested_rub',
             (day, account_id, decimal(value_rub), decimal(invested_rub)))
+
+        if self.connection.execute('PRAGMA user_version').fetchone()[0]>=11:
+            self.connection.execute('DELETE FROM ledger_invalid_snapshots WHERE account_id=? AND date=?',(account_id,day))

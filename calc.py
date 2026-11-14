@@ -20,12 +20,16 @@ class Rates(ExchangeRates):
         super().__init__(rates, row["value"] if row else "RUB")
 
 
-def account_metrics(db, acc, rates, holdings=None, flows=None):
+def account_metrics(db, acc, rates, holdings=None, flows=None, *, today=None):
     if holdings is None:
         holdings = db.execute("SELECT * FROM holdings WHERE account_id=?", (acc["id"],)).fetchall()
     if flows is None:
         flows = db.execute("SELECT * FROM cashflows WHERE account_id=?", (acc["id"],)).fetchall()
-    return calculate_account_metrics(acc, rates, holdings, flows, date.today())
+    acc=dict(acc)
+    if db.execute('PRAGMA user_version').fetchone()[0]>=11:
+        row=db.execute('SELECT * FROM ledger_accounts WHERE account_id=?',(acc['id'],)).fetchone()
+        if row: acc.update(ledger_started_on=row['started_on'],ledger_baseline_rub=row['baseline_rub'])
+    return calculate_account_metrics(acc, rates, holdings, flows, today or date.today())
 
 
 def portfolio(db, rates, include_archived=False):
@@ -35,12 +39,13 @@ def portfolio(db, rates, include_archived=False):
 
 
 @arithmetic
-def take_snapshot(db, rates, *, commit=True):
+def take_snapshot(db, rates, *, commit=True, today=None):
     """Фиксирует сегодняшнюю стоимость всех активных счетов (в RUB)."""
-    today = date.today().isoformat()
+    snapshot_day = today or date.today()
+    today = snapshot_day.isoformat()
     rates = ExchangeRates(rates.r, "RUB")
     for acc in db.execute("SELECT * FROM accounts WHERE closed_at='' AND kind<>'freelance'").fetchall():
-        m = account_metrics(db, acc, rates)
+        m = account_metrics(db, acc, rates, today=snapshot_day)
         if not m["complete"]: continue
         contributions = db.execute("SELECT * FROM cashflows WHERE account_id=? AND pending=0 AND date<=? AND type IN ('deposit','withdrawal')",(acc['id'],today)).fetchall()
         if contributions:
@@ -50,12 +55,14 @@ def take_snapshot(db, rates, *, commit=True):
                 amount=dated.to_rub(flow['amount'],flow['currency'])
                 amounts.append(None if amount is None else amount*(1 if flow['type']=='deposit' else -1))
             if any(a is None for a in amounts): continue
-            m['invested']=sum(amounts)
+            m['invested']=sum(amounts)+m.get('baseline_invested',0)
         db.execute(
             "INSERT INTO snapshots(date, account_id, value_rub, invested_rub) VALUES (?,?,?,?) "
             "ON CONFLICT(date, account_id) DO UPDATE SET value_rub=excluded.value_rub, invested_rub=excluded.invested_rub",
             (today, acc["id"], m["value"], m["invested"]),
         )
+        if db.execute('PRAGMA user_version').fetchone()[0]>=11:
+            db.execute('DELETE FROM ledger_invalid_snapshots WHERE date=? AND account_id=?',(today,acc['id']))
     if commit:
         db.commit()
 

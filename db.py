@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -256,7 +256,8 @@ def init_db(con):
             if version < 7: _migrate_classifications(con)
             if version < 8: _migrate_valuation_dates(con)
             if version < 9: _migrate_history(con)
-            _migrate_decimals(con)
+            if version < 10: _migrate_decimals(con)
+            _migrate_ledger(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -468,3 +469,43 @@ def _migrate_decimals(con):
         raise
     finally:
         con.execute('PRAGMA foreign_keys=ON')
+
+
+def _migrate_ledger(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        for statement in _statements(LEDGER_SCHEMA):con.execute(statement)
+        con.execute('PRAGMA user_version=11');con.commit()
+    except BaseException:
+        con.rollback();raise
+
+LEDGER_SCHEMA = """
+CREATE TABLE ledger_accounts (
+ account_id INTEGER PRIMARY KEY REFERENCES financial_accounts(id),
+ started_on TEXT NOT NULL,
+ baseline_rub DECIMAL_TEXT NOT NULL
+);
+CREATE TABLE ledger_openings (
+ holding_id INTEGER PRIMARY KEY REFERENCES holdings(id),
+ quantity DECIMAL_TEXT NOT NULL, cost DECIMAL_TEXT NOT NULL
+);
+CREATE TABLE ledger_entries (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ date TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('buy','sell','deposit','withdrawal','income','expense','transfer')),
+ holding_id INTEGER NOT NULL REFERENCES holdings(id),
+ quantity DECIMAL_TEXT NOT NULL, price DECIMAL_TEXT NOT NULL, fee DECIMAL_TEXT NOT NULL,
+ cash_id INTEGER REFERENCES holdings(id), target_id INTEGER REFERENCES holdings(id),
+ note TEXT NOT NULL DEFAULT '', request_id TEXT NOT NULL UNIQUE,
+ voided INTEGER NOT NULL DEFAULT 0 CHECK(voided IN (0,1)), voided_at TEXT NOT NULL DEFAULT '',
+ realized DECIMAL_TEXT
+);
+CREATE INDEX ledger_order ON ledger_entries(date,id);
+CREATE TABLE ledger_invalid_snapshots (
+ account_id INTEGER NOT NULL REFERENCES entities(id), date TEXT NOT NULL, PRIMARY KEY(account_id,date)
+);
+CREATE TABLE ledger_flows (
+ entry_id INTEGER NOT NULL REFERENCES ledger_entries(id),
+ flow_id INTEGER PRIMARY KEY REFERENCES cashflows(id) ON DELETE CASCADE
+);
+"""

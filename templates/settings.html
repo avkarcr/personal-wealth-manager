@@ -33,11 +33,18 @@
   <form method="post" action="{{ url_for('market_settings_save') }}">
     <input type="hidden" name="country" value="{{ market.country }}">
     <p>{{ _('Источники котировок для страны') }}: <b>{{ market.country }}</b></p>
+    <div class="exchange-list">
     {% for exchange in market.choices %}
-    <p><label><input type="checkbox" name="exchanges" value="{{ exchange.id }}" {{ 'checked' if exchange.id in market.exchanges }} {{ 'disabled' if exchange.status == 'excluded' }}>
-      {{ exchange.name }}</label> — {{ _('Исключена для этой страны') if exchange.status == 'excluded' else _('Есть ограничения отдельных услуг') if exchange.status == 'limited' else _('Проверьте условия для вашего региона') }}
-      <a href="{{ exchange.source }}" target="_blank" rel="noopener noreferrer">{{ _('Условия биржи') }}</a></p>
+      <div class="exchange-row {{ 'is-disabled' if exchange.status == 'excluded' }}">
+        <label class="exchange-choice">
+          <input type="checkbox" name="exchanges" value="{{ exchange.id }}" aria-describedby="exchange-status-{{ exchange.id }}" {{ 'checked' if exchange.id in market.exchanges }} {{ 'disabled' if exchange.status == 'excluded' }}>
+          <span class="exchange-name">{{ exchange.name }}</span>
+          <span class="exchange-status" id="exchange-status-{{ exchange.id }}">{{ _('Исключена для этой страны') if exchange.status == 'excluded' else _('Есть ограничения отдельных услуг') if exchange.status == 'limited' else _('Проверьте условия для вашего региона') }}</span>
+        </label>
+        <a class="exchange-link" href="{{ exchange.source }}" target="_blank" rel="noopener noreferrer">{{ _('Условия биржи') }} <span aria-hidden="true">↗</span></a>
+      </div>
     {% endfor %}
+    </div>
     <button class="btn primary">{{ _('Сохранить страну и биржи') }}</button>
   </form>
   {% endif %}

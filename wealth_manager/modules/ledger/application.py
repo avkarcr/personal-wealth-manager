@@ -42,24 +42,33 @@ class Commands:
         entry.validate()
         with self.factory() as uow:
             old=uow.ledger.find_request(entry.request_id)
-            if old:
-                if any(old[k]!=v for k,v in asdict(entry).items()):raise RecordError('Идентификатор уже использован для другой операции')
-                return old['id']
-            data=uow.ledger.data();validate_links(entry,data['holdings'],data['accounts'],self.today().isoformat())
-            eid=uow.ledger.insert(entry);self.rebuild(uow)
-            h=data['holdings'][entry.holding_id]
-            def flow(aid,kind,amount,currency,category=''):
-                fid=uow.cashflows.save(Cashflow(aid,entry.date,kind,amount,currency,note=entry.note,category_code=category))
-                uow.ledger.link_flow(eid,fid)
-            if entry.kind in ('deposit','withdrawal','income','expense'):
-                flow(h['account_id'],entry.kind,entry.quantity,h['currency'])
-            if entry.kind=='transfer':
-                target=data['holdings'][entry.target_id];value=entry.quantity*(1 if is_cash(h) else entry.price)
-                flow(h['account_id'],'withdrawal',value,h['currency'])
-                flow(target['account_id'],'deposit',value,h['currency'])
-            if entry.fee:flow(h['account_id'],'expense',entry.fee,h['currency'],'broker_fee')
-            uow.ledger.invalidate_snapshots(eid,self.today().isoformat())
+            eid=self.post_in_uow(uow,entry)
+            if old:return eid
             uow.take_snapshot();uow.commit();return eid
+    @arithmetic
+    def post_in_uow(self,uow,entry,*,rebuild=True):
+        """Shared posting path; the caller owns the transaction and snapshot."""
+        entry.validate()
+        old=uow.ledger.find_request(entry.request_id)
+        if old:
+            if any(old[k]!=v for k,v in asdict(entry).items()):raise RecordError('Идентификатор уже использован для другой операции')
+            return old['id']
+        data=uow.ledger.data();validate_links(entry,data['holdings'],data['accounts'],self.today().isoformat())
+        eid=uow.ledger.insert(entry)
+        if rebuild:self.rebuild(uow)
+        h=data['holdings'][entry.holding_id]
+        def flow(aid,kind,amount,currency,category=''):
+            fid=uow.cashflows.save(Cashflow(aid,entry.date,kind,amount,currency,note=entry.note,category_code=category))
+            uow.ledger.link_flow(eid,fid)
+        if entry.kind in ('deposit','withdrawal','income','expense'):
+            flow(h['account_id'],entry.kind,entry.quantity,h['currency'])
+        if entry.kind=='transfer':
+            target=data['holdings'][entry.target_id];value=entry.quantity*(1 if is_cash(h) else entry.price)
+            flow(h['account_id'],'withdrawal',value,h['currency'])
+            flow(target['account_id'],'deposit',value,h['currency'])
+        if entry.fee:flow(h['account_id'],'expense',entry.fee,h['currency'],'broker_fee')
+        uow.ledger.invalidate_snapshots(eid,self.today().isoformat())
+        return eid
     def cancel(self,eid):
         with self.factory() as uow:
             e=uow.ledger.get(eid)

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Импорт и сверка') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ _('Импорт и сверка') }}</h1><p class="muted">{{ _('Единый CSV v1: UTF-8, запятая или точка с запятой; числа с точкой, даты YYYY-MM-DD. До 1 МБ и 500 строк.') }}</p></div><a class="btn" href="{{ url_for('ledger') }}">{{ _('Журнал сделок и остатков') }}</a></header>
+<p>{{ _('Преобразуйте выписку брокера или биржи в шаблон. Прямой разбор фирменных выписок и подключение API пока не поддерживаются.') }}</p>
+{% macro account_select() %}<label class="fld"><span>{{ _('Счёт') }}</span><select name="account_id" required><option value="">—</option>{% for a in ledger.accounts.values() if a.ledger_started_on %}<option value="{{ a.id }}" {{ 'selected' if account_id is defined and account_id==a.id else '' }}>{{ a.name }}</option>{% endfor %}</select></label>{% endmacro %}
+<section class="card"><h2>{{ _('Импорт операций') }}</h2>
+<p>{{ _('Используйте постоянное имя источника и внешний ID из выписки. Повторные операции будут пропущены; изменение данных существующего ID блокирует импорт.') }}</p>
+<p><a href="{{ url_for('import_template',kind='operations') }}">{{ _('Скачать шаблон операций') }}</a></p>
+<p class="muted small">{{ _('kind: buy, sell, deposit, withdrawal, income, expense, transfer. Для сделок заполните cash_id; для перевода — target_id. Пустые price и fee означают 0.') }}</p>
+<form action="{{ url_for('import_preview') }}" method="post" enctype="multipart/form-data">{{ account_select() }}
+<label class="fld"><span>{{ _('Источник выписки') }}</span><input name="source" maxlength="80" value="{{ source|default('') }}" required></label>
+<label class="fld"><span>{{ _('CSV-файл') }}</span><input type="file" name="file" accept=".csv,text/csv" required></label>
+<button class="btn primary">{{ _('Проверить без сохранения') }}</button></form>
+</section>
+{% if preview is defined %}
+<section class="card"><h2>{{ _('Предпросмотр импорта') }} · {{ ledger.accounts[account_id].name }}</h2><p>{{ _('Новых операций') }}: {{ preview.new }} / {{ preview.rows|length }}</p>
+<p>{{ _('Записи будут проведены по дате, внутри дня — в порядке строк. Проверьте суммы, комиссии и получателей. Подтверждение действует 30 минут и требует неизменных данных.') }}</p>
+<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Строка') }} / ID</th><th>{{ _('Дата') }}</th><th>{{ _('Тип') }}</th><th>{{ _('Позиция') }}</th><th class="r">{{ _('Количество') }}</th><th class="r">{{ _('Цена') }}</th><th class="r">{{ _('Комиссия') }}</th><th>{{ _('Статус') }}</th></tr></thead><tbody>
+{% for r in preview.rows %}{% set e=r.entry %}{% set h=ledger.holdings[e.holding_id] %}<tr><td>{{ r.line }} / {{ r.external_id }}</td><td>{{ e.date }}</td><td>{{ _(kinds[e.kind]) }}</td><td>{{ r.name }} · {{ h.currency }}{% if e.cash_id %}<span class="block">{{ _('Деньги') }}: {{ ledger.holdings[e.cash_id].name }}</span>{% endif %}{% if e.target_id %}<span class="block">→ {{ ledger.accounts[ledger.holdings[e.target_id].account_id].name }} · {{ ledger.holdings[e.target_id].name }}</span>{% endif %}<span class="muted small block">{{ e.note }}</span></td><td class="r">{{ e.quantity }}</td><td class="r">{{ e.price }}</td><td class="r">{{ e.fee }}</td><td>{{ _('Новая') if r.status=='new' else _('Уже импортирована') }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% if preview.new %}<form action="{{ url_for('import_confirm') }}" method="post"><input type="hidden" name="token" value="{{ token }}"><button class="btn primary">{{ _('Подтвердить импорт') }}</button></form>{% endif %}
+</section>{% endif %}
+<section class="card"><h2>{{ _('Сверка остатков') }}</h2><p>{{ _('Загрузите полный список остатков счёта на конец выбранной даты. Отсутствующая строка не считается нулём. Сверка ничего не изменяет.') }}</p>
+<p><a href="{{ url_for('import_template',kind='balances') }}">{{ _('Скачать шаблон остатков') }}</a></p>
+<form action="{{ url_for('import_reconcile') }}" method="post" enctype="multipart/form-data">{{ account_select() }}
+<label class="fld"><span>{{ _('Дата') }}</span><input type="date" name="date" value="{{ today }}" max="{{ today }}" required></label>
+<label class="fld"><span>{{ _('CSV-файл') }}</span><input type="file" name="file" accept=".csv,text/csv" required></label><button class="btn">{{ _('Сверить') }}</button></form>
+{% if comparison is defined %}<h3>{{ ledger.accounts[account_id].name }} · {{ comparison_date }}</h3><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Позиция') }}</th><th>{{ _('Валюта') }}</th><th class="r">{{ _('В журнале') }}</th><th class="r">{{ _('В выписке') }}</th><th class="r">{{ _('Разница: журнал минус выписка') }}</th><th>{{ _('Статус') }}</th></tr></thead><tbody>{% for r in comparison %}<tr><td>{{ r.name }}</td><td>{{ r.currency }}</td><td class="r">{{ r.actual }}</td><td class="r">{{ r.expected if r.expected is not none else '—' }}</td><td class="r">{{ r.difference if r.difference is not none else '—' }}</td><td>{{ _('Совпадает') if r.status=='match' else _('Расхождение') if r.status=='difference' else _('Нет в выписке') }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+</section>
+<section class="card"><details><summary>{{ _('Справочник ID позиций для CSV') }}</summary><p>{{ _('Новые инструменты сначала создайте с нулевым остатком. ID относятся только к этому хранилищу. Валюта — код из справочника ниже.') }}</p><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>{{ _('Счёт') }}</th><th>{{ _('Позиция') }}</th><th>{{ _('Тикер') }}</th><th>{{ _('Валюта') }}</th></tr></thead><tbody>{% for h in ledger.holdings.values() if ledger.accounts[h.account_id].ledger_started_on %}<tr><td>{{ h.id }}</td><td>{{ ledger.accounts[h.account_id].name }}</td><td>{{ h.name }}</td><td>{{ h.ticker }}</td><td>{{ h.currency }}</td></tr>{% endfor %}</tbody></table></div></details></section>
+{% endblock %}

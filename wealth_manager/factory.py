@@ -10,6 +10,7 @@ from wealth_manager.adapters.web.i18n import install_i18n
 from wealth_manager.adapters.web.legacy_routes import register_routes
 from wealth_manager.adapters.web.commands import register_commands
 from wealth_manager.adapters.web.ledger import register_ledger
+from wealth_manager.adapters.web.importing import register_importing
 from wealth_manager.adapters.web.reports import register_reports
 from wealth_manager.adapters.web.planning import register_planning
 from wealth_manager.adapters.web.research import register_research
@@ -29,6 +30,7 @@ def create_app(config=None, *, vault=None):
     app = Flask(__name__, template_folder=str(root / "templates"), static_folder=str(root / "static"))
     app.config.from_mapping(
         SECRET_KEY=secrets.token_bytes(32),
+        MAX_FORM_MEMORY_SIZE=2*1024*1024,
         SESSION_COOKIE_SAMESITE="Strict",
         SESSION_COOKIE_HTTPONLY=True,
         VAULT_PATH=os.environ.get("INVEST_VAULT", str(root / "invest.enc")),
@@ -48,6 +50,7 @@ def create_app(config=None, *, vault=None):
     register_routes(app, runtime)
     register_commands(app, runtime)
     register_ledger(app, runtime)
+    register_importing(app, runtime)
     register_reports(app, runtime)
     register_planning(app, runtime)
     register_research(app, runtime)

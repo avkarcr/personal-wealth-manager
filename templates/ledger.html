@@ -2,6 +2,7 @@
 {% block title %}{{ _('Журнал сделок и остатков') }}{% endblock %}
 {% block content %}
 <header class="page-head"><div><h1>{{ _('Журнал сделок и остатков') }}</h1><p class="muted">{{ _('Остатки вычисляются из входящих остатков и проведённых операций.') }}</p></div><a class="btn" href="{{ url_for('operations') }}">{{ _('Операции') }}</a></header>
+<p><a class="btn" href="{{ url_for('imports') }}">{{ _('Импорт и сверка') }}</a></p>
 <section class="card"><h2>{{ _('Учёт по журналу') }}</h2>
 <p>{{ _('Включайте журнал после сверки текущих остатков. Старые денежные операции сохранятся и не будут применены повторно. Обратное переключение на ручные остатки не предусмотрено.') }}</p>
 {% for a in ledger.accounts.values() if a.kind not in ('realty','freelance') %}

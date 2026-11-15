@@ -1,0 +1,6 @@
+from typing import Protocol
+from .domain import ImportRow
+
+class StatementParser(Protocol):
+    def operations(self, raw: bytes): ...
+    def balances(self, raw: bytes): ...

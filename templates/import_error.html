@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<section class="card"><h1>{{ _('Проверка файла не пройдена') }}</h1><p role="alert">{% if line %}{{ _('Строка') }} {{ line }}: {% endif %}{{ _(error) }}</p><a class="btn" href="{{ url_for('imports') }}">{{ _('Импорт и сверка') }}</a></section>{% endblock %}

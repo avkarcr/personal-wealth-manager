@@ -12,6 +12,7 @@ from wealth_manager.adapters.web.commands import register_commands
 from wealth_manager.adapters.web.ledger import register_ledger
 from wealth_manager.adapters.web.importing import register_importing
 from wealth_manager.adapters.web.liabilities import register_liabilities
+from wealth_manager.adapters.web.tax_documents import register_tax_documents
 from wealth_manager.adapters.web.reports import register_reports
 from wealth_manager.adapters.web.planning import register_planning
 from wealth_manager.adapters.web.research import register_research
@@ -53,6 +54,7 @@ def create_app(config=None, *, vault=None):
     register_ledger(app, runtime)
     register_importing(app, runtime)
     register_liabilities(app, runtime)
+    register_tax_documents(app, runtime)
     register_reports(app, runtime)
     register_planning(app, runtime)
     register_research(app, runtime)

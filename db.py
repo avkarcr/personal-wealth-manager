@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -258,7 +258,8 @@ def init_db(con):
             if version < 9: _migrate_history(con)
             if version < 10: _migrate_decimals(con)
             if version < 11: _migrate_ledger(con)
-            _migrate_liabilities(con)
+            if version < 12: _migrate_liabilities(con)
+            _migrate_tax_documents(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -540,4 +541,37 @@ CREATE TABLE liability_entries (
  payment_id INTEGER NOT NULL REFERENCES liability_payments(id),
  entry_id INTEGER PRIMARY KEY REFERENCES ledger_entries(id)
 );
+"""
+
+
+def _migrate_tax_documents(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        con.execute("ALTER TABLE tax_deductions ADD COLUMN actual_refund DECIMAL_TEXT NOT NULL DEFAULT '0'")
+        con.execute("ALTER TABLE tax_deductions ADD COLUMN received_date TEXT NOT NULL DEFAULT ''")
+        con.execute("UPDATE tax_deductions SET actual_refund=refund WHERE status='received'")
+        for statement in _statements(TAX_DOCUMENT_SCHEMA):con.execute(statement)
+        con.execute('PRAGMA user_version=13');con.commit()
+    except BaseException:
+        con.rollback();raise
+
+TAX_DOCUMENT_SCHEMA = """
+CREATE TABLE tax_payments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ entry_id INTEGER NOT NULL REFERENCES tax_entries(id) ON DELETE RESTRICT,
+ date TEXT NOT NULL, amount DECIMAL_TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('paid','withheld')), note TEXT NOT NULL,
+ request_id TEXT NOT NULL UNIQUE, voided INTEGER NOT NULL DEFAULT 0 CHECK(voided IN (0,1))
+);
+CREATE TABLE tax_documents (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ entry_id INTEGER REFERENCES tax_entries(id) ON DELETE RESTRICT,
+ deduction_id INTEGER REFERENCES tax_deductions(id) ON DELETE RESTRICT,
+ filename TEXT NOT NULL, mime TEXT NOT NULL, digest TEXT NOT NULL,
+ size INTEGER NOT NULL, content BLOB NOT NULL,
+ date TEXT NOT NULL, number TEXT NOT NULL, issuer TEXT NOT NULL, note TEXT NOT NULL,
+ CHECK((entry_id IS NULL) != (deduction_id IS NULL))
+);
+CREATE UNIQUE INDEX tax_document_entry ON tax_documents(entry_id,digest) WHERE entry_id IS NOT NULL;
+CREATE UNIQUE INDEX tax_document_deduction ON tax_documents(deduction_id,digest) WHERE deduction_id IS NOT NULL;
 """

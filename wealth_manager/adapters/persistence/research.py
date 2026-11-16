@@ -67,10 +67,13 @@ class ObservationReader(TableReader):
 class EntryReader(TableReader):
     table='tax_entries';decimal_fields=('base','rate','paid')
 class DeductionReader(TableReader):
-    table='tax_deductions';decimal_fields=('amount','refund')
+    table='tax_deductions';decimal_fields=('amount','refund','actual_refund')
 
 class TaxReader:
     def __init__(self,vault): self.vault=vault
     def read(self):
         with self.vault.lock_:
-            return dict(entries=EntryReader(self.vault).read(),deductions=DeductionReader(self.vault).read())
+            from .tax_evidence import DOCUMENT_FIELDS
+            return dict(entries=EntryReader(self.vault).read(),deductions=DeductionReader(self.vault).read(),
+                        payments=[dict(r) for r in self.vault.con.execute('SELECT * FROM tax_payments ORDER BY date DESC,id DESC')],
+                        documents=[dict(r) for r in self.vault.con.execute('SELECT '+DOCUMENT_FIELDS+' FROM tax_documents ORDER BY id DESC')])

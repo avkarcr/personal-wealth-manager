@@ -1,5 +1,5 @@
 """Inbound HTTP adapters; domain modules do not depend on Flask or SQLite."""
-from flask import render_template, redirect, url_for
+from flask import request, render_template, redirect, url_for
 from wealth_manager.shared.records import required
 from wealth_manager.modules.companies.domain import Company
 from wealth_manager.modules.macroeconomics.domain import Observation
@@ -50,8 +50,9 @@ def register_research(app,runtime):
         return redirect(url_for('macroeconomics'))
 
     @app.get('/taxes')
+    @validated
     def taxes():
-        return render_template('taxes.html',**services['tax_reports'].overview(),missing_rates=[])
+        return render_template('taxes.html',**services['tax_reports'].overview(request.args.get('year') or None,request.args.get('country') or None),missing_rates=[])
 
     @app.post('/taxes/entries/save')
     @validated
@@ -64,7 +65,8 @@ def register_research(app,runtime):
     @validated
     def deduction_save():
         services['taxes'].save_deduction(Deduction(int(f_str('year')),f_str('country').upper(),f_str('category'),f_str('currency').upper(),
-            required_decimal('amount'),f_decimal('refund'),f_str('status'),f_str('documents'),f_str('note'),optional_id()))
+            required_decimal('amount'),f_decimal('refund'),f_str('status'),f_str('documents'),f_str('note'),optional_id(),
+            actual_refund=f_decimal('actual_refund') if 'actual_refund' in request.form else None,received_date=f_str('received_date')))
         return redirect(url_for('taxes')+'#deductions')
 
     @app.post('/taxes/entries/<int:rid>/delete')

@@ -3,6 +3,9 @@
 {% block content %}
 <header class="page-head"><div><h1>{{ _('Налоги') }}</h1><p class="muted">{{ _('Налоговый журнал и документы для вычетов') }}</p></div></header>
 <p class="muted">{{ _('Оценка = база × введённая ставка. Для разных ставок создайте отдельные записи. Итоги разделены по году, стране и валюте. Вычеты учитываются отдельно и не уменьшают налог автоматически.') }}</p>
+<form method="get" class="row3"><label class="fld"><span>{{ _('Налоговый год') }}</span><select name="year"><option value="">{{ _('Все годы') }}</option>{% for y in years %}<option value="{{ y }}" {{ 'selected' if selected_year==y }}>{{ y }}</option>{% endfor %}</select></label><label class="fld"><span>{{ _('Код страны') }}</span><input name="country" value="{{ selected_country }}" maxlength="2"></label><button class="btn">{{ _('Применить') }}</button></form>
+<p><a class="btn" href="{{ url_for('tax_export',year=selected_year or '',country=selected_country) }}">{{ _('Скачать налоговую сводку CSV') }}</a></p>
+<p class="muted">{{ _('Налоговый журнал не списывает деньги со счетов и не создаёт доход от возврата. Отражайте движение денег отдельно, без повторного ввода налоговой суммы здесь.') }}</p>
 <div class="grid2">{% for item in summary %}<section class="card"><h2>{{ item.year }} · {{ item.country }} · {{ item.currency }}</h2>
 <p>{{ _('Налоговая база') }}: {{ item.base|money }}</p><p>{{ _('Оценка налога') }}: {{ item.tax|money }}</p><p>{{ _('Уплачено / удержано') }}: {{ item.paid|money }}</p>
 <p>{{ _('Остаток к уплате (минус — переплата)') }}: {{ item.balance|money }}</p>
@@ -11,12 +14,16 @@
 <section class="card"><h2>{{ _('Налоговая база и уплата') }}</h2>
 <details><summary>{{ _('Добавить налоговую запись') }}</summary>{% with record=none,deduction=false %}{% include 'tax_form.html' %}{% endwith %}</details>
 {% for record in entries %}<article class="card"><h3>{{ record.year }} · {{ record.country }} · {{ record.category }}</h3><p>{{ _('Оценка налога') }}: {{ record.estimate|money }} {{ record.currency }} · {{ record.rate|num(2) }}%</p>
+<p>{{ _('Уплачено / удержано') }}: {{ record.paid_total|money }} {{ record.currency }}</p>
+{% include 'tax_payments.html' %}
+{% with deduction=false %}{% include 'tax_documents.html' %}{% endwith %}
 <details><summary>{{ _('Редактировать') }}</summary>{% with deduction=false %}{% include 'tax_form.html' %}{% endwith %}</details>
 <form method="post" action="{{ url_for('tax_entry_delete',rid=record.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form></article>{% endfor %}
 </section>
-<section class="card" id="deductions"><h2>{{ _('Вычеты') }}</h2><p class="muted">{{ _('Сохраняйте реквизиты и место хранения документов в течение года. Файлы документов здесь не загружаются.') }}</p>
+<section class="card" id="deductions"><h2>{{ _('Вычеты') }}</h2><p class="muted">{{ _('Прикрепляйте чеки, справки и подтверждения к вычетам в течение года. Вложения сохраняются внутри зашифрованного хранилища.') }}</p>
 <details><summary>{{ _('Добавить вычет') }}</summary>{% with record=none,deduction=true %}{% include 'tax_form.html' %}{% endwith %}</details>
-{% for record in deductions %}<article class="card"><h3>{{ record.year }} · {{ record.country }} · {{ record.category }}</h3><p>{{ _(statuses[record.status]) }} · {{ _('Расходы для вычета') }}: {{ record.amount|money }} {{ record.currency }}</p><p>{{ _('Возврат (ожидаемый или полученный)') }}: {{ record.refund|money }} {{ record.currency }}</p><p style="white-space:pre-wrap">{{ record.documents }}</p>
+{% for record in deductions %}<article class="card"><h3>{{ record.year }} · {{ record.country }} · {{ record.category }}</h3><p>{{ _(statuses[record.status]) }} · {{ _('Расходы для вычета') }}: {{ record.amount|money }} {{ record.currency }}</p><p>{{ _('Заявленный / ожидаемый возврат') }}: {{ record.refund|money }} {{ record.currency }} · {{ _('Фактически полученный возврат') }}: {{ record.actual_refund|money }} {{ record.currency }} · {{ record.received_date or _('Дата не указана') }}</p><p style="white-space:pre-wrap">{{ record.documents }}</p>
+{% with deduction=true %}{% include 'tax_documents.html' %}{% endwith %}
 <details><summary>{{ _('Редактировать') }}</summary>{% with deduction=true %}{% include 'tax_form.html' %}{% endwith %}</details>
 <form method="post" action="{{ url_for('deduction_delete',rid=record.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form></article>{% endfor %}
 </section>

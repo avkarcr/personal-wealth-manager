@@ -1,6 +1,6 @@
 from wealth_manager.shared.decimal import arithmetic
 """User-entered tax estimates; no statutory rates or deduction eligibility rules."""
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 from wealth_manager.shared.records import country_code, currency_code, number, year_number, required, money, RecordError
@@ -34,7 +34,16 @@ class Deduction:
     documents: str = ''
     note: str = ''
     id: Optional[int] = None
+    actual_refund: Optional[Decimal] = None
+    received_date: str = ''
+
+    def normalized(self):
+        return replace(self,actual_refund=(self.refund if self.status=='received' else Decimal(0)) if self.actual_refund is None else self.actual_refund)
+
     def validate(self):
+        from wealth_manager.shared.validation import valid_date
+        valid_date(self.received_date,optional=True)
+        money(self.normalized().actual_refund)
         year_number(self.year); country_code(self.country); currency_code(self.currency); required(self.category)
         money(self.amount); money(self.refund)
         if self.status not in STATUSES: raise RecordError('Некорректный статус')
@@ -55,7 +64,8 @@ def summarize(entries,deductions):
         item=group(row); item['base']+=Decimal(row['base']); item['tax']+=estimate(row); item['paid']+=Decimal(row['paid'])
     for row in deductions:
         item=group(row)
-        if row['status']=='received': item['refund_received']+=Decimal(row['refund'])
-        elif row['status']!='rejected': item['refund_expected']+=Decimal(row['refund'])
+        actual=Decimal(row.get('actual_refund',row['refund'] if row['status']=='received' else 0))
+        item['refund_received']+=actual
+        if row['status'] not in ('received','rejected'):item['refund_expected']+=max(Decimal(row['refund'])-actual,Decimal(0))
     for item in groups.values(): item['balance']=item['tax']-item['paid']
     return sorted(groups.values(),key=lambda r:(-r['year'],r['country'],r['currency']))

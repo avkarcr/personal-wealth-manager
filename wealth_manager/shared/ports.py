@@ -48,7 +48,7 @@ from wealth_manager.modules.planning.ports import PlanningRepository
 
 from wealth_manager.modules.companies.ports import CompanyRepository
 from wealth_manager.modules.macroeconomics.ports import ObservationRepository
-from wealth_manager.modules.taxes.ports import TaxRepository
+from wealth_manager.modules.taxes.ports import TaxRepository, EvidenceRepository
 
 from wealth_manager.modules.ledger.ports import LedgerRepository
 
@@ -60,6 +60,7 @@ class UnitOfWork(Protocol):
     companies: CompanyRepository
     macroeconomics: ObservationRepository
     taxes: TaxRepository
+    tax_evidence: EvidenceRepository
     planning: PlanningRepository
     entities: EntityRepository
     assets: AssetRepository

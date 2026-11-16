@@ -6,13 +6,15 @@
 {{ fields.input('currency','Валюта',record.currency if record else base,required=true) }}
 {% if deduction %}
 {{ fields.input('amount','Расходы для вычета',record.amount if record else '',type='number',required=true) }}
-{{ fields.input('refund','Возврат (ожидаемый или полученный)',record.refund if record else '0',type='number',required=true) }}
+{{ fields.input('refund','Заявленный / ожидаемый возврат',record.refund if record else '0',type='number',required=true) }}
+{{ fields.input('actual_refund','Фактически полученный возврат',record.actual_refund if record else '0',type='number',required=true) }}
+{{ fields.input('received_date','Дата получения возврата',record.received_date if record else '',type='date') }}
 {{ fields.select('status','Статус',statuses,record.status if record else 'collecting') }}
 {{ fields.area('documents','Документы: реквизиты и место хранения',record.documents if record else '') }}
 {% else %}
 {{ fields.input('base','Налоговая база',record.base if record else '',type='number',required=true) }}
 {{ fields.input('rate','Ставка, %',record.rate if record else '',type='number',required=true) }}
-{{ fields.input('paid','Уплачено / удержано',record.paid if record else '0',type='number',required=true) }}
+{{ fields.input('paid','Ранее уплачено / удержано (без платежей ниже)',record.paid if record else '0',type='number',required=true) }}
 {% endif %}
 {{ fields.area('note','Заметка',record.note if record else '') }}
 <button class="btn primary">{{ _('Сохранить') }}</button>

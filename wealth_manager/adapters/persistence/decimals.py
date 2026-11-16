@@ -5,7 +5,7 @@ from wealth_manager.shared.decimal import decimal, exact_text
 
 COLUMNS = frozenset(('quantity','avg_price','price','amount','current_value','tax_rate',
                      'rent_amount','deposit_amount','received_amount','cb_rate','rate',
-                     'value_rub','invested_rub','cost','fee','realized','baseline_rub','ledger_baseline_rub','opening_principal','principal','interest'))
+                     'value_rub','invested_rub','cost','fee','realized','baseline_rub','ledger_baseline_rub','actual_refund','opening_principal','principal','interest'))
 
 
 def decimal_row(cursor, values):

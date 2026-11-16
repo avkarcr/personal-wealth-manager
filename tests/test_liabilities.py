@@ -123,6 +123,7 @@ class LiabilityTests(unittest.TestCase):
         self.assertEqual(self.s['reports'].income(year='2020')['inc']['totals']['expense'],0)
 
     def test_income_received_salary_pending_and_future_are_separate(self):
+        self.today=self.today.replace(day=15);self.day=self.today.isoformat()
         aid=self.s['save_income_source'].execute(IncomeSource('Employer'))
         for flow in (Cashflow(aid,self.day,'income',D(100),category_code='salary'),
                      Cashflow(aid,self.day,'expense',D(10)),

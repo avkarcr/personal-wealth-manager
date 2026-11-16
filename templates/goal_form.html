@@ -6,6 +6,14 @@
     <label class="fld"><span>{{ _('Валюта') }}</span><input name="currency" required value="{{ goal.currency if goal else base }}" maxlength="10"></label>
   </div>
   <label class="fld"><span>{{ _('Срок цели (необязательно)') }}</span><input name="due_date" type="date" value="{{ goal.due_date if goal else '' }}"></label>
+  <div class="row3">
+    <label class="fld"><span>{{ _('Ежемесячный взнос в валюте цели') }}</span><input name="monthly_contribution" type="number" step="any" min="0" required value="{{ goal.monthly_contribution if goal else '0' }}"></label>
+    <label class="fld"><span>{{ _('Годовая доходность после налогов и комиссий, %') }}</span><input name="annual_return" type="number" step="any" min="-99" max="100" required value="{{ goal.annual_return if goal else '0' }}"></label>
+    <label class="fld"><span>{{ _('Годовая инфляция суммы цели, %') }}</span><input name="annual_inflation" type="number" step="any" min="0" max="100" required value="{{ goal.annual_inflation if goal else '0' }}"></label>
+  </div>
+  <label class="fld"><span>{{ _('Шаг округления необходимого взноса') }}</span><input name="contribution_step" type="number" step="any" min="0.000000000000000001" required value="{{ goal.contribution_step if goal else '0.01' }}"></label>
+  <p class="muted small">{{ _('Например: 0,01 для копеек, 100 для сотен рублей, 0,00000001 для BTC. Округляется только рассчитанный необходимый взнос.') }}</p>
+  <p class="muted small">{{ _('Взнос задаётся один раз для всей цели. При нулевой инфляции сумма цели фиксирована; иначе это сумма в сегодняшних ценах.') }}</p>
   <label class="fld"><span>{{ _('Заметка') }}</span><input name="note" value="{{ goal.note if goal else '' }}"></label>
   <button class="btn primary">{{ _('Сохранить') }}</button>
 </form>

@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -259,7 +259,8 @@ def init_db(con):
             if version < 10: _migrate_decimals(con)
             if version < 11: _migrate_ledger(con)
             if version < 12: _migrate_liabilities(con)
-            _migrate_tax_documents(con)
+            if version < 13: _migrate_tax_documents(con)
+            _migrate_goal_forecasts(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -575,3 +576,14 @@ CREATE TABLE tax_documents (
 CREATE UNIQUE INDEX tax_document_entry ON tax_documents(entry_id,digest) WHERE entry_id IS NOT NULL;
 CREATE UNIQUE INDEX tax_document_deduction ON tax_documents(deduction_id,digest) WHERE deduction_id IS NOT NULL;
 """
+
+
+def _migrate_goal_forecasts(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        for column in ('monthly_contribution','annual_return','annual_inflation'):
+            con.execute("ALTER TABLE goals ADD COLUMN "+column+" DECIMAL_TEXT NOT NULL DEFAULT '0'")
+        con.execute("ALTER TABLE goals ADD COLUMN contribution_step DECIMAL_TEXT NOT NULL DEFAULT '0.01'")
+        con.execute('PRAGMA user_version=14');con.commit()
+    except BaseException:
+        con.rollback();raise

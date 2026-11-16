@@ -6,8 +6,8 @@ def f_str(name, default=""):
     return (request.form.get(name) or default).strip()
 
 
-def f_decimal(name):
-    value = (request.form.get(name) or "0").strip().replace(" ", "").replace(" ", "").replace(",", ".")
+def f_decimal(name, default="0"):
+    value = (request.form.get(name) or default).strip().replace(" ", "").replace(" ", "").replace(",", ".")
     if len(value)>200: raise ValueError('Amount is too long')
     from wealth_manager.shared.decimal import input_decimal
     return input_decimal(value)

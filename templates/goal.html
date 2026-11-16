@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}{{ goal.name }} — {{ _('План и прогноз цели') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ goal.name }}</h1><p class="muted">{{ _('План и прогноз цели') }} · {{ goal.currency }}</p></div><a class="btn" href="{{ url_for('settings') }}#goals">{{ _('Управление целями') }}</a></header>
+<section class="card"><h2>{{ _('Прогресс цели') }}</h2><p>{{ goal.total|money }} / {{ goal.target_amount|money }} {{ goal.currency }} · {{ goal.progress|num(1) if goal.progress is not none else '—' }}%</p><p>{% for p in goal.portfolios %}<a href="{{ url_for('portfolio_detail',pid=p.id) }}">{{ p.name }}</a>{{ ', ' if not loop.last }}{% else %}{{ _('Нет привязанных портфелей') }}{% endfor %}</p><p>{{ goal.note }}</p></section>
+{% set f=goal.forecast %}
+{% if f.state!='ready' %}
+<p class="banner">{{ _('Для прогноза нужны полные цены и курсы, неотрицательная стоимость активов и допустимые параметры плана.') }}</p>
+{% else %}
+<p class="muted">{{ _('Расчёт на дату') }} {{ f.date|rudate }}. {{ _('Прогноз — сценарий по вашим допущениям, а не обещанная доходность.') }}</p>
+{% if goal.valuation_quality %}<p class="banner">{{ _('В оценке есть замечания к свежести данных: прогноз использует эти оценки.') }}</p>{% endif %}
+<div class="kpis"><div class="kpi"><span class="lbl">{{ _('Плановый взнос в месяц') }}</span><span class="val">{{ goal.monthly_contribution|money(goal.currency) }}</span></div><div class="kpi"><span class="lbl">{{ _('Не хватает сейчас') }}</span><span class="val">{{ f.gap_now|money(goal.currency) }}</span></div><div class="kpi"><span class="lbl">{{ _('Необходимый ежемесячный взнос к сроку') }}</span><span class="val">{{ f.required_monthly|money(goal.currency) }}</span></div><div class="kpi"><span class="lbl">{{ _('Расчётная дата достижения') }}</span><span class="val">{{ f.reached_date|rudate if f.reached_date else '—' }}</span></div></div>
+{% if f.expired %}<p class="banner">{{ _('Срок цели прошёл. Показан текущий дефицит; прогноз не восстанавливает прошлый результат.') }}</p>
+{% elif not goal.due_date %}<p>{{ _('Укажите срок, чтобы рассчитать необходимый взнос. Дата достижения ищется в пределах 50 лет.') }}</p>
+{% elif not f.deadline_supported %}<p class="banner">{{ _('Срок дальше горизонта 50 лет. Расчёт взноса к этому сроку не выполняется.') }}</p>
+{% elif f.months==0 %}<p class="banner">{{ _('До срока нет ни одной месячной даты взноса. Для достижения цели нужен разовый взнос в размере текущего дефицита.') }}</p>
+{% else %}<p>{{ _('Срок цели') }}: {{ goal.due_date|rudate }} · {{ _('Месячных взносов до срока') }}: {{ f.months }} · {{ _('План достигает суммы к сроку') if f.on_track else _('Плана недостаточно к сроку') }}</p>{% endif %}
+<p class="muted small">{{ _('Шаг округления необходимого взноса') }}: {{ goal.contribution_step }} {{ goal.currency }}</p>
+<section class="card"><h2>{{ _('Сравнение сценариев') }}</h2><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Сценарий') }}</th><th>{{ _('Доходность, % годовых') }}</th><th class="r">{{ _('Сумма к сроку') }}</th><th class="r">{{ _('Цель с инфляцией к сроку') }}</th><th class="r">{{ _('Дефицит к сроку') }}</th><th class="r">{{ _('Необходимый взнос') }}</th><th>{{ _('Расчётная дата достижения') }}</th></tr></thead><tbody>
+{% for label,s in [('По вашим допущениям',f),('Без доходности',goal.zero_forecast)] %}<tr><td>{{ _(label) }}</td><td>{{ s.annual_return|num(2) }}</td><td class="r">{{ s.projected|money }}</td><td class="r">{{ s.target_at_deadline|money }}</td><td class="r">{{ s.shortfall|money }}</td><td class="r">{{ s.required_monthly|money }}</td><td>{{ s.reached_date|rudate if s.reached_date else _('Не достигается за 50 лет') }}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<section class="card"><details><summary>{{ _('Динамика плановой суммы') }}</summary><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Дата') }}</th><th class="r">{{ _('Накопленная сумма') }}</th><th class="r">{{ _('Сумма цели с инфляцией') }}</th><th class="r">{{ _('Новые взносы по плану') }}</th></tr></thead><tbody>{% for r in f.timeline %}<tr><td>{{ r.date|rudate }}</td><td class="r">{{ r.value|money }}</td><td class="r">{{ r.target|money }}</td><td class="r">{{ r.contributions|money }}</td></tr>{% endfor %}</tbody></table></div></details></section>
+{% endif %}
+<section class="card"><details><summary>{{ _('Изменить план цели') }}</summary>{% include 'goal_form.html' %}</details></section>
+<p class="muted small">{{ _('Взнос поступает в конце каждого полного месяца, первый — через месяц от даты расчёта. Неполный месяц не учитывается. Годовые ставки эффективные, взнос постоянный; инфляция увеличивает целевую сумму. Нужный взнос округляется вверх до заданного шага.') }}</p>
+<p class="muted small">{{ _('Используется стоимость распределённых активов без вычета обязательств и проверки ликвидности. План не создаёт операций и не резервирует деньги на счетах.') }}</p>
+{% endblock %}

@@ -18,11 +18,17 @@ def register_planning(app, runtime):
     def portfolio_detail(pid):
         return render_template('portfolio.html', **reports.detail(pid), missing_rates=[])
 
+    @app.get('/goals/<int:gid>')
+    @validated
+    def goal_detail(gid):
+        return render_template('goal.html',**reports.goal_detail(gid),missing_rates=[])
+
     @app.post('/goals/save')
     @validated
     def goal_save():
         commands.save_goal(Goal(f_str('name'), f_decimal('target_amount'), f_str('currency').upper(),
-                                f_str('due_date'), f_str('note'), optional_id()))
+                                f_str('due_date'), f_str('note'), optional_id(),
+                                monthly_contribution=f_decimal('monthly_contribution'),annual_return=f_decimal('annual_return'),annual_inflation=f_decimal('annual_inflation'),contribution_step=f_decimal('contribution_step','0.01')))
         return redirect(url_for('settings')+'#goals')
 
     @app.post('/goals/<int:gid>/delete')

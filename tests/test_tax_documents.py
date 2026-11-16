@@ -82,7 +82,7 @@ class TaxEvidenceTests(unittest.TestCase):
         self.vault.con=DumpOnly();self.vault.save(force=True);self.vault.con=connection
         self.vault.lock();self.vault.unlock('password123');db.init_db(self.vault.con)
         self.assertEqual(self.cmd.document(did)['content'],PDF)
-        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],13)
+        self.assertEqual(self.vault.con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
 
     def test_attachment_targets_metadata_identity_and_delete_guards(self):
         did=self.cmd.attach(self.evidence())
@@ -188,7 +188,7 @@ class TaxEvidenceTests(unittest.TestCase):
 class TaxDocumentMigrationTests(unittest.TestCase):
     def test_v12_refunds_preserved_without_fabricated_receipt_dates(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_tax_documents'):db.init_db(c)
+        with patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'):db.init_db(c)
         for status,refund in [('received','123.45'),('submitted','200')]:
             c.execute("INSERT INTO tax_deductions(year,country,category,currency,amount,refund,status,documents) VALUES (2026,'RU','Education','RUB','1000',?,?, 'folder')",(refund,status))
         c.commit();before=list(c.iterdump());original=db._migrate_tax_documents

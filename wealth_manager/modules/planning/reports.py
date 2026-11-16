@@ -5,6 +5,7 @@ from datetime import date
 from wealth_manager.modules.valuation.quality import issues_for, unique_issues
 from wealth_manager.shared.errors import EntityNotFound
 from .domain import valued_share
+from .forecast import forecast
 from .ports import PlanningReader
 
 
@@ -37,6 +38,8 @@ class PlanningReports:
             goal['total'] = None if None in totals else sum(totals, Decimal(0))
             goal['known_total'] = sum((p['known_total'] for p in goal['portfolios']),Decimal(0))
             goal['valuation_quality'] = unique_issues(i for p in goal['portfolios'] for i in p['valuation_quality'])
+            goal['forecast']=forecast(goal,goal['total'],self.today())
+            goal['zero_forecast']=forecast(goal,goal['total'],self.today(),annual_return=0)
             goal['progress'] = None if goal['total'] is None else goal['total']/goal['target_amount']*100
         return dict(goals=list(goals.values()), portfolios=portfolios, sources=data['sources'], allocations=data['allocations'])
 
@@ -54,3 +57,9 @@ class PlanningReports:
             choices.append(dict(source, key=source['kind']+':'+str(source['id']),
                                 available=Decimal(10000-other)/100, assigned=Decimal(own)/100))
         return dict(valuation_quality=portfolio['valuation_quality'],portfolio=portfolio, goals=data['goals'], choices=choices)
+
+    def goal_detail(self, record_id):
+        data=self.overview()
+        goal=next((g for g in data['goals'] if g['id']==record_id),None)
+        if goal is None:raise EntityNotFound(record_id)
+        return dict(goal=goal,valuation_quality=goal['valuation_quality'])

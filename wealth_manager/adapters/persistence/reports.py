@@ -30,4 +30,7 @@ def read_connection(connection):
         for f in data['cashflows']:
             f['ledger_owned']=f['id'] in linked
             f['ledger_readonly']=f['account_id'] in modes
+    if connection.execute('PRAGMA user_version').fetchone()[0] >= 12:
+        for table in ('liabilities','liability_payments'):
+            data[table]=[dict(r) for r in connection.execute('SELECT * FROM '+table)]
     return data

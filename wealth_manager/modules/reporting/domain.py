@@ -43,7 +43,7 @@ def portfolio(data, rates, today, include_archived=False):
     total["profit_pct"] = total["profit"] / total["invested"] if complete and total["invested"] > 0 else None
 
     # Общий XIRR по всем счетам с пополнениями
-    flows = [f for f in joined_flows(data) if f['kind'] != 'freelance' and not f['pending']]
+    flows = [f for f in joined_flows(data) if f['kind'] != 'freelance' and not f['pending'] and f['date']<=today.isoformat()]
     dep_accounts = {f["account_id"] for f in flows if f["type"] == "deposit"}
     for f in flows:
         if f["account_id"] not in dep_accounts:
@@ -134,13 +134,15 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
     monthly = {g: [Decimal(0)] * len(month_keys) for g in groups}
     idx = {k: i for i, k in enumerate(month_keys)}
     by_cat, by_src = defaultdict(Decimal), defaultdict(Decimal)
-    tot = defaultdict(Decimal)
+    tot = defaultdict(Decimal, pending=Decimal(0))
     pending = []
     complete = True
     this_month = today.strftime("%Y-%m")
     for r in rows:
         amt = rates.to_base(r["amount"], r["currency"])
-        if r["pending"]:
+        m = r["date"][:7]
+        if not (start <= m <= end):continue
+        if r["pending"] or r["date"]>today.isoformat():
             if r["type"] == "income":
                 pending.append({"row": r, "amount": amt})
                 if amt is None: complete = False
@@ -159,11 +161,23 @@ def income_report(data, rates, today, account_id=None, months=12, year=None):
             continue
         monthly[r["kind"]][idx[m]] += amt
         tot["income"] += amt
+        if r.get("category_code")=="salary":tot["salary"]+=amt
         tot["freelance" if r["kind"] == "freelance" else "passive"] += amt
         if m == this_month:
             tot["this_month"] += amt
         by_cat[(category_key(r), r["kind"])] += amt
         by_src[(r["source"] or r["acc_name"], r["kind"])] += amt
+
+    # Payments made outside tracked cash positions have no generated ledger expense.
+    debts={d['id']:d for d in data.get('liabilities',[])}
+    for p in data.get('liability_payments',[]):
+        d=debts[p['liability_id']]
+        if p['voided'] or p['cash_id'] is not None or p['date']>today.isoformat() or not start<=p['date'][:7]<=end:continue
+        if account_id is not None and d['asset_id']!=account_id:continue
+        amount=rates.to_base(p['interest']+p['fee'],d['currency'])
+        if amount is None:complete=False
+        else:tot['expense']+=amount
+    tot['net']=tot['income']-tot['expense'] if complete else None
 
     # средний месяц — по месяцам с начала учёта (не больше длины периода)
     first = rows[0]["date"][:7] if rows else end

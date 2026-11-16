@@ -37,6 +37,7 @@ class Lease:
         if self.end_date and self.end_date < self.start_date:
             raise ValueError("Lease end precedes start")
         finite(self.rent_amount, self.deposit_amount)
+        if self.rent_amount<0 or self.deposit_amount<0:raise ValueError("Rental amounts cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -61,6 +62,7 @@ class RentPayment:
         if self.status not in RENT_STATUSES:
             raise ValueError("Invalid rent payment status")
         finite(self.amount, self.received_amount, self.cb_rate)
+        if min(self.amount,self.received_amount,self.cb_rate)<0:raise ValueError("Rental amounts cannot be negative")
         amount, currency = self.amount or lease.rent_amount, self.currency or lease.currency
         received = self.status == "received"
         payment = replace(self, period_end=self.period_end or self.period_start,
@@ -72,6 +74,8 @@ class RentPayment:
         for value in (payment.tenant_paid_date, payment.received_date): valid_date(value, optional=True)
         if payment.period_end < payment.period_start:
             raise ValueError("Payment period ends before it starts")
+        if payment.received_date>today.isoformat() or payment.tenant_paid_date>today.isoformat():
+            raise ValueError("Actual rent receipt cannot be in the future")
         return payment
 
 

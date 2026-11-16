@@ -52,7 +52,10 @@ from wealth_manager.modules.taxes.ports import TaxRepository
 
 from wealth_manager.modules.ledger.ports import LedgerRepository
 
+from wealth_manager.modules.liabilities.ports import LiabilityRepository
+
 class UnitOfWork(Protocol):
+    liabilities: LiabilityRepository
     ledger: LedgerRepository
     companies: CompanyRepository
     macroeconomics: ObservationRepository

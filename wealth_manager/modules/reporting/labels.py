@@ -8,7 +8,7 @@ ASSET_CLASSES = list(ASSET_LABELS)
 STABLECOINS = {"USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "PYUSD"}
 
 # Подсказки категорий в форме операции (можно вводить и свои)
-CATEGORIES = {'broker': {'income': ['dividends', 'coupons', 'cash_interest', 'iis_deduction'], 'expense': ['broker_fee', 'tax', 'account_service']}, 'crypto': {'income': ['staking', 'farming', 'airdrop', 'launchpool', 'earn', 'p2p', 'trading', 'referrals', 'nodes'], 'expense': ['exchange_fee', 'gas', 'tax', 'p2p_fee']}, 'realty': {'income': ['rent', 'daily_rent'], 'expense': ['utilities', 'repairs', 'tax', 'mortgage_interest', 'insurance']}, 'other': {'income': ['interest', 'income'], 'expense': ['fee', 'tax']}, 'freelance': {'income': ['project', 'hourly_work', 'subscription', 'bonus', 'consulting'], 'expense': ['platform_fee', 'npd_tax', 'software', 'conversion']}}
+CATEGORIES = {'broker': {'income': ['dividends', 'coupons', 'cash_interest', 'iis_deduction'], 'expense': ['broker_fee', 'tax', 'account_service']}, 'crypto': {'income': ['staking', 'farming', 'airdrop', 'launchpool', 'earn', 'p2p', 'trading', 'referrals', 'nodes'], 'expense': ['exchange_fee', 'gas', 'tax', 'p2p_fee']}, 'realty': {'income': ['rent', 'daily_rent'], 'expense': ['utilities', 'repairs', 'tax', 'mortgage_interest', 'insurance']}, 'other': {'income': ['interest', 'income'], 'expense': ['fee', 'tax']}, 'freelance': {'income': ['salary', 'project', 'hourly_work', 'subscription', 'bonus', 'consulting'], 'expense': ['platform_fee', 'npd_tax', 'software', 'conversion']}}
 
 
 

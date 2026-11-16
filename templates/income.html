@@ -20,7 +20,8 @@
     <span class="sub muted">{{ _('за ') ~ year ~ _(' год') if year else _('за 12 месяцев') }}</span></div>
   <div class="kpi"><span class="lbl">{{ _('Пассивный') }}</span><span class="val">{{ t.get('passive', 0)|money(base) }}</span>
     <span class="sub muted">{{ _('инвестиции, крипта, аренда') }}</span></div>
-  <div class="kpi"><span class="lbl">{{ _('Фриланс') }}</span><span class="val">{{ t.get('freelance', 0)|money(base) }}</span>
+  <div class="kpi"><span class="lbl">{{ _('Работа и фриланс') }}</span><span class="val">{{ t.get('freelance', 0)|money(base) }}</span>
+    <span class="sub muted">{{ _('Зарплата') }}: {{ t.get('salary',0)|money(base) }}</span>
     {% if t.get('freelance_expense') %}<span class="sub muted">{{ _('расходы') }} {{ t.freelance_expense|money(base) }}</span>{% endif %}</div>
   <div class="kpi"><span class="lbl">{{ _('В среднем в месяц') }}</span><span class="val">{{ t.get('avg_month', 0)|money(base) }}</span>
     {% if t.get('income') %}<span class="sub muted">{{ _('пассивный —') }} {{ ((t.get('passive', 0) / t.income) if t.income else 0)|pct(false) }}</span>{% endif %}</div>
@@ -28,6 +29,7 @@
     <span class="sub muted">{{ inc.pending|length }} {{ _('неоплаченных') }}</span></div>
 </section>
 
+<section class="kpis"><div class="kpi"><span class="lbl">{{ _('Расходы за период') }}</span><span class="val">{{ t.get('expense',0)|money(base) }}</span></div><div class="kpi"><span class="lbl">{{ _('Доходы минус расходы') }}</span><span class="val">{{ t.get('net')|money(base) }}</span></div></section>
 <section class="card">
   <div class="card-head"><h2>{{ _('Доход по месяцам') }}</h2><div class="legend inline" id="inc-legend"></div></div>
   <div class="chart" id="inc-chart"></div>

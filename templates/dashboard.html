@@ -23,10 +23,12 @@
   <p class="muted small">{{ _('Данные хранятся только у вас на компьютере, в зашифрованном файле invest.enc.') }}</p>
 </section>
 {% else %}
+<section class="kpis"><div class="kpi main-kpi"><span class="lbl">{{ _('Чистый капитал') }}</span><span class="val">{{ total.net_worth|money(base) }}</span></div><div class="kpi"><span class="lbl"><a href="{{ url_for('liabilities') }}">{{ _('Обязательства') }}</a></span><span class="val">{{ total.liabilities|money(base) }}</span></div></section>
+{% if total.net_worth is none %}<p class="banner">{{ _('Для чистого капитала нужны полные оценки активов и курсы обязательств.') }}</p>{% endif %}
 {% if items %}
 <section class="kpis">
   <div class="kpi main-kpi">
-    <span class="lbl">{{ _('Капитал') if total.value_complete else _('Известная часть капитала') }}</span>
+    <span class="lbl">{{ _('Стоимость активов') if total.value_complete else _('Известная часть капитала') }}</span>
     <span class="val">{{ total.value|money(base) }}</span>
   </div>
   <div class="kpi">
@@ -52,7 +54,7 @@
 
 <section class="card">
   <div class="card-head">
-    <h2>{{ _('Динамика капитала') }}</h2>
+    <h2>{{ _('Динамика стоимости активов') }}</h2>
     <div class="seg small" id="hist-range">
       <label><input type="radio" name="r" value="90"><span>{{ _('3М') }}</span></label>
       <label><input type="radio" name="r" value="365"><span>{{ _('1Г') }}</span></label>

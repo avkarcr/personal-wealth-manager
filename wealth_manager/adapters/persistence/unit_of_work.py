@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import date
 import calc
+from .liabilities import SqliteLiabilities
 from .ledger import SqliteLedgerRepository
 from .planning import SqlitePlanningRepository
 from .research import CompanyRepository, ObservationRepository, TaxRepository
@@ -32,6 +33,7 @@ class VaultUnitOfWork:
             self.macroeconomics = ObservationRepository(self.connection)
             self.taxes = TaxRepository(self.connection)
             self.planning = SqlitePlanningRepository(self.connection)
+            self.liabilities = SqliteLiabilities(self.connection)
             self.ledger = SqliteLedgerRepository(self.connection)
             self.positions = SqlitePositionRepository(self.connection)
             self.cashflows = SqliteCashflowRepository(self.connection)

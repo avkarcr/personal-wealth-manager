@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ acc.name }} {{ _('— Капитал') }}{% endblock %}
 {% block content %}
+{% if rent %}
+<section class="card"><h2>{{ _('Денежный результат недвижимости за 12 месяцев') }}</h2><div class="kpis">
+{% for label,key in [('Получено','received'),('Расходы','expenses'),('Проценты и комиссии по обязательствам','financing'),('Чистый денежный доход','net'),('Погашено основного долга','principal'),('После погашения долга','after_principal'),('Собственный капитал объекта','equity')] %}<div class="kpi"><span class="lbl">{{ _(label) }}</span><span class="val">{{ rent.cash[key]|money(base) }}</span></div>{% endfor %}
+<div class="kpi"><span class="lbl">{{ _('Чистая доходность к текущей оценке') }}</span><span class="val">{{ rent.cash.yield_pct|pct }}</span></div></div><a href="{{ url_for('liabilities') }}">{{ _('Обязательства') }}</a>
+<p class="muted small">{{ _('Погашение долга не является расходом доходности. Залог арендатора учитывается отдельным обязательством после фактического получения.') }}</p></section>
+{% endif %}
+
 {% set acc_json = {'id': acc.id, 'name': acc.name, 'kind': acc.kind, 'institution': acc.institution, 'currency': acc.currency, 'current_value': acc.current_value, 'note': acc.note} %}
 <header class="page-head">
   <div>

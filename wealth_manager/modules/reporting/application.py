@@ -6,6 +6,7 @@ from wealth_manager.modules.valuation.domain import ExchangeRates, complete_sum
 from wealth_manager.modules.valuation.quality import report_quality, holding_value, freshness
 from wealth_manager.modules.rentals.metrics import occupancy, payment_view
 from wealth_manager.modules.rentals.domain import add_months
+from wealth_manager.modules.liabilities.domain import summary as liability_summary
 from .domain import portfolio, history, income_report, joined_flows, metrics
 from .labels import FREQ_MONTHS, FREQ_LABELS, RENT_STATUS, FLOW_LABELS
 from .ports import ReportRepository
@@ -24,9 +25,12 @@ class Reports:
     def dashboard(self):
         data = self.repository.read(); rates = rates_for(data); today = self.today()
         items,total,classes,currencies = portfolio(data,rates,today)
-        return dict(valuation_quality=report_quality(data,rates.base,today),items=items,total=total,by_class=sorted(classes.items(),key=lambda x:-x[1]),
+        debts=liability_summary(data,rates,today)
+        total["liabilities"]=debts["total"]
+        total["net_worth"]=total.get("value",0)-debts["total"] if total["value_complete"] and debts["total"] is not None else None
+        return dict(debts=debts,valuation_quality=report_quality(data,rates.base,today),items=items,total=total,by_class=sorted(classes.items(),key=lambda x:-x[1]),
                     by_cur=sorted(currencies.items(),key=lambda x:-x[1]),hist=history(data,rates),
-                    inc=income_report(data,rates,today),has_any=bool(data['accounts']),
+                    inc=income_report(data,rates,today),has_any=bool(data['accounts'] or data.get('liabilities')),
                     recent=sorted(joined_flows(data),key=lambda f:(f['date'],f['id']),reverse=True)[:6])
 
     @arithmetic
@@ -67,7 +71,22 @@ class Reports:
         owned=min((f['date'] for f in data['cashflows'] if f['account_id']==acc['id'] and f['type']=='deposit'),default=None)
         info=[dict(l=l,status='future' if l['start_date']>day else 'ended' if l['end_date'] and l['end_date']<day else 'active',
                    monthly=l['rent_amount']/FREQ_MONTHS[l['frequency']] if l['frequency'] in FREQ_MONTHS else None) for l in leases]
-        return dict(leases=info,payments=pays,summary=summary,occ=occupancy(acc,leases,owned,today),FREQ=FREQ_LABELS,STATUS=RENT_STATUS)
+        from wealth_manager.modules.liabilities.domain import summary as debts_for
+        debts=debts_for(data,rates,today,acc['id'])
+        relevant=[f for f in data['cashflows'] if f['account_id']==acc['id'] and not f['pending'] and year_ago<=f['date']<=day]
+        received=complete_sum(rates.to_base(f['amount'],f['currency']) for f in relevant if f['type']=='income')
+        expenses=complete_sum(rates.to_base(f['amount'],f['currency']) for f in relevant if f['type']=='expense')
+        ids={d['id']:d for d in data.get('liabilities',[]) if d['asset_id']==acc['id']}
+        payments=[p for p in data.get('liability_payments',[]) if p['liability_id'] in ids and not p['voided'] and year_ago<=p['date']<=day]
+        financing=complete_sum(rates.to_base(p['interest']+p['fee'],ids[p['liability_id']]['currency']) for p in payments)
+        principal=complete_sum(rates.to_base(p['principal'],ids[p['liability_id']]['currency']) for p in payments)
+        net=received-expenses-financing if all(v is not None for v in (received,expenses,financing)) else None
+        value=rates.to_base(acc['current_value'],acc['currency'])
+        cash=dict(received=received,expenses=expenses,financing=financing,principal=principal,net=net,
+                  after_principal=net-principal if net is not None and principal is not None else None,
+                  yield_pct=net/value if net is not None and value and value>0 else None,
+                  equity=value-debts['total'] if value is not None and debts['total'] is not None else None)
+        return dict(cash=cash,debts=debts,leases=info,payments=pays,summary=summary,occ=occupancy(acc,leases,owned,today),FREQ=FREQ_LABELS,STATUS=RENT_STATUS)
 
     @arithmetic
     def operations(self, account=None, type=None, year=None):
@@ -76,13 +95,13 @@ class Reports:
                      (not type or f['type']==type) and (not year or f['date'][:4]==year)),key=lambda f:(f['date'],f['id']),reverse=True)
         totals={k:Decimal(0) for k in FLOW_LABELS}; monthly={}; complete=True
         for f in flows:
-            if not f['pending']:
+            if not f['pending'] and f['date']<=self.today().isoformat():
                 value=rates.to_base(f['amount'],f['currency'])
                 if value is None: complete=False
                 else: totals[f['type']]+=value
         start=add_months(self.today().replace(day=1),-12).isoformat()
         for f in all_flows:
-            if f['type']=='income' and not f['pending'] and f['date']>=start:
+            if f['type']=='income' and not f['pending'] and start<=f['date']<=self.today().isoformat():
                 m=f['date'][:7]; value=rates.to_base(f['amount'],f['currency'])
                 if value is None: complete=False
                 else: monthly[m]=monthly.get(m,0)+value
@@ -95,10 +114,19 @@ class Reports:
         return dict(valuation_quality=report_quality(data,rates_for(data).base,self.today()),inc=income_report(data,rates_for(data),self.today(),year=year),year=year,
                     years=sorted({f['date'][:4] for f in data['cashflows'] if f['type']=='income'},reverse=True))
 
+    def liabilities(self):
+        data=self.repository.read();rates=rates_for(data);today=self.today()
+        report=liability_summary(data,rates,today)
+        return dict(debts=report,all_debts={d['id']:d for d in data.get('liabilities',[])},
+                    payments=sorted(data.get('liability_payments',[]),key=lambda p:(p['date'],p['id']),reverse=True),
+                    assets=[a for a in data['accounts'] if a['kind']=='realty'],
+                    cash=[dict(h,account=next(a['name'] for a in data['accounts'] if a['id']==h['account_id'])) for h in data['holdings']
+                          if h['asset_class_code']=='cash' and any(a['id']==h['account_id'] and a.get('ledger_started_on') and not a.get('closed_at') for a in data['accounts'])])
+
     def navigation(self):
         data=self.repository.read(); rates=rates_for(data)
         nav=sorted((a for a in data['accounts'] if not a['archived'] and not a.get('closed_at')),key=lambda a:({'broker':0,'crypto':1,'realty':2,'other':3}.get(a['kind'],4),a['name']))
-        used={r['currency'] for table in ('accounts','holdings','cashflows') for r in data[table]}
+        used={r['currency'] for table in ('accounts','holdings','cashflows','liabilities') for r in data.get(table,[])}
         return dict(base=rates.base,currencies=sorted(set(rates.r)|used|{rates.base}),nav_accounts=nav,
                     nav_financial=[a for a in nav if a['kind'] not in ('realty','freelance')],
                     nav_assets=[a for a in nav if a['kind']=='realty'],

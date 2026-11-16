@@ -65,7 +65,7 @@ def xirr(flows):
 
 @arithmetic
 def account_metrics(acc, rates, holdings, flows, today):
-    flows = [f for f in flows if not f["pending"]]
+    flows = [f for f in flows if not f["pending"] and f["date"]<=today.isoformat()]
 
     complete = True
     value_complete = True

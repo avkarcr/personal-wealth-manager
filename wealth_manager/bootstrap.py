@@ -37,8 +37,9 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.adapters.importing.csv import CsvStatements
     reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault,today)
+    from wealth_manager.modules.liabilities.application import Commands as LiabilityCommands
     ledger=LedgerCommands(factory,today)
-    return {"imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+    return {"liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
             "taxes": TaxCommands(factory), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),

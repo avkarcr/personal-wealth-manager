@@ -71,14 +71,18 @@ class Commands:
         return eid
     def cancel(self,eid):
         with self.factory() as uow:
-            e=uow.ledger.get(eid)
-            if e['voided']:return
-            data=uow.ledger.data()
-            if any(data['accounts'][data['holdings'][e[k]]['account_id']].get('closed_at') for k in ('holding_id','cash_id','target_id') if e[k]):
-                raise RecordError('Сначала откройте закрытый счёт')
-            uow.ledger.void(eid,self.today().isoformat());self.rebuild(uow)
-            uow.ledger.remove_flows(eid);uow.ledger.invalidate_snapshots(eid,self.today().isoformat())
+            if uow.liabilities.owns_entry(eid):raise RecordError('Отмените платёж в разделе обязательств')
+            self.cancel_in_uow(uow,eid)
             uow.take_snapshot();uow.commit()
+    def cancel_in_uow(self,uow,eid):
+        e=uow.ledger.get(eid)
+        if e['voided']:return
+        data=uow.ledger.data()
+        if any(data['accounts'][data['holdings'][e[k]]['account_id']].get('closed_at') for k in ('holding_id','cash_id','target_id') if e[k]):
+            raise RecordError('Сначала откройте закрытый счёт')
+        uow.ledger.void(eid,self.today().isoformat());self.rebuild(uow)
+        uow.ledger.remove_flows(eid);uow.ledger.invalidate_snapshots(eid,self.today().isoformat())
+
 
 class Reports:
     def __init__(self,factory):self.factory=factory

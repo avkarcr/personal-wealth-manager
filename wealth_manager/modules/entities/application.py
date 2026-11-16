@@ -41,6 +41,7 @@ class EntityCommands:
     def delete(self, account_id):
         with self.uow_factory() as uow:
             if uow.ledger.enabled(account_id):raise RecordError('Счёт с журналом можно закрыть или архивировать, но нельзя удалить')
+            if uow.liabilities.linked_asset(account_id):raise RecordError('Объект связан с историей обязательств; используйте архив')
             uow.entities.delete(account_id)
             uow.commit()
 

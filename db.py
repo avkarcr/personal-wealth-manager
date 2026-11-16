@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -257,7 +257,8 @@ def init_db(con):
             if version < 8: _migrate_valuation_dates(con)
             if version < 9: _migrate_history(con)
             if version < 10: _migrate_decimals(con)
-            _migrate_ledger(con)
+            if version < 11: _migrate_ledger(con)
+            _migrate_liabilities(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -507,5 +508,36 @@ CREATE TABLE ledger_invalid_snapshots (
 CREATE TABLE ledger_flows (
  entry_id INTEGER NOT NULL REFERENCES ledger_entries(id),
  flow_id INTEGER PRIMARY KEY REFERENCES cashflows(id) ON DELETE CASCADE
+);
+"""
+
+
+def _migrate_liabilities(con):
+    con.execute('BEGIN IMMEDIATE')
+    try:
+        for statement in _statements(LIABILITY_SCHEMA):con.execute(statement)
+        con.execute('PRAGMA user_version=12');con.commit()
+    except BaseException:
+        con.rollback();raise
+
+LIABILITY_SCHEMA = """
+CREATE TABLE liabilities (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ name TEXT NOT NULL, opening_date TEXT NOT NULL, opening_principal DECIMAL_TEXT NOT NULL,
+ currency TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('loan','mortgage','deposit')),
+ asset_id INTEGER REFERENCES assets(id) ON DELETE RESTRICT,
+ creditor TEXT NOT NULL, due_date TEXT NOT NULL, note TEXT NOT NULL,
+ request_id TEXT NOT NULL UNIQUE, voided INTEGER NOT NULL DEFAULT 0 CHECK(voided IN (0,1))
+);
+CREATE TABLE liability_payments (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ liability_id INTEGER NOT NULL REFERENCES liabilities(id), date TEXT NOT NULL,
+ principal DECIMAL_TEXT NOT NULL, interest DECIMAL_TEXT NOT NULL, fee DECIMAL_TEXT NOT NULL,
+ cash_id INTEGER REFERENCES holdings(id), note TEXT NOT NULL,
+ request_id TEXT NOT NULL UNIQUE, voided INTEGER NOT NULL DEFAULT 0 CHECK(voided IN (0,1))
+);
+CREATE TABLE liability_entries (
+ payment_id INTEGER NOT NULL REFERENCES liability_payments(id),
+ entry_id INTEGER PRIMARY KEY REFERENCES ledger_entries(id)
 );
 """

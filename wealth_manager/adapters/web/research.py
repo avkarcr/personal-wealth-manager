@@ -34,8 +34,9 @@ def register_research(app,runtime):
         return redirect(url_for('companies'))
 
     @app.get('/macroeconomics')
+    @validated
     def macroeconomics():
-        return render_template('macroeconomics.html',**services['macro_reports'].overview())
+        return render_template('macroeconomics.html',**services['macro_reports'].overview(request.args.get('country') or 'RU'))
 
     @app.post('/macroeconomics/save')
     @validated

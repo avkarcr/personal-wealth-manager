@@ -4,6 +4,7 @@
     <h2>{{ _('Доходы за 12 месяцев ·') }} {{ inc.totals.get('income', 0)|money(base) }}</h2>
     <a class="muted small" href="{{ url_for('income') }}">{{ _('Подробнее →') }}</a>
   </div>
+  <p class="small">{{ _('Расходы за 12 месяцев') }}: {{ inc.totals.get('expense',0)|money(base) }} · {{ _('Доходы минус расходы') }}: {{ inc.totals.get('net',0)|money(base) }}{% if not inc.complete %} · {{ _('Известная часть') }}{% endif %}</p>
   <div class="chart xs" id="dash-inc"></div>
   <div class="legend inline" id="dash-inc-legend"></div>
   {% if inc.totals.get('pending') %}<p class="small" style="margin:10px 0 0">{{ _('Ожидается оплат:') }} <b>{{ inc.totals.pending|money(base) }}</b> · <a href="{{ url_for('income') }}">{{ _('посмотреть') }}</a></p>{% endif %}

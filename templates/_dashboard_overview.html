@@ -1,0 +1,26 @@
+<div class="grid2">
+<section class="card"><div class="card-head"><h2>{{ _('Цели и сроки') }}</h2><a href="{{ url_for('portfolios') }}">{{ _('Портфели') }}</a></div>
+<p class="muted small">{{ _('Прогресс целей — распределённые активы, он не прибавляется к капиталу. Прогноз основан на ваших допущениях.') }}</p>
+{% for goal in goal_overview %}<article><h3><a href="{{ url_for('goal_detail',gid=goal.id) }}">{{ goal.name }}</a></h3>
+{% if goal.total is none %}<p>{{ _('Недостаточно данных для полной оценки') }} · {{ _('Известная часть') }}: {{ goal.known_total|money }} {{ goal.currency }}</p>{% else %}<p>{{ goal.total|money }} / {{ goal.target_amount|money }} {{ goal.currency }} · {{ goal.progress|num(1) }}%</p>{% endif %}
+{% if goal.valuation_quality %}<p class="muted small">{{ _('Проверьте качество оценок в карточке цели') }}</p>{% endif %}
+{% if goal.due_date %}<p>{{ _('Срок цели') }}: {{ goal.due_date|rudate }}{% if goal.forecast.expired %} · {{ _('Срок прошёл') }}{% endif %}</p>{% endif %}
+{% if goal.forecast.on_track is sameas true %}<p>{{ _('План покрывает цель к сроку') }}</p>{% elif goal.forecast.on_track is sameas false %}<p>{{ _('По плану к сроку остаётся дефицит') }}: {{ goal.forecast.shortfall|money }} {{ goal.currency }}</p>{% endif %}
+{% if goal.forecast.reached_date %}<p>{{ _('Расчётная дата достижения') }}: {{ goal.forecast.reached_date|rudate }}</p>{% endif %}
+{% if goal.forecast.required_monthly is not none %}<p>{{ _('Необходимый взнос в месяц') }}: {{ goal.forecast.required_monthly }} {{ goal.currency }}</p>{% endif %}
+</article>{% else %}<p>{{ _('Пока нет целей') }}</p><a href="{{ url_for('settings') }}#goals">{{ _('Новая цель') }}</a>{% endfor %}
+</section>
+<section class="card"><div class="card-head"><h2>{{ _('Сроки обязательств') }}</h2><a href="{{ url_for('liabilities') }}">{{ _('Подробнее →') }}</a></div>
+<p class="muted small">{{ _('Показаны просроченные обязательства и сроки погашения в ближайшие 30 дней. Это не график ежемесячных платежей.') }}</p>
+{% for debt in debt_deadlines %}<p><strong>{{ debt.name }}</strong> · {{ debt.due_date|rudate }}{% if debt.overdue %} · {{ _('Просрочено') }}{% endif %}<br>{{ debt.outstanding|money }} {{ debt.currency }}</p>{% else %}<p>{{ _('По внесённым срокам нет ближайших погашений') }}</p>{% endfor %}
+</section>
+</div>
+<section class="card"><div class="card-head"><h2>{{ _('Налоговый обзор') }} · {{ tax_year }}</h2><a href="{{ url_for('taxes',year=tax_year) }}">{{ _('Подробнее →') }}</a></div>
+<p class="muted small">{{ _('Налоги разделены по стране и валюте. Оценки и ожидаемые возвраты не изменяют чистый капитал; движение денег учитывается отдельно.') }}</p>
+<div class="grid2">{% for tax in tax_overview %}<article><h3>{{ tax.country }} · {{ tax.currency }}</h3><p>{{ _('Оценка налога') }}: {{ tax.tax|money }} · {{ _('Уплачено / удержано') }}: {{ tax.paid|money }}</p><p>{{ _('Остаток к уплате (минус — переплата)') }}: {{ tax.balance|money }}</p><p>{{ _('Ожидаемый возврат') }}: {{ tax.refund_expected|money }} · {{ _('Полученный возврат') }}: {{ tax.refund_received|money }}</p></article>{% else %}<p>{{ _('Пока нет налоговых записей за этот год') }}</p>{% endfor %}</div>
+{% if older_tax_balances %}<details><summary>{{ _('Положительные налоговые остатки прошлых лет') }} ({{ older_tax_balances|length }})</summary><p class="muted small">{{ _('Остаток по вашим записям не определяет законный срок уплаты.') }}</p>{% for tax in older_tax_balances %}<p><a href="{{ url_for('taxes',year=tax.year,country=tax.country) }}">{{ tax.year }} · {{ tax.country }}</a> · {{ tax.balance|money }} {{ tax.currency }}</p>{% endfor %}</details>{% endif %}
+</section>
+<section class="card" id="macro-overview"><div class="card-head"><h2>{{ _('Макроэкономический обзор') }}</h2><a href="{{ url_for('macroeconomics',country=macro.selected_country) }}">{{ _('История и ввод данных') }}</a></div>
+<form method="get" action="{{ url_for('dashboard') }}#macro-overview" class="row2"><label class="fld"><span>{{ _('Код страны') }}</span><select name="macro_country">{% for c in macro.countries %}<option value="{{ c }}" {{ 'selected' if c==macro.selected_country }}>{{ c }}</option>{% endfor %}</select></label><button class="btn">{{ _('Применить') }}</button></form>
+{% with show_macro_history=false %}{% include '_macro_summary.html' %}{% endwith %}
+</section>

@@ -1,0 +1,13 @@
+from typing import Protocol
+
+class WealthReports(Protocol):
+    def dashboard(self) -> dict: ...
+
+class PlanningReports(Protocol):
+    def overview(self) -> dict: ...
+
+class TaxReports(Protocol):
+    def overview(self,year=None,country=None) -> dict: ...
+
+class MacroReports(Protocol):
+    def overview(self,country=None) -> dict: ...

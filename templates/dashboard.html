@@ -3,7 +3,7 @@
 <header class="page-head">
   <div>
     <h1>{{ _('Обзор') }}</h1>
-    <p class="muted">{{ _('Все суммы в') }} {{ base }} {{ _('по текущим курсам') }}</p>
+    <p class="muted">{{ _('Капитал и доходы в') }} {{ base }} {{ _('по текущим курсам') }} · {{ _('На дату') }} {{ as_of|rudate }}</p>
   </div>
   <div class="actions">
     {% if has_any %}<button class="btn" data-open="dlg-flow">{{ _('+ Операция') }}</button>{% endif %}
@@ -126,6 +126,7 @@
 </section>
 {% endif %}
 {% endif %}
+{% include '_dashboard_overview.html' %}
 {% endblock %}
 
 {% block scripts %}

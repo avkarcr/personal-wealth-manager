@@ -6,7 +6,8 @@ from .commands import validated
 def register_reports(app,runtime):
     reports=runtime.services['reports']
     @app.get('/')
-    def dashboard(): return render_template('dashboard.html',**reports.dashboard())
+    @validated
+    def dashboard(): return render_template('dashboard.html',**runtime.services['dashboard'].overview(request.args.get('macro_country') or 'RU'))
 
     @app.get('/accounts/<int:aid>')
     @validated

@@ -1,0 +1,14 @@
+<p class="muted small">{{ _('Сводка по внесённым наблюдениям на дату') }} {{ macro.as_of|rudate }}. {{ _('Отсутствие данных не означает нулевое значение. Направление изменения не является инвестиционным сигналом.') }}</p>
+{% if macro.future_count %}<p class="banner">{{ _('Наблюдения с будущей датой исключены из текущей сводки') }}: {{ macro.future_count }}</p>{% endif %}
+<div class="grid2">
+{% for item in macro.summary %}<article class="card"><h3>{{ _(macro.indicators[item.indicator]) }} · {{ item.country }}</h3>
+<p><strong>{{ item.latest.value|num(2) }}%</strong> · {{ item.latest.date|rudate }}</p>
+{% if item.previous %}<p>{{ _('Предыдущее наблюдение') }}: {{ item.previous.value|num(2) }}% · {{ item.previous.date|rudate }}<br>{{ _('Изменение, п.п.') }}: {{ '+' if item.change>0 else '' }}{{ item.change|num(2) }}</p>{% else %}<p class="muted">{{ _('Для динамики нужно второе наблюдение') }}</p>{% endif %}
+<p class="small">{{ _('Возраст наблюдения, дней') }}: {{ item.age_days }}{% if item.needs_review %} · <strong>{{ _('Проверить актуальность') }}</strong>{% endif %}</p>
+<p class="muted small" style="overflow-wrap:anywhere">{{ _('Источник') }}: {{ item.latest.source }}</p>
+{% if item.latest.note %}<p class="small" style="white-space:pre-wrap">{{ item.latest.note }}</p>{% endif %}
+{% if show_macro_history %}<details><summary>{{ _('История показателя') }} ({{ item.history|length }})</summary><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Дата') }}</th><th>{{ _('Значение, %') }}</th><th>{{ _('Источник') }}</th></tr></thead><tbody>{% for observation in item.history %}<tr><td>{{ observation.date|rudate }}</td><td>{{ observation.value|num(2) }}</td><td style="overflow-wrap:anywhere">{{ observation.source }}</td></tr>{% endfor %}</tbody></table></div></details>{% endif %}
+</article>{% else %}<p>{{ _('Пока нет наблюдений') }}</p>{% endfor %}
+</div>
+{% if macro.missing %}<details><summary>{{ _('Нет текущих данных по показателям') }} ({{ macro.missing|length }})</summary><ul>{% for item in macro.missing %}<li>{{ item.country }} · {{ _(macro.indicators[item.indicator]) }}</li>{% endfor %}</ul></details>{% endif %}
+<p class="muted small">{{ _('Напоминание о проверке: ставки — 90 дней, ИПЦ — 45, ВВП — 150, доходности облигаций — 14. Это пороги ручной проверки, а не срок действия показателей.') }}</p>

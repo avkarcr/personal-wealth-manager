@@ -42,8 +42,8 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.modules.instruments.reports import Reports as InstrumentReports
     from wealth_manager.adapters.persistence.instruments import Reader as InstrumentReader
     ledger=LedgerCommands(factory,today)
-    return {"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
-            "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
+    services = {"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+            "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault),today),
             "taxes": TaxCommands(factory,today), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),
             "save_financial_account": SaveFinancialAccount(factory), "save_asset": SaveAsset(factory),
@@ -52,6 +52,10 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
             "save_account": SaveAccount(factory), "change_language": ChangeLanguage(factory),
             "accounts": AccountCommands(factory,today), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
+
+    from wealth_manager.modules.dashboard.application import Dashboard
+    services['dashboard']=Dashboard(services['reports'],services['planning_reports'],services['tax_reports'],services['macro_reports'],today)
+    return services
 
 
 def build_runtime(config, *, vault=None):

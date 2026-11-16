@@ -16,6 +16,7 @@ from wealth_manager.adapters.web.tax_documents import register_tax_documents
 from wealth_manager.adapters.web.reports import register_reports
 from wealth_manager.adapters.web.planning import register_planning
 from wealth_manager.adapters.web.research import register_research
+from wealth_manager.adapters.web.instruments import register_instruments
 from wealth_manager.adapters.web.entities import register_entities
 from wealth_manager.adapters.web.market_data import register_market_data
 from wealth_manager.adapters.web.security import install_vault_hooks
@@ -58,6 +59,7 @@ def create_app(config=None, *, vault=None):
     register_reports(app, runtime)
     register_planning(app, runtime)
     register_research(app, runtime)
+    register_instruments(app, runtime)
     register_entities(app, runtime)
     register_market_data(app, runtime)
     return app

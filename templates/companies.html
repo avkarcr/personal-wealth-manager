@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Компании') }} — {{ _('Капитал') }}{% endblock %}
 {% block content %}
-<header class="page-head"><div><h1>{{ _('Компании') }}</h1><p class="muted">{{ _('Список наблюдения и инвестиционные идеи') }}</p></div></header>
+<header class="page-head"><div><h1>{{ _('Компании') }}</h1><p class="muted">{{ _('Список наблюдения и инвестиционные идеи') }}</p></div><a class="btn" href="{{ url_for('crypto_assets') }}">{{ _('Криптоактивы') }}</a></header>
 <section class="card"><details><summary>{{ _('Добавить компанию') }}</summary>{% with record=none %}{% include 'company_form.html' %}{% endwith %}</details></section>
 <p class="muted small">{{ _('Статус компании задаётся вручную и не меняет позиции на счетах.') }}</p>
-<div class="grid2">{% for company in companies %}<article class="card"><h2>{{ company.name }}</h2>
+<div class="grid2">{% for company in companies %}<article class="card"><h2><a href="{{ url_for('company_detail',rid=company.id) }}">{{ company.name }}</a></h2>
 <p>{{ company.ticker }}{% if company.exchange %} · {{ company.exchange }}{% endif %} · {{ company.country }}</p>
 <p>{{ company.sector }} · {{ _(statuses[company.status]) }}</p>
 {% if company.website %}<a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">{{ _('Сайт компании') }}</a>{% endif %}

@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -260,7 +260,8 @@ def init_db(con):
             if version < 11: _migrate_ledger(con)
             if version < 12: _migrate_liabilities(con)
             if version < 13: _migrate_tax_documents(con)
-            _migrate_goal_forecasts(con)
+            if version < 14: _migrate_goal_forecasts(con)
+            _migrate_instruments(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -587,3 +588,25 @@ def _migrate_goal_forecasts(con):
         con.execute('PRAGMA user_version=14');con.commit()
     except BaseException:
         con.rollback();raise
+
+
+def _migrate_instruments(con):
+    con.executescript("""
+BEGIN IMMEDIATE;
+CREATE TABLE crypto_assets (
+ id INTEGER PRIMARY KEY, name TEXT NOT NULL, symbol TEXT NOT NULL,
+ network TEXT NOT NULL DEFAULT '', contract TEXT NOT NULL DEFAULT '',
+ website TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', archived INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX crypto_identity ON crypto_assets(symbol COLLATE NOCASE,network COLLATE NOCASE,contract);
+CREATE TABLE holding_links (
+ holding_id INTEGER PRIMARY KEY REFERENCES holdings(id) ON DELETE CASCADE,
+ company_id INTEGER REFERENCES companies(id) ON DELETE RESTRICT,
+ crypto_id INTEGER REFERENCES crypto_assets(id) ON DELETE RESTRICT,
+ CHECK((company_id IS NULL) != (crypto_id IS NULL))
+);
+CREATE INDEX holding_company ON holding_links(company_id);
+CREATE INDEX holding_crypto ON holding_links(crypto_id);
+PRAGMA user_version=15;
+COMMIT;
+""")

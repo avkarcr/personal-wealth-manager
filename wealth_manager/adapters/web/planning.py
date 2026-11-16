@@ -16,7 +16,7 @@ def register_planning(app, runtime):
     @app.get('/portfolios/<int:pid>')
     @validated
     def portfolio_detail(pid):
-        return render_template('portfolio.html', **reports.detail(pid), missing_rates=[])
+        return render_template('portfolio.html', **reports.detail(pid), instrument_links=runtime.services['instrument_reports'].links(), missing_rates=[])
 
     @app.get('/goals/<int:gid>')
     @validated

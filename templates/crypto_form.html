@@ -1,0 +1,10 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('crypto_save') }}">
+{% if record %}<input type="hidden" name="id" value="{{ record.id }}">{% endif %}
+<div class="row2">{{ fields.input('name','Название',record.name if record else '',required=true) }}{{ fields.input('symbol','Символ криптоактива',record.symbol if record else '',required=true) }}</div>
+<div class="row2">{{ fields.input('network','Сеть',record.network if record else '') }}{{ fields.input('contract','Адрес контракта',record.contract if record else '') }}</div>
+{{ fields.input('website','Сайт проекта',record.website if record else '',type='url') }}
+{{ fields.area('note','Примечание',record.note if record else '') }}
+<label class="fld"><span>{{ _('Архив') }}</span><select name="archived"><option value="0" {% if not record or not record.archived %}selected{% endif %}>{{ _('Нет') }}</option><option value="1" {% if record and record.archived %}selected{% endif %}>{{ _('Да') }}</option></select></label>
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>

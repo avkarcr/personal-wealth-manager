@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import date
 import calc
+from .instruments import Repository as InstrumentRepository
 from .tax_evidence import TaxEvidenceRepository
 from .liabilities import SqliteLiabilities
 from .ledger import SqliteLedgerRepository
@@ -30,6 +31,7 @@ class VaultUnitOfWork:
             self.connection.backup(self.before)
             self.market_preferences = SqliteMarketPreferences(self.connection)
             self.rates = SqliteRateRepository(self.connection)
+            self.instruments = InstrumentRepository(self.connection)
             self.companies = CompanyRepository(self.connection)
             self.macroeconomics = ObservationRepository(self.connection)
             self.tax_evidence = TaxEvidenceRepository(self.connection)

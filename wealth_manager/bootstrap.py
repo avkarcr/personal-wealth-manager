@@ -38,8 +38,11 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     reports = SqliteReportRepository(vault)
     factory = lambda: VaultUnitOfWork(vault,today)
     from wealth_manager.modules.liabilities.application import Commands as LiabilityCommands
+    from wealth_manager.modules.instruments.application import Commands as InstrumentCommands
+    from wealth_manager.modules.instruments.reports import Reports as InstrumentReports
+    from wealth_manager.adapters.persistence.instruments import Reader as InstrumentReader
     ledger=LedgerCommands(factory,today)
-    return {"liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+    return {"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault)),
             "taxes": TaxCommands(factory,today), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),

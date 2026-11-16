@@ -18,6 +18,11 @@ class PositionCommands:
             uow.accounts.get(position.account_id)
             if position.id is not None:
                 old=uow.positions.get(position.id)
+                link=uow.instruments.holding_link(position.id)
+                if link:
+                    from wealth_manager.modules.instruments.domain import compatible
+                    if old.ticker!=position.ticker or old.asset_class_code!=position.asset_class_code or not compatible('company' if link['company_id'] is not None else 'crypto',position.asset_class_code):
+                        raise RecordError('Сначала удалите связь позиции с компанией или криптоактивом')
                 if (old.price,old.currency,old.ticker,old.asset_class_code)==(position.price,position.currency,position.ticker,position.asset_class_code):
                     position=replace(position,updated_at=old.updated_at)
             enabled=uow.ledger.enabled(position.account_id)

@@ -23,6 +23,11 @@ class RecordRepository:
 
 class CompanyRepository(RecordRepository):
     table='companies'
+    def delete(self,record_id):
+        get_row(self.connection,self.table,record_id)
+        if self.connection.execute('SELECT 1 FROM holding_links WHERE company_id=?',(record_id,)).fetchone():
+            raise RecordError('Сначала удалите связи с позициями или отправьте запись в архив')
+        super().delete(record_id)
     def save(self,record):
         if record.ticker and self.connection.execute('SELECT 1 FROM companies WHERE ticker=? COLLATE NOCASE AND exchange=? COLLATE NOCASE AND id<>?',(record.ticker,record.exchange,record.id or -1)).fetchone():
             raise RecordError('Компания с таким тикером и биржей уже существует')

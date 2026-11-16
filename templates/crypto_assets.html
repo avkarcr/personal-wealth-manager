@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Криптоактивы') }} — {{ _('Капитал') }}{% endblock %}
+{% block content %}
+<header class="page-head"><div><h1>{{ _('Криптоактивы') }}</h1><p class="muted">{{ _('Справочник активов, а не список доступных бирж') }}</p></div><a href="{{ url_for('companies') }}">{{ _('Компании') }}</a></header>
+<section class="card"><details><summary>{{ _('Добавить криптоактив') }}</summary>{% with record=none %}{% include 'crypto_form.html' %}{% endwith %}</details></section>
+<div class="grid2">{% for item in cryptos %}<article class="card"><h2><a href="{{ url_for('crypto_detail',rid=item.id) }}">{{ item.name }}</a></h2><p>{{ item.symbol }} · {{ item.network }}{% if item.archived %} · {{ _('Архив') }}{% endif %}</p><p class="small" style="overflow-wrap:anywhere">{{ item.contract }}</p></article>{% else %}<section class="card">{{ _('Пока нет криптоактивов') }}</section>{% endfor %}</div>
+{% endblock %}

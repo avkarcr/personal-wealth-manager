@@ -54,6 +54,12 @@ class Commands:
             if any(old[k]!=v for k,v in asdict(entry).items()):raise RecordError('Идентификатор уже использован для другой операции')
             return old['id']
         data=uow.ledger.data();validate_links(entry,data['holdings'],data['accounts'],self.today().isoformat())
+        if entry.kind=='transfer':
+            source_link=uow.instruments.holding_link(entry.holding_id)
+            target_link=uow.instruments.holding_link(entry.target_id)
+            identity=lambda link:(link['company_id'],link['crypto_id']) if link else None
+            if identity(source_link)!=identity(target_link):
+                raise RecordError('Для перевода привяжите обе позиции к одной компании или криптоактиву')
         eid=uow.ledger.insert(entry)
         if rebuild:self.rebuild(uow)
         h=data['holdings'][entry.holding_id]

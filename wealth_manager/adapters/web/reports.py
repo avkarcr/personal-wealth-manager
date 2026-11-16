@@ -12,7 +12,7 @@ def register_reports(app,runtime):
     @validated
     def account(aid):
         template,context=reports.account(aid)
-        return render_template(template,**context)
+        return render_template(template,**context,instrument_links=runtime.services["instrument_reports"].links())
 
     @app.get('/operations')
     def operations():

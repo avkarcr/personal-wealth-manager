@@ -14,7 +14,7 @@ def sources(connection):
     result = []
     for row in connection.execute('SELECT h.*,e.closed_at,e.name AS owner FROM holdings h JOIN financial_accounts f ON f.id=h.account_id JOIN entities e ON e.id=f.id'):
         result.append(dict(kind='holding', id=row['id'], name=row['name'], owner=row['owner'],
-                           currency=row['currency'], active=not row['closed_at'],
+                           currency=row['currency'], active=not row['closed_at'], account_id=row['account_id'], ticker=row['ticker'], asset_class_code=row['asset_class_code'],
                            quantity=row['quantity'],updated_at=row['updated_at'],needs_quote=asset_key(row)!='cash',
                            value=None if holding_value(row) is None else Decimal(str(row['quantity'])) * Decimal(str(1 if asset_key(row)=='cash' else row['price']))))
     for row in connection.execute('SELECT a.id,a.current_value,a.valued_at,e.name,e.currency,e.closed_at FROM assets a JOIN entities e ON e.id=a.id'):

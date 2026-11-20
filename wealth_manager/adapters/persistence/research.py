@@ -34,12 +34,7 @@ class CompanyRepository(RecordRepository):
         return super().save(record)
 
 
-class ObservationRepository(RecordRepository):
-    table='macro_observations'
-    def save(self,record):
-        if self.connection.execute('SELECT 1 FROM macro_observations WHERE country=? AND indicator=? AND date=? AND id<>?',(record.country,record.indicator,record.date,record.id or -1)).fetchone():
-            raise RecordError('Показатель за эту дату уже есть: отредактируйте запись')
-        return super().save(record)
+from .macro_data import Repository as ObservationRepository
 
 
 class EntryRepository(RecordRepository): table='tax_entries'

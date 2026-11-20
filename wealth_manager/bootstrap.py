@@ -42,7 +42,9 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.modules.instruments.reports import Reports as InstrumentReports
     from wealth_manager.adapters.persistence.instruments import Reader as InstrumentReader
     ledger=LedgerCommands(factory,today)
-    services = {"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+    from wealth_manager.modules.macroeconomics.data import DataCommands,DataReports
+    from wealth_manager.adapters.persistence.macro_data import Reader as RevisionReader
+    services = {"macro_data":DataCommands(factory),"macro_data_reports":DataReports(RevisionReader(vault)),"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault),today),
             "taxes": TaxCommands(factory,today), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),

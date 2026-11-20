@@ -38,6 +38,12 @@ def register_research(app,runtime):
     def macroeconomics():
         return render_template('macroeconomics.html',**services['macro_reports'].overview(request.args.get('country') or 'RU'))
 
+    @app.get('/macroeconomics/data')
+    @validated
+    def macro_data():
+        from wealth_manager.modules.macroeconomics.data import LABELS
+        return render_template('macro_data.html',**services['macro_data_reports'].overview(request.args.get('as_of') or None,request.args.get('mode') or 'known'),labels=LABELS)
+
     @app.post('/macroeconomics/save')
     @validated
     def macro_save():

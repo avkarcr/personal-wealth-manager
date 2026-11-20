@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Ряды и версии данных') }} — {{ _('Макроэкономика') }}{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{{ _('Ряды и версии данных') }}</h1><a href="{{ url_for('macroeconomics') }}">{{ _('Макроэкономика') }}</a></header>
+<section class="card"><form method="get" class="row3"><label class="fld"><span>{{ _('Историческая дата, UTC') }}</span><input name="as_of" type="date" value="{{ as_of[:10] }}"></label><label class="fld"><span>{{ _('Режим истории') }}</span><select name="mode"><option value="known" {{ 'selected' if mode=='known' }}>{{ _('Известно на дату') }}</option><option value="latest" {{ 'selected' if mode=='latest' }}>{{ _('Пересчитано по последним версиям') }}</option></select></label><button class="btn">{{ _('Применить') }}</button></form>
+<p class="muted">{{ _('Дата без времени означает конец дня UTC. Если публикация неизвестна, запись доступна в строгой истории только с момента получения или миграции. Режим последних версий может использовать сведения из будущего относительно выбранной даты.') }}</p>
+{% if mode=='latest' %}<p class="banner">{{ _('Это пересчитанная история, а не сведения, известные тогда.') }}</p>{% endif %}</section>
+<section class="card"><h2>{{ _('Наблюдения выбранной версии') }}</h2>
+{% for row in rows %}<article class="card"><h3>{{ row.name_en if language=='en' else row.name_ru }} · {{ row.country }}</h3><p>{{ row.value }} {{ row.unit }} · {{ _('Масштаб') }}: {{ row.scale }} · {{ row.period_start }} — {{ row.period_end }}</p>
+<p>{{ _(labels[row.frequency]) }} · {{ _(labels[row.adjustment]) }} · {{ _('Базовый год') }}: {{ row.base_year or _('Неизвестно') }} · {{ _('Методика') }}: {{ row.methodology }}</p>
+<p>{{ _('Источник') }}: {{ _('Ручные наблюдения') if row.source_kind=='manual' else row.source_title }} · {{ _(labels[row.source_kind]) }}</p><p style="overflow-wrap:anywhere">{{ row.locator }}</p>
+<p>{{ _('Опубликовано') }}: {{ row.published_at or _('Неизвестно') }} · {{ _('Получено') }}: {{ row.retrieved_at }}<br>{{ _('Версия') }}: {{ row.revision_id }} · {{ _(labels[row.status]) }}</p>
+{% if row.note %}<p style="white-space:pre-wrap">{{ row.note }}</p>{% endif %}</article>{% else %}<p>{{ _('На эту дату нет доступных наблюдений') }}</p>{% endfor %}
+</section>
+<section class="card flush"><div class="pad"><h2>{{ _('Журнал версий') }}</h2></div><table class="tbl"><thead><tr><th>{{ _('Версия') }}</th><th>{{ _('Показатель') }}</th><th>{{ _('Период') }}</th><th>{{ _('Значение') }}</th><th>{{ _('Доступно с, UTC') }}</th><th>{{ _('Статус') }}</th></tr></thead><tbody>
+{% for row in history %}<tr><td>{{ row.revision_id }}</td><td>{{ row.indicator }} · {{ row.country }} · {{ _('Ряд') }} {{ row.series_id }}</td><td>{{ row.period_start }} — {{ row.period_end }}</td><td>{{ row.value }} {{ row.unit }}</td><td>{{ row.available_at }}</td><td>{{ _('Удалено из текущих данных') if row.deleted else _(labels[row.status]) }}</td></tr>{% else %}<tr><td colspan="6">{{ _('Нет версий для выбранного режима') }}</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}

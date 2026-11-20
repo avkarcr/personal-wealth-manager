@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -261,7 +261,8 @@ def init_db(con):
             if version < 12: _migrate_liabilities(con)
             if version < 13: _migrate_tax_documents(con)
             if version < 14: _migrate_goal_forecasts(con)
-            _migrate_instruments(con)
+            if version < 15: _migrate_instruments(con)
+            _migrate_macro_versions(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -610,3 +611,61 @@ CREATE INDEX holding_crypto ON holding_links(crypto_id);
 PRAGMA user_version=15;
 COMMIT;
 """)
+
+
+MACRO_VERSION_SCHEMA = """
+CREATE TABLE macro_sources (
+ id INTEGER PRIMARY KEY, key TEXT NOT NULL UNIQUE, title TEXT NOT NULL, kind TEXT NOT NULL,
+ url TEXT NOT NULL DEFAULT '', terms TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE macro_indicators (code TEXT PRIMARY KEY, name_ru TEXT NOT NULL, name_en TEXT NOT NULL);
+CREATE TABLE macro_series (
+ id INTEGER PRIMARY KEY, identity TEXT NOT NULL UNIQUE, source_id INTEGER NOT NULL REFERENCES macro_sources(id),
+ indicator TEXT NOT NULL REFERENCES macro_indicators(code), country TEXT NOT NULL, provider_key TEXT NOT NULL,
+ unit TEXT NOT NULL, frequency TEXT NOT NULL, scale TEXT NOT NULL, adjustment TEXT NOT NULL,
+ base_year INTEGER, methodology TEXT NOT NULL
+);
+CREATE TABLE macro_artifacts (
+ id INTEGER PRIMARY KEY, identity TEXT NOT NULL UNIQUE, source_id INTEGER NOT NULL REFERENCES macro_sources(id),
+ locator TEXT NOT NULL, digest TEXT NOT NULL, content BLOB NOT NULL CHECK(length(content)<=2000000),
+ parser_version TEXT NOT NULL, media_type TEXT NOT NULL, received_at TEXT NOT NULL
+);
+CREATE TABLE macro_records (id INTEGER PRIMARY KEY AUTOINCREMENT, origin_key TEXT UNIQUE);
+CREATE TABLE macro_revisions (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, record_id INTEGER NOT NULL REFERENCES macro_records(id),
+ series_id INTEGER NOT NULL REFERENCES macro_series(id), period_start TEXT NOT NULL, period_end TEXT NOT NULL,
+ value TEXT NOT NULL, published_at TEXT NOT NULL, publication_precision TEXT NOT NULL,
+ status TEXT NOT NULL, note TEXT NOT NULL, artifact_id INTEGER NOT NULL REFERENCES macro_artifacts(id),
+ deleted INTEGER NOT NULL CHECK(deleted IN (0,1)), retrieved_at TEXT NOT NULL, available_at TEXT NOT NULL,
+ fingerprint TEXT NOT NULL, previous_revision_id INTEGER REFERENCES macro_revisions(id),
+ CHECK(period_start<=period_end)
+);
+CREATE INDEX macro_revision_record ON macro_revisions(record_id,id);
+CREATE INDEX macro_revision_asof ON macro_revisions(available_at,record_id);
+CREATE VIEW macro_observations AS
+ SELECT r.record_id AS id,s.country,s.indicator,r.period_end AS date,r.value,a.locator AS source,r.note
+ FROM macro_revisions r JOIN macro_series s ON s.id=r.series_id
+ JOIN macro_sources src ON src.id=s.source_id JOIN macro_artifacts a ON a.id=r.artifact_id
+ WHERE src.key='legacy_manual' AND r.deleted=0 AND r.id=(SELECT MAX(x.id) FROM macro_revisions x WHERE x.record_id=r.record_id);
+CREATE TRIGGER macro_revision_no_update BEFORE UPDATE ON macro_revisions BEGIN SELECT RAISE(ABORT,'Immutable macro revision'); END;
+CREATE TRIGGER macro_revision_no_delete BEFORE DELETE ON macro_revisions BEGIN SELECT RAISE(ABORT,'Immutable macro revision'); END;
+CREATE TRIGGER macro_artifact_no_update BEFORE UPDATE ON macro_artifacts BEGIN SELECT RAISE(ABORT,'Immutable macro artifact'); END;
+CREATE TRIGGER macro_artifact_no_delete BEFORE DELETE ON macro_artifacts BEGIN SELECT RAISE(ABORT,'Immutable macro artifact'); END;
+"""
+
+def _migrate_macro_versions(con):
+    from wealth_manager.adapters.persistence.macro_data import Repository,canonical
+    from wealth_manager.modules.macroeconomics.data import Indicator,Series,utcnow,INDICATOR_EN
+    from wealth_manager.modules.macroeconomics.domain import INDICATORS
+    rows=[dict(r) for r in con.execute('SELECT * FROM macro_observations ORDER BY id')]
+    con.executescript('BEGIN IMMEDIATE; DROP TABLE macro_observations;'+MACRO_VERSION_SCHEMA)
+    now=utcnow();repo=Repository(con)
+    con.execute("INSERT INTO macro_sources(key,title,kind) VALUES ('legacy_manual','Manual observations','manual')")
+    source_id=con.execute("SELECT id FROM macro_sources WHERE key='legacy_manual'").fetchone()[0]
+    for row in rows:
+        con.execute('INSERT INTO macro_records(id,origin_key) VALUES (?,NULL)',(row['id'],))
+        sid=repo.series(source_id,Indicator(row['indicator'],INDICATORS[row['indicator']],INDICATOR_EN[row['indicator']]),Series(row['indicator'],row['country'],row['indicator'],'percent','unknown',methodology='legacy_unknown'))
+        content=canonical(row).encode()
+        aid=repo.artifact(source_id,row['source'],content,'migration-v16','application/json',now)
+        repo.revision(row['id'],sid,row['date'],row['date'],row['value'],'','unknown','unknown',row['note'],aid,now)
+    con.execute('PRAGMA user_version=16');con.commit()

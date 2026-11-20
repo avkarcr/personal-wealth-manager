@@ -7,3 +7,10 @@ class ObservationRepository(Protocol):
 
 class Reader(Protocol):
     def read(self) -> Sequence[dict]: ...
+
+
+class DataRepository(Protocol):
+    def ingest(self,indicator,source,series,artifact,points) -> Sequence[int]: ...
+
+class RevisionReader(Protocol):
+    def read(self) -> Sequence[dict]: ...

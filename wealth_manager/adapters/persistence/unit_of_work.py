@@ -34,6 +34,7 @@ class VaultUnitOfWork:
             self.instruments = InstrumentRepository(self.connection)
             self.companies = CompanyRepository(self.connection)
             self.macroeconomics = ObservationRepository(self.connection)
+            self.macro_data = self.macroeconomics
             self.tax_evidence = TaxEvidenceRepository(self.connection)
             self.taxes = TaxRepository(self.connection)
             self.planning = SqlitePlanningRepository(self.connection)

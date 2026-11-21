@@ -32,7 +32,11 @@ class Repository:
         available=instant(published,precision=='date') if published else received
         data=dict(series_id=sid,period_start=start,period_end=end,value=exact_text(value),published_at=published,
                   publication_precision=precision,status=status,note=note,artifact_id=aid,deleted=int(deleted))
-        fingerprint=digest(canonical(data));old=self.latest(rid)
+        old=self.latest(rid)
+        if deduplicate and old:
+            # Page chrome, retrieval range and artifact hash are not economic revisions.
+            if all(old[k]==v for k,v in data.items() if k!='artifact_id'):return old['id']
+        fingerprint=digest(canonical(data))
         if old and old['fingerprint']==fingerprint:return old['id']
         # Official packets are immutable evidence: redownloading an old revision must not resurrect it.
         previous=self.con.execute('SELECT id FROM macro_revisions WHERE record_id=? AND fingerprint=? ORDER BY id DESC LIMIT 1',(rid,fingerprint)).fetchone()

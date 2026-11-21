@@ -1,0 +1,16 @@
+"""Vault generation guard: a response must never enter a different unlocked vault."""
+from contextlib import contextmanager
+from wealth_manager.adapters.persistence.unit_of_work import VaultUnitOfWork
+from wealth_manager.modules.macroeconomics.refresh import RefreshError
+
+class Session:
+    def __init__(self,vault):self.vault=vault
+    def check(self,token):
+        with self.vault.lock_:
+            if not self.vault.unlocked or token!=self.vault.token or self.vault.idle_expired():
+                raise RefreshError('Хранилище изменилось или заблокировано. Повторите загрузку')
+    @contextmanager
+    def write(self,token):
+        with self.vault.lock_:
+            self.check(token)
+            with VaultUnitOfWork(self.vault) as uow:yield uow

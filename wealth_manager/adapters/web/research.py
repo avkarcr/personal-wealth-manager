@@ -1,5 +1,5 @@
 """Inbound HTTP adapters; domain modules do not depend on Flask or SQLite."""
-from flask import request, render_template, redirect, url_for
+from flask import request, render_template, redirect, url_for, g, session, flash
 from wealth_manager.shared.records import required
 from wealth_manager.modules.companies.domain import Company
 from wealth_manager.modules.macroeconomics.domain import Observation
@@ -43,6 +43,23 @@ def register_research(app,runtime):
     def macro_data():
         from wealth_manager.modules.macroeconomics.data import LABELS
         return render_template('macro_data.html',**services['macro_data_reports'].overview(request.args.get('as_of') or None,request.args.get('mode') or 'known'),labels=LABELS)
+
+    @app.post('/macroeconomics/refresh')
+    @validated
+    def macro_refresh():
+        from .i18n import gettext
+        token=session.get('vault')
+        # The request hook owns this lock. Restore ownership before rendering/teardown.
+        lock=g.wealth_vault_lock
+        lock.release()
+        try:
+            services['macro_refresh'].execute(f_str('kind'),f_str('start'),f_str('end'),token)
+        finally:
+            lock.acquire()
+            if not runtime.vault.unlocked or runtime.vault.token!=token:
+                return redirect(url_for('unlock'))
+        flash(gettext('Данные ЦБ загружены. Результат доступен в рядах и версиях данных'))
+        return redirect(url_for('macro_data'))
 
     @app.post('/macroeconomics/save')
     @validated

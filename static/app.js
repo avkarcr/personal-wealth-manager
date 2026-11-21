@@ -191,6 +191,22 @@
   document.addEventListener('submit', e => {
     const msg = (e.submitter && e.submitter.dataset.confirm) || e.target.dataset.confirm;
     if (msg && !confirm(msg)) e.preventDefault();
+    if (!e.defaultPrevented && e.target.dataset.busyLabel && e.submitter) {
+      e.submitter.dataset.idleLabel = e.submitter.textContent;
+      e.submitter.textContent = e.target.dataset.busyLabel;
+      e.submitter.disabled = true;
+      e.target.setAttribute('aria-busy', 'true');
+    }
+  });
+
+  window.addEventListener('pageshow', () => {
+    $$('form[data-busy-label]').forEach(form => {
+      form.removeAttribute('aria-busy');
+      $$('button[data-idle-label]', form).forEach(button => {
+        button.textContent = button.dataset.idleLabel;
+        button.disabled = false;
+      });
+    });
   });
 
   /* режим правки цен */

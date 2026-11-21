@@ -55,6 +55,11 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
             "accounts": AccountCommands(factory,today), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
 
+    from wealth_manager.modules.macroeconomics.refresh import Refresh
+    from wealth_manager.adapters.macroeconomics.cbr import Provider
+    from wealth_manager.adapters.macroeconomics.session import Session
+    services['macro_refresh']=Refresh(Provider(),Session(vault),today)
+
     from wealth_manager.modules.dashboard.application import Dashboard
     services['dashboard']=Dashboard(services['reports'],services['planning_reports'],services['tax_reports'],services['macro_reports'],today)
     return services

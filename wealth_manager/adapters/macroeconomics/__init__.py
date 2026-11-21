@@ -1,0 +1,1 @@
+"""External macroeconomic data adapters."""

@@ -986,5 +986,20 @@
   "Файл": "File",
   "Внешний источник": "External source",
   "Точное время": "Exact time",
-  "Запись не найдена": "Record not found"
+  "Запись не найдена": "Record not found",
+  "Выберите допустимый период ЦБ длиной не более 366 дней": "Select a valid CBR date range of at most 366 days",
+  "Некорректный ответ ЦБ": "Invalid CBR response",
+  "В выбранном периоде ЦБ не вернул наблюдений": "CBR returned no observations for this period",
+  "Хранилище изменилось или заблокировано. Повторите загрузку": "The vault changed or was locked. Please load again",
+  "Не удалось получить данные ЦБ. Сохранённые данные не изменены": "Could not fetch CBR data. Saved data are unchanged",
+  "Данные ЦБ загружены. Результат доступен в рядах и версиях данных": "CBR data loaded. See Series and data revisions for the result",
+  "Загрузить данные ЦБ": "Load CBR data",
+  "Кривая ОФЗ: 1, 2, 5 и 10 лет": "OFZ curve: 1, 2, 5 and 10 years",
+  "Начало периода": "Period start",
+  "Конец периода": "Period end",
+  "Загрузить из ЦБ": "Load from CBR",
+  "До 366 дней за одну загрузку. Пропуски не заполняются. Дата значения не является датой публикации; строгая история доступна с момента получения.": "Up to 366 days per request. Gaps are not filled. Observation dates are not publication dates; strict history is available from retrieval.",
+  "Источник: Банк России — ключевая ставка": "Source: Bank of Russia — key rate",
+  "Источник: Банк России — кривая ОФЗ": "Source: Bank of Russia — OFZ curve",
+  "Загрузка данных ЦБ…": "Loading CBR data…"
 }

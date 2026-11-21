@@ -44,6 +44,22 @@ def register_research(app,runtime):
         from wealth_manager.modules.macroeconomics.data import LABELS
         return render_template('macro_data.html',**services['macro_data_reports'].overview(request.args.get('as_of') or None,request.args.get('mode') or 'known'),labels=LABELS)
 
+    @app.get('/settings/macroeconomics')
+    @validated
+    def macro_settings():
+        from datetime import date, timedelta
+        from wealth_manager.modules.macroeconomics.scheduling import KINDS
+        return render_template('macro_settings.html', state=services['macro_scheduler'].state(session.get('vault')),
+                               kinds=KINDS, default_start=(date.today()-timedelta(days=30)).isoformat(),
+                               today=date.today().isoformat())
+
+    @app.post('/settings/macroeconomics')
+    @validated
+    def macro_settings_save():
+        services['macro_scheduler'].configure(f_str('kind'), request.form.get('enabled')=='on',
+            f_str('start'), int(f_str('hours')), f_str('access'), session.get('vault'))
+        return redirect(url_for('macro_settings'))
+
     @app.post('/macroeconomics/refresh')
     @validated
     def macro_refresh():
@@ -58,7 +74,7 @@ def register_research(app,runtime):
             lock.acquire()
             if not runtime.vault.unlocked or runtime.vault.token!=token:
                 return redirect(url_for('unlock'))
-        flash(gettext('Данные ЦБ загружены. Результат доступен в рядах и версиях данных'))
+        flash(gettext('Обновление завершено. Результат доступен в рядах данных и журнале'))
         return redirect(url_for('macro_data'))
 
     @app.post('/macroeconomics/save')

@@ -15,6 +15,7 @@ class ApplicationRuntime:
         self._stop = threading.Event()
         self._lifecycle_lock = threading.Lock()
         self._thread = None
+        self._macro_thread = None
         self._closed = False
 
     @property
@@ -45,6 +46,11 @@ class ApplicationRuntime:
                 # the decrypted database. Vault.lock retains it on save failure.
                 logger.exception("Auto-lock failed; the vault remains open for retry")
 
+    def _run_macro(self):
+        while not self._stop.wait(self.poll_seconds):
+            try:self.services['macro_scheduler'].tick(self._stop.is_set)
+            except Exception:logger.warning('Macro refresh failed; retained data and retry policy apply')
+
     def start(self):
         """Idempotent start; app construction alone never launches a thread."""
         with self._lifecycle_lock:
@@ -56,9 +62,17 @@ class ApplicationRuntime:
             self._thread = threading.Thread(
                 target=self._run, name="wealth-manager-autolock", daemon=True,
             )
+            started = False
             try:
                 self._thread.start()
+                started = True
+                if 'macro_scheduler' in self.services:
+                    self._macro_thread = threading.Thread(target=self._run_macro,name="wealth-manager-macro",daemon=True)
+                    self._macro_thread.start()
             except BaseException:
+                self._stop.set()
+                if started:self._thread.join()
+                self._macro_thread = None
                 self._thread = None
                 raise
 
@@ -75,6 +89,9 @@ class ApplicationRuntime:
             if self._thread is not None:
                 self._thread.join()
                 self._thread = None
+            if self._macro_thread is not None:
+                self._macro_thread.join()
+                self._macro_thread = None
             with self.vault.lock_:
                 self.vault.lock()
                 self._closed = True

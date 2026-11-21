@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Обновление макроданных') }}{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{{ _('Обновление макроданных') }}</h1><a class="btn" href="{{ url_for('macro_data') }}">{{ _('Ряды данных') }}</a></header>
+<p>{{ _('Расписание работает только при запущенном приложении и разблокированном хранилище. Время в журнале — UTC. По умолчанию обновления выключены.') }}</p>
+<p>{{ _('История загружается порциями до 90 дней, до вчерашней даты. Последние 7 дней проверяются повторно. Ошибки не удаляют сохранённые данные.') }}</p>
+<p>{{ _('Режим MOEX общий для всех рыночных рядов. Ознакомление допускается условиями ISS; для другого использования нужен соответствующий договор.') }} <a href="https://www.moex.com/a2193" target="_blank" rel="noopener noreferrer">{{ _('Условия MOEX') }}</a></p>
+{% for kind in kinds %}{% set cfg=state.schedules.get(kind,{}) %}
+<section class="card"><h2>{{ _('Ключевая ставка') if kind=='key_rate' else _('Кривая ОФЗ') if kind=='ofz_curve' else kind }}</h2>
+<form method="post" action="{{ url_for('macro_settings_save') }}">
+<input type="hidden" name="kind" value="{{ kind }}">
+<label class="fld"><span>{{ _('Автообновление') }}</span><input type="checkbox" name="enabled" {{ 'checked' if cfg.get('enabled') }}></label>
+<label class="fld"><span>{{ _('Начало истории') }}</span><input type="date" name="start" value="{{ cfg.get('start',default_start) }}" max="{{ today }}" required></label>
+<label class="fld"><span>{{ _('Интервал, часов') }}</span><input type="number" name="hours" min="1" max="168" value="{{ cfg.get('hours',24) }}" required></label>
+<label class="fld"><span>{{ _('Доступ MOEX') }}</span><select name="access">{% for value,label in [('disabled','Выключен'),('familiarization','Ознакомление'),('agreement','Есть соответствующий договор')] %}<option value="{{ value }}" {{ 'selected' if state.access==value }}>{{ _(label) }}</option>{% endfor %}</select></label>
+<button class="btn primary">{{ _('Сохранить') }}</button>
+</form>
+<p class="muted">{{ _('Проверено по дату') }}: {{ cfg.get('checkpoint') or '—' }} · {{ _('Следующая попытка (UTC)') }}: {{ cfg.get('next_due') or '—' }} · {{ _('Ошибок подряд') }}: {{ cfg.get('failures',0) }}</p>
+</section>{% endfor %}
+<section class="card"><h2>{{ _('Загрузить вручную') }}</h2>
+<p>{{ _('IMOEX и RGBI — ценовые индексы; MCFTR и RGBITR — индексы полной доходности. RUSFAR — ставка в процентах. Ручная загрузка не меняет дату автоматической проверки.') }}</p>
+<form method="post" action="{{ url_for('macro_refresh') }}">
+<label class="fld"><span>{{ _('Ряд') }}</span><select name="kind">{% for kind in kinds %}<option>{{ kind }}</option>{% endfor %}</select></label>
+<label class="fld"><span>{{ _('С даты') }}</span><input type="date" name="start" value="{{ default_start }}" max="{{ today }}" required></label>
+<label class="fld"><span>{{ _('По дату') }}</span><input type="date" name="end" value="{{ today }}" max="{{ today }}" required></label>
+<button class="btn">{{ _('Загрузить') }}</button></form></section>
+<section class="card"><h2>{{ _('Журнал обновлений') }}</h2>
+<p>{{ _('Последние 100 запусков. «Нет данных» означает корректный пустой ответ источника, а не нулевые значения показателей.') }}</p>
+<div style="overflow-x:auto"><table class="tbl"><thead><tr>{% for label in ['Ряд','Период','Начало (UTC)','Окончание (UTC)','Статус','Наблюдений'] %}<th>{{ _(label) }}</th>{% endfor %}</tr></thead><tbody>
+{% set statuses={'running':'Выполняется','success':'Успешно','empty':'Нет данных','failed':'Ошибка','interrupted':'Прервано'} %}
+{% for run in state.runs|reverse %}<tr><td>{{ run.kind }}</td><td>{{ run.start }} — {{ run.end }}</td><td>{{ run.started }}</td><td>{{ run.finished or '—' }}</td><td>{{ _(statuses[run.status]) }}</td><td>{{ run.count }}</td></tr>{% else %}<tr><td colspan="6">{{ _('Запусков пока нет') }}</td></tr>{% endfor %}
+</tbody></table></div></section>
+{% endblock %}

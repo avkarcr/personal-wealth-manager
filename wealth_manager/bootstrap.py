@@ -55,10 +55,11 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
             "accounts": AccountCommands(factory,today), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
 
-    from wealth_manager.modules.macroeconomics.refresh import Refresh
-    from wealth_manager.adapters.macroeconomics.cbr import Provider
     from wealth_manager.adapters.macroeconomics.session import Session
-    services['macro_refresh']=Refresh(Provider(),Session(vault),today)
+    from wealth_manager.modules.macroeconomics.scheduling import Scheduler
+    from wealth_manager.adapters.macroeconomics.providers import Providers
+    services['macro_scheduler']=Scheduler(Providers(),Session(vault))
+    services['macro_refresh']=services['macro_scheduler']
     from wealth_manager.modules.macroeconomics.statistics import StatisticsImport
     from wealth_manager.adapters.macroeconomics.files import FileReader
     services['macro_import']=StatisticsImport(FileReader(),Session(vault),today)

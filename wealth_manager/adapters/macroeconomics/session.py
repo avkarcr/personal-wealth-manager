@@ -5,6 +5,14 @@ from wealth_manager.modules.macroeconomics.refresh import RefreshError
 
 class Session:
     def __init__(self,vault):self.vault=vault
+    def current(self):
+        with self.vault.lock_:
+            return self.vault.token if self.vault.unlocked and not self.vault.idle_expired() else None
+    def read_state(self,token):
+        from wealth_manager.adapters.persistence.macro_data import Repository
+        with self.vault.lock_:
+            self.check(token)
+            return Repository(self.vault.con).refresh_state()
     def check(self,token):
         with self.vault.lock_:
             if not self.vault.unlocked or token!=self.vault.token or self.vault.idle_expired():

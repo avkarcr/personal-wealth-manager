@@ -25,6 +25,12 @@ class Repository:
         checksum=hashlib.sha256(content).hexdigest();key=digest(canonical([source_id,locator,checksum,parser,media]))
         self.con.execute('INSERT OR IGNORE INTO macro_artifacts(identity,source_id,locator,digest,content,parser_version,media_type,received_at) VALUES (?,?,?,?,?,?,?,?)',(key,source_id,locator,checksum,content,parser,media,received))
         return self.con.execute('SELECT id FROM macro_artifacts WHERE identity=?',(key,)).fetchone()[0]
+    def refresh_state(self):
+        from wealth_manager.modules.macroeconomics.scheduling import defaults
+        row=self.con.execute("SELECT value FROM settings WHERE key='macro_refresh_v1'").fetchone()
+        return json.loads(row[0]) if row else defaults()
+    def save_refresh_state(self,state):
+        self.con.execute("INSERT INTO settings(key,value) VALUES ('macro_refresh_v1',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",(canonical(state),))
     def revision_token(self):
         return self.con.execute("SELECT COALESCE(MAX(id),0) FROM macro_revisions").fetchone()[0]
     def latest(self,rid):

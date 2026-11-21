@@ -59,6 +59,8 @@ def create_app(config=None, *, vault=None):
     register_reports(app, runtime)
     register_planning(app, runtime)
     register_research(app, runtime)
+    from wealth_manager.adapters.web.macro_import import register_macro_import
+    register_macro_import(app,runtime)
     register_instruments(app, runtime)
     register_entities(app, runtime)
     register_market_data(app, runtime)

@@ -59,6 +59,9 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     from wealth_manager.adapters.macroeconomics.cbr import Provider
     from wealth_manager.adapters.macroeconomics.session import Session
     services['macro_refresh']=Refresh(Provider(),Session(vault),today)
+    from wealth_manager.modules.macroeconomics.statistics import StatisticsImport
+    from wealth_manager.adapters.macroeconomics.files import FileReader
+    services['macro_import']=StatisticsImport(FileReader(),Session(vault),today)
 
     from wealth_manager.modules.dashboard.application import Dashboard
     services['dashboard']=Dashboard(services['reports'],services['planning_reports'],services['tax_reports'],services['macro_reports'],today)

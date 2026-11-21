@@ -25,6 +25,8 @@ class Repository:
         checksum=hashlib.sha256(content).hexdigest();key=digest(canonical([source_id,locator,checksum,parser,media]))
         self.con.execute('INSERT OR IGNORE INTO macro_artifacts(identity,source_id,locator,digest,content,parser_version,media_type,received_at) VALUES (?,?,?,?,?,?,?,?)',(key,source_id,locator,checksum,content,parser,media,received))
         return self.con.execute('SELECT id FROM macro_artifacts WHERE identity=?',(key,)).fetchone()[0]
+    def revision_token(self):
+        return self.con.execute("SELECT COALESCE(MAX(id),0) FROM macro_revisions").fetchone()[0]
     def latest(self,rid):
         row=self.con.execute('SELECT * FROM macro_revisions WHERE record_id=? ORDER BY id DESC LIMIT 1',(rid,)).fetchone()
         return dict(row) if row else None

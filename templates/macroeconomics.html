@@ -2,6 +2,7 @@
 {% block title %}{{ _('Макроэкономика') }} — {{ _('Капитал') }}{% endblock %}
 {% block content %}
 <header class="page-head"><div><h1>{{ _('Макроэкономика') }}</h1><p class="muted">{{ _('Ставки, инфляция, рост экономики и доходности облигаций') }}</p></div><a class="btn" href="{{ url_for('macro_data') }}">{{ _('Ряды и версии данных') }}</a></header>
+<p><a class="btn" href="{{ url_for('macro_import') }}">{{ _('Импорт статистики') }}</a></p>
 <p class="muted">{{ _('Ручной ввод. Дата относится к показателю или концу отчётного периода. Изменение показано в процентных пунктах относительно предыдущей записи той же страны.') }}</p>
 <section class="card"><h2>{{ _('Загрузить данные ЦБ') }}</h2>
 <form method="post" action="{{ url_for('macro_refresh') }}" class="row3" data-busy-label="{{ _('Загрузка данных ЦБ…') }}">

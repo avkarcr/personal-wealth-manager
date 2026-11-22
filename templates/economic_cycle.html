@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Экономический цикл') }}{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{{ _('Экономический цикл') }}</h1><a class="btn" href="{{ url_for('economic_cycle_settings') }}">{{ _('Настройки модели цикла') }}</a></header>
+<p>{{ _('Начальные веса и пороги — проверяемая гипотеза. Историческая калибровка будет выполнена отдельно.') }}</p>
+{% if saved_id %}<p>{{ _('Сохранённый расчёт') }} #{{ saved_id }}</p><a class="btn" href="{{ url_for('economic_cycle') }}">{{ _('Новый расчёт') }}</a>{% else %}
+<section class="card"><form method="get" class="row3">
+<label class="fld"><span>{{ _('Историческая дата, UTC') }}</span><input type="date" name="as_of" value="{{ result.as_of[:10] }}" required></label>
+<label class="fld"><span>{{ _('Версии данных') }}</span><select name="mode"><option value="known" {{ 'selected' if result.mode=='known' }}>{{ _('Известные на дату') }}</option><option value="latest" {{ 'selected' if result.mode=='latest' }}>{{ _('Последние пересмотренные') }}</option></select></label>
+<button class="btn primary">{{ _('Рассчитать') }}</button></form></section>{% endif %}
+<section class="card"><h2>{{ _(phases[result.phase]) }}</h2><p>{{ _(descriptions[result.phase]) }}</p>
+{% if result.reason %}<p class="banner">{{ _(reasons[result.reason]) }}</p>{% endif %}
+<p>{{ _('Индекс уверенности') }}: <b>{{ result.confidence|macro_number }} / 100</b> · {{ _('Покрытие активных весов') }}: {{ result.coverage|macro_number }}%</p>
+<p>{{ _('Индекс уверенности отражает полноту, согласованность и устойчивость сигналов. Это не вероятность и не результат исторической калибровки.') }}</p>
+<p>{{ _(transitions[result.transition]) }}</p>
+<p>{{ _('Предыдущий срез') }}: {{ result.previous_as_of }} · {{ _(phases[result.previous.phase]) }} · {{ _('Покрытие активных весов') }}: {{ result.previous.coverage|macro_number }}%</p>
+<p>{{ _('Оба среза используют одну выбранную конфигурацию; это не история настроек, известных в прошлом.') }}</p>
+<p>{{ result.as_of }} · {{ result.version }} · {{ result.derived_version }}</p>
+<p style="overflow-wrap:anywhere">{{ _('Версия настроек') }}: {{ result.config_version }}</p>
+{% for warning in result.warnings %}<p class="banner">{{ _(messages[warning]) }}</p>{% endfor %}
+<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Фаза') }}</th><th>{{ _('Сходство с профилем, 0–100') }}</th><th>{{ _('Количественные условия') }}</th></tr></thead><tbody>
+{% for phase,score in result.scores.items() %}<tr><th scope="row">{{ _(phases[phase]) }}</th><td>{{ score|macro_number if result.coverage|float > 0 else '—' }}</td><td>{{ _('Выполнены') if result.eligible[phase] else _('Не выполнены') }}. {{ _(criteria[phase]) }}</td></tr>{% endfor %}</tbody></table></div>
+<p>{{ _('Разница двух лучших оценок') }}: {{ result.margin|macro_number }} · {{ _('Кандидат модели') }}: {{ _(phases[result.candidate]) if result.candidate else '—' }}</p>
+</section>
+<section class="card"><h2>{{ _('Вклады групп') }}</h2><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Группа') }}</th><th>{{ _('Вес группы, %') }}</th><th>{{ _('Доступный вес') }}</th><th>{{ _('Вклад в оценку фазы') }}</th></tr></thead><tbody>
+{% for group,label in groups.items() %}<tr><th scope="row">{{ _(label) }}</th><td>{{ result.config.groups[group]|macro_number }}</td><td>{{ result.covered[group]|macro_number }}</td><td>{{ result.group_contributions[group]|macro_number }}</td></tr>{% endfor %}</tbody></table></div>
+{% for codes,title in [(result.supports,'Подтверждающие сигналы'),(result.contradictions,'Противоречащие сигналы')] %}<h3>{{ _(title) }}</h3><ul>{% for code in codes %}<li>{{ _(features[code][1]) }}: {{ result.features[code].value|macro_number }} · {{ result.features[code].date }}</li>{% else %}<li>{{ _('Выраженных сигналов нет') }}</li>{% endfor %}</ul>{% endfor %}
+</section>
+<section class="card"><h2>{{ _('Значения и происхождение') }}</h2>
+<p>{{ _('Пустое значение не считается нулём. Устаревшие точки и расчёты, отстающие от последнего периода ряда, исключаются.') }}</p>
+<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Признак') }}</th><th>{{ _('Значение') }}</th><th>{{ _('Дата') }}</th><th>{{ _('Эффективный вес, %') }}</th><th>{{ _('Нормированное значение') }}</th><th>{{ _('Версии наблюдений') }}</th><th>{{ _('Пояснение') }}</th></tr></thead><tbody>
+{% for code,definition in features.items() %}{% set f=result.features[code] %}<tr><th scope="row">{{ _(definition[1]) }}</th><td>{{ f.value|macro_number if f.value is not none else '—' }}</td><td>{{ f.date or '—' }}</td><td>{{ f.weight|macro_number }}</td><td>{{ f.normalized|macro_number if f.normalized is not none else '—' }}</td><td>{{ f.revisions|join(', ') }}</td><td>{{ _(signal_reasons[f.reason]) if f.reason else '' }}{% if f.note %} · {{ _({'normal':'Нормальная кривая','flat':'Плоская кривая','inverted':'Инвертированная кривая','hold_key_rate_12m':'Ключевая ставка неизменна 12 месяцев','yield_1y_expected_12m':'Доходность 1 год и ожидания 12 месяцев'}[f.note]) }}{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+<details><summary>{{ _('Выбранные ряды и параметры расчёта') }}</summary>
+{% for role,r in result.series.items() %}<p>{{ _(roles[role]) }}: #{{ r.series_id }} · {{ r.source_title }} · {{ r.indicator }} · {{ r.frequency }} / {{ r.adjustment }} · {{ r.base_year or '—' }} · {{ r.methodology }}</p>{% endfor %}
+<pre style="overflow-x:auto">{{ result.config|tojson(indent=2) }}</pre></details>
+</section>
+{% if not saved_id %}<form method="post"><input type="hidden" name="fingerprint" value="{{ fingerprint }}"><input type="hidden" name="as_of" value="{{ result.as_of }}"><input type="hidden" name="mode" value="{{ result.mode }}"><button class="btn primary">{{ _('Сохранить расчёт с версиями данных') }}</button></form>
+<section class="card"><h2>{{ _('Сохранённые расчёты') }}</h2>{% for r in runs %}<p><a href="{{ url_for('economic_cycle_saved',rid=r.id) }}">#{{ r.id }} · {{ r.as_of }} · {{ _(phases[r.phase]) }} · {{ r.mode }}</a></p>{% else %}<p>{{ _('Расчётов пока нет') }}</p>{% endfor %}</section>{% endif %}
+{% endblock %}

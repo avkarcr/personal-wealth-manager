@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -264,6 +264,7 @@ def init_db(con):
             if version < 15: _migrate_instruments(con)
             if version < 16: _migrate_macro_versions(con)
             if version < 17: _migrate_macro_calculations(con)
+            if version < 18: _migrate_economic_cycle(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -693,3 +694,32 @@ CREATE TRIGGER macro_calculation_inputs_no_delete BEFORE DELETE ON macro_calcula
 def _migrate_macro_calculations(con):
     con.executescript('BEGIN IMMEDIATE;'+MACRO_CALCULATION_SCHEMA)
     con.execute('PRAGMA user_version=17');con.commit()
+
+
+ECONOMIC_CYCLE_SCHEMA = """
+CREATE TABLE economic_cycle_configs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL UNIQUE,
+ config TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE economic_cycle_active (
+ id INTEGER PRIMARY KEY CHECK(id=1), config_id INTEGER NOT NULL REFERENCES economic_cycle_configs(id)
+);
+CREATE TABLE economic_cycle_runs (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL UNIQUE,
+ version TEXT NOT NULL, as_of TEXT NOT NULL, mode TEXT NOT NULL CHECK(mode IN ('known','latest')),
+ phase TEXT NOT NULL, config_id INTEGER NOT NULL REFERENCES economic_cycle_configs(id),
+ result TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE economic_cycle_inputs (
+ run_id INTEGER NOT NULL REFERENCES economic_cycle_runs(id),
+ revision_id INTEGER NOT NULL REFERENCES macro_revisions(id), PRIMARY KEY(run_id,revision_id)
+);
+"""
+
+
+def _migrate_economic_cycle(con):
+    con.executescript('BEGIN IMMEDIATE;'+ECONOMIC_CYCLE_SCHEMA)
+    for table in ('economic_cycle_configs','economic_cycle_runs','economic_cycle_inputs'):
+        for action in ('UPDATE','DELETE'):
+            con.execute(f"CREATE TRIGGER {table}_no_{action.lower()} BEFORE {action} ON {table} BEGIN SELECT RAISE(ABORT,'Immutable cycle evidence'); END")
+    con.execute('PRAGMA user_version=18');con.commit()

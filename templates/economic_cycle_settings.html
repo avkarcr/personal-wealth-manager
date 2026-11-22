@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Настройки модели цикла') }}{% endblock %}
+{% block content %}
+<header class="page-head"><h1>{{ _('Настройки модели цикла') }}</h1><a class="btn" href="{{ url_for('economic_cycle') }}">{{ _('Экономический цикл') }}</a></header>
+<p>{{ _('Начальные веса и пороги — проверяемая гипотеза. Историческая калибровка будет выполнена отдельно.') }}</p>
+<p>{{ _('Веса нормируются до 100% по группам и внутри каждой группы. Пропущенные данные уменьшают покрытие. Отключённые признаки исключаются из расчёта.') }}</p>
+<form method="post">
+<input type="hidden" name="config_id" value="{{ config_id }}">
+<section class="card"><h2>{{ _('Ряды для модели') }}</h2>
+<p>{{ _('Выберите источники явно. Модель не заменяет поставщика и не объединяет разные базовые годы. Пустая роль означает отсутствие данных.') }}</p>
+{% for role,label in roles.items() %}<label class="fld"><span>{{ _(label) }}</span><select name="series_{{ role }}"><option value="">{{ _('Не выбран') }}</option>{% for r in choices[role] %}<option value="{{ r.series_id }}" {{ 'selected' if config.series[role]==r.series_id }}>#{{ r.series_id }} · {{ r.name_en if language=='en' else r.name_ru }} · {{ r.source_title }} · {{ r.adjustment }} · {{ r.base_year or '—' }} · {{ r.methodology }}</option>{% endfor %}</select></label>{% endfor %}
+<p>{{ _('Отдельный квартальный рост SA заменяет расчёт из уровня ВВП только при явном выборе этого ряда.') }}</p>
+</section>
+{% for group,label in groups.items() %}<section class="card"><h2>{{ _(label) }}</h2>
+<label class="fld"><span>{{ _('Вес группы, %') }}</span><input type="number" step="any" min="0" max="10000" name="group_{{ group }}" value="{{ config.groups[group] }}" required></label>
+<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Признак') }}</th><th>{{ _('Включён') }}</th><th>{{ _('Вес в группе') }}</th><th>{{ _('Центр') }}</th><th>{{ _('Масштаб') }}</th></tr></thead><tbody>
+{% for code,definition in features.items() %}{% if definition[0]==group %}{% set f=config.features[code] %}<tr><th scope="row" id="label_{{ code }}">{{ _(definition[1]) }}</th><td><input type="checkbox" name="enabled_{{ code }}" aria-label="{{ _('Включён') }}: {{ _(definition[1]) }}" {{ 'checked' if f.enabled }}></td>
+{% for field,label in [('weight','Вес в группе'),('center','Центр'),('scale','Масштаб')] %}<td><input style="min-width:7rem;width:100%" type="number" step="any" min="{{ '-10000' if field=='center' else '0.000001' if field=='scale' else '0' }}" max="10000" name="{{ field }}_{{ code }}" value="{{ f[field] }}" aria-label="{{ _(label) }}: {{ _(definition[1]) }}" required></td>{% endfor %}</tr>{% endif %}{% endfor %}
+</tbody></table></div></section>{% endfor %}
+<section class="card"><h2>{{ _('Параметры расчёта') }}</h2>
+<p>{{ _('Нормализация: (значение − центр) / масштаб, ограниченная диапазоном от −1 до 1. Для темпов используются проценты, для изменений и спредов — процентные пункты.') }}</p>
+<label class="fld"><span>{{ _('Метод Output Gap') }}</span><select name="method"><option value="hp" {{ 'selected' if config.method=='hp' }}>HP</option><option value="log_linear" {{ 'selected' if config.method=='log_linear' }}>{{ _('Логлинейный тренд') }}</option></select></label>
+<label class="fld"><span>{{ _('Окно, кварталов') }}</span><input type="number" name="window" value="{{ config.window }}" min="20" max="120" required></label>
+<label class="fld"><span>{{ _('Номинальная ставка для ex ante') }}</span><select name="real_rate_basis"><option value="yield_1y" {{ 'selected' if config.real_rate_basis=='yield_1y' }}>{{ _('ОФЗ 1 год') }}</option><option value="key_rate" {{ 'selected' if config.real_rate_basis=='key_rate' }}>{{ _('Ключевая ставка') }}</option></select></label>
+<label class="fld"><span>{{ _('Ключевая ставка неизменна 12 месяцев') }}</span><input type="checkbox" name="hold_rate" {{ 'checked' if config.hold_rate }}></label>
+<button class="btn primary">{{ _('Сохранить и пересчитать') }}</button></section>
+</form>
+<form method="post"><input type="hidden" name="config_id" value="{{ config_id }}"><button class="btn" name="action" value="restore">{{ _('Восстановить параметры по умолчанию, сохранив выбранные ряды') }}</button></form>
+{% endblock %}

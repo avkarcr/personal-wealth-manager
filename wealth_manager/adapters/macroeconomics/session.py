@@ -34,3 +34,16 @@ class Session:
         with self.vault.lock_:
             self.check(token)
             return Repository(self.vault.con).get(rid)
+
+    def cycle_snapshot(self,token):
+        from wealth_manager.adapters.persistence.macro_data import Reader, Repository
+        from wealth_manager.adapters.persistence.economic_cycle import Repository as Cycle
+        with self.vault.lock_:
+            self.check(token)
+            repo=Cycle(self.vault.con)
+            return dict(rows=Reader(self.vault).read(),revision_token=Repository(self.vault.con).revision_token(),runs=repo.recent(),**repo.state())
+    def saved_cycle(self,token,rid):
+        from wealth_manager.adapters.persistence.economic_cycle import Repository
+        with self.vault.lock_:
+            self.check(token)
+            return Repository(self.vault.con).get(rid)

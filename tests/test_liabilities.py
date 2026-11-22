@@ -188,7 +188,7 @@ class LiabilityTests(unittest.TestCase):
 class LiabilityMigrationTests(unittest.TestCase):
     def test_upgrade_does_not_infer_lease_deposit_or_change_old_data_and_rolls_back(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'):db.init_db(c)
+        with patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'):db.init_db(c)
         self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],11)
         before=list(c.iterdump());original=db._migrate_liabilities
         def fail(con):original(con);raise RuntimeError('migration')

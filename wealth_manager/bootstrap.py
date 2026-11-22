@@ -62,6 +62,8 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     services['macro_refresh']=services['macro_scheduler']
     from wealth_manager.modules.macroeconomics.calculations import Calculations
     services['macro_calculations']=Calculations(Session(vault))
+    from wealth_manager.modules.economic_cycle.application import Cycle
+    services['economic_cycle']=Cycle(Session(vault))
     from wealth_manager.modules.macroeconomics.statistics import StatisticsImport
     from wealth_manager.adapters.macroeconomics.files import FileReader
     services['macro_import']=StatisticsImport(FileReader(),Session(vault),today)

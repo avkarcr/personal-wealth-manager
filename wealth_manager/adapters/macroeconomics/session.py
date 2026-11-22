@@ -22,3 +22,15 @@ class Session:
         with self.vault.lock_:
             self.check(token)
             with VaultUnitOfWork(self.vault) as uow:yield uow
+
+    def calculation_snapshot(self,token):
+        from wealth_manager.adapters.persistence.macro_data import Reader, Repository
+        from wealth_manager.adapters.persistence.macro_calculations import Repository as Calculations
+        with self.vault.lock_:
+            self.check(token)
+            return dict(rows=Reader(self.vault).read(),revision_token=Repository(self.vault.con).revision_token(),runs=Calculations(self.vault.con).recent())
+    def saved_calculation(self,token,rid):
+        from wealth_manager.adapters.persistence.macro_calculations import Repository
+        with self.vault.lock_:
+            self.check(token)
+            return Repository(self.vault.con).get(rid)

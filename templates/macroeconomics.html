@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Макроэкономика') }} — {{ _('Капитал') }}{% endblock %}
 {% block content %}
+<p><a class="btn" href="{{ url_for('macro_calculations') }}">{{ _('Производные показатели') }}</a></p>
 <p><a class="btn" href="{{ url_for('macro_settings') }}">{{ _('Обновление макроданных') }}</a></p>
 <header class="page-head"><div><h1>{{ _('Макроэкономика') }}</h1><p class="muted">{{ _('Ставки, инфляция, рост экономики и доходности облигаций') }}</p></div><a class="btn" href="{{ url_for('macro_data') }}">{{ _('Ряды и версии данных') }}</a></header>
 <p><a class="btn" href="{{ url_for('macro_import') }}">{{ _('Импорт статистики') }}</a></p>

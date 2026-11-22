@@ -144,7 +144,7 @@ class MacroDataTests(unittest.TestCase):
 
     def test_migration_preserves_manual_identity_and_unknown_dates(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_versions'):db.init_db(c)
+        with patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'):db.init_db(c)
         c.execute("INSERT INTO macro_observations(id,country,indicator,date,value,source,note) VALUES (42,'RU','key_rate','2020-01-01','10.1234567890123456789','manual','old note')");c.commit()
         with patch('wealth_manager.modules.macroeconomics.data.utcnow',return_value='2026-04-01T00:00:00.000000+00:00'):db.init_db(c)
         row=dict(c.execute('SELECT * FROM macro_observations').fetchone())
@@ -156,7 +156,7 @@ class MacroDataTests(unittest.TestCase):
 
     def test_migration_failure_restores_v15(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_versions'):db.init_db(c)
+        with patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'):db.init_db(c)
         before=list(c.iterdump());original=db._migrate_macro_versions
         def fail(con):original(con);raise RuntimeError('migration failed')
         with patch('db._migrate_macro_versions',side_effect=fail):

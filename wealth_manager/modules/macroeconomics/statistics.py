@@ -13,6 +13,9 @@ MAX_TOTAL=524288
 MAX_FILES=5
 # Unit and comparison basis are part of the code; indices are never silently reduced by 100.
 PROFILES={
+ 'cpi_mom_sa_index':('ИПЦ SA: предыдущий месяц = 100','Seasonally adjusted CPI: previous month = 100','index',('monthly',),'sa'),
+ 'cpi_mom_sa_growth':('Инфляция SA месяц к месяцу, %','Seasonally adjusted inflation MoM, %','percent',('monthly',),'sa'),
+ 'inflation_expectations_12m':('Ожидаемая инфляция в следующие 12 месяцев, %','Expected inflation over the next 12 months, %','percent',('monthly',),'nsa'),
  'cpi_mom_index':('ИПЦ: предыдущий месяц = 100','CPI: previous month = 100','index',('monthly',),'nsa'),
  'cpi_yoy_index':('ИПЦ: тот же месяц прошлого года = 100','CPI: same month last year = 100','index',('monthly',),'nsa'),
  'cpi_mom_growth':('Инфляция месяц к месяцу, %','Inflation MoM, %','percent',('monthly',),'nsa'),

@@ -188,7 +188,7 @@ class TaxEvidenceTests(unittest.TestCase):
 class TaxDocumentMigrationTests(unittest.TestCase):
     def test_v12_refunds_preserved_without_fabricated_receipt_dates(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'):db.init_db(c)
+        with patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'):db.init_db(c)
         for status,refund in [('received','123.45'),('submitted','200')]:
             c.execute("INSERT INTO tax_deductions(year,country,category,currency,amount,refund,status,documents) VALUES (2026,'RU','Education','RUB','1000',?,?, 'folder')",(refund,status))
         c.commit();before=list(c.iterdump());original=db._migrate_tax_documents

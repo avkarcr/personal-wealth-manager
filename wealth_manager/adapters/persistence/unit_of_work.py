@@ -35,6 +35,8 @@ class VaultUnitOfWork:
             self.companies = CompanyRepository(self.connection)
             self.macroeconomics = ObservationRepository(self.connection)
             self.macro_data = self.macroeconomics
+            from .macro_calculations import Repository as MacroCalculations
+            self.macro_calculations = MacroCalculations(self.connection)
             self.tax_evidence = TaxEvidenceRepository(self.connection)
             self.taxes = TaxRepository(self.connection)
             self.planning = SqlitePlanningRepository(self.connection)

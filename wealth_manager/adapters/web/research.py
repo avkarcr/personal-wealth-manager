@@ -15,6 +15,8 @@ def required_decimal(name):
 
 def register_research(app,runtime):
     services=runtime.services
+    from wealth_manager.shared.decimal import rounded
+    app.jinja_env.filters['macro_number']=lambda v:format(rounded(v,4),'f')
 
     @app.get('/companies')
     def companies():
@@ -43,6 +45,35 @@ def register_research(app,runtime):
     def macro_data():
         from wealth_manager.modules.macroeconomics.data import LABELS
         return render_template('macro_data.html',**services['macro_data_reports'].overview(request.args.get('as_of') or None,request.args.get('mode') or 'known'),labels=LABELS)
+
+    def calculation_parameters(values):
+        return dict(primary=int(values['primary']) if values.get('primary') else None,
+                    secondary=int(values['secondary']) if values.get('secondary') else None,
+                    as_of=values.get('as_of') or None,mode=values.get('mode') or 'known',
+                    method=values.get('method') or 'hp',window=int(values.get('window') or 40),
+                    hold_rate=values.get('hold_rate')=='on')
+
+    @app.get('/macroeconomics/calculations')
+    @validated
+    def macro_calculations():
+        from wealth_manager.modules.macroeconomics.derived import MESSAGES
+        from wealth_manager.modules.macroeconomics.data import LABELS
+        preview=services['macro_calculations'].preview(session.get('vault'),**calculation_parameters(request.args))
+        return render_template('macro_calculations.html',**preview,messages=MESSAGES,labels=LABELS,saved_id=None)
+
+    @app.post('/macroeconomics/calculations')
+    @validated
+    def macro_calculation_save():
+        rid=services['macro_calculations'].save(session.get('vault'),expected_fingerprint=f_str('fingerprint'),**calculation_parameters(request.form))
+        return redirect(url_for('macro_calculation',rid=rid))
+
+    @app.get('/macroeconomics/calculations/<int:rid>')
+    @validated
+    def macro_calculation(rid):
+        from wealth_manager.modules.macroeconomics.derived import MESSAGES
+        from wealth_manager.modules.macroeconomics.data import LABELS
+        return render_template('macro_calculations.html',result=services['macro_calculations'].saved(session.get('vault'),rid),
+                               messages=MESSAGES,labels=LABELS,saved_id=rid)
 
     @app.get('/settings/macroeconomics')
     @validated

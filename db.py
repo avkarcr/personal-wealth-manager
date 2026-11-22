@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -262,7 +262,8 @@ def init_db(con):
             if version < 13: _migrate_tax_documents(con)
             if version < 14: _migrate_goal_forecasts(con)
             if version < 15: _migrate_instruments(con)
-            _migrate_macro_versions(con)
+            if version < 16: _migrate_macro_versions(con)
+            if version < 17: _migrate_macro_calculations(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -669,3 +670,26 @@ def _migrate_macro_versions(con):
         aid=repo.artifact(source_id,row['source'],content,'migration-v16','application/json',now)
         repo.revision(row['id'],sid,row['date'],row['date'],row['value'],'','unknown','unknown',row['note'],aid,now)
     con.execute('PRAGMA user_version=16');con.commit()
+
+
+MACRO_CALCULATION_SCHEMA = """
+CREATE TABLE macro_calculations (
+ id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT NOT NULL UNIQUE,
+ version TEXT NOT NULL, as_of TEXT NOT NULL, mode TEXT NOT NULL CHECK(mode IN ('known','latest')),
+ config TEXT NOT NULL, result TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE macro_calculation_inputs (
+ run_id INTEGER NOT NULL REFERENCES macro_calculations(id),
+ revision_id INTEGER NOT NULL REFERENCES macro_revisions(id),
+ PRIMARY KEY(run_id,revision_id)
+);
+CREATE TRIGGER macro_calculations_no_update BEFORE UPDATE ON macro_calculations BEGIN SELECT RAISE(ABORT,'Immutable calculation'); END;
+CREATE TRIGGER macro_calculations_no_delete BEFORE DELETE ON macro_calculations BEGIN SELECT RAISE(ABORT,'Immutable calculation'); END;
+CREATE TRIGGER macro_calculation_inputs_no_update BEFORE UPDATE ON macro_calculation_inputs BEGIN SELECT RAISE(ABORT,'Immutable calculation inputs'); END;
+CREATE TRIGGER macro_calculation_inputs_no_delete BEFORE DELETE ON macro_calculation_inputs BEGIN SELECT RAISE(ABORT,'Immutable calculation inputs'); END;
+"""
+
+
+def _migrate_macro_calculations(con):
+    con.executescript('BEGIN IMMEDIATE;'+MACRO_CALCULATION_SCHEMA)
+    con.execute('PRAGMA user_version=17');con.commit()

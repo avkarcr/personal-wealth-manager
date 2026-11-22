@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Ряды и версии данных') }} — {{ _('Макроэкономика') }}{% endblock %}
 {% block content %}
+<p><a class="btn" href="{{ url_for('macro_calculations') }}">{{ _('Производные показатели') }}</a></p>
 <header class="page-head"><h1>{{ _('Ряды и версии данных') }}</h1><a href="{{ url_for('macroeconomics') }}">{{ _('Макроэкономика') }}</a></header>
 <section class="card"><form method="get" class="row3"><label class="fld"><span>{{ _('Историческая дата, UTC') }}</span><input name="as_of" type="date" value="{{ as_of[:10] }}"></label><label class="fld"><span>{{ _('Режим истории') }}</span><select name="mode"><option value="known" {{ 'selected' if mode=='known' }}>{{ _('Известно на дату') }}</option><option value="latest" {{ 'selected' if mode=='latest' }}>{{ _('Пересчитано по последним версиям') }}</option></select></label><button class="btn">{{ _('Применить') }}</button></form>
 <p class="muted">{{ _('Дата без времени означает конец дня UTC. Если публикация неизвестна, запись доступна в строгой истории только с момента получения или миграции. Режим последних версий может использовать сведения из будущего относительно выбранной даты.') }}</p>

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}{{ _('Производные показатели') }} — {{ _('Макроэкономика') }}{% endblock %}
+{% block content %}
+{% set units={'percent':'%','pp':'п.п.','bp':'б.п.','RUB':'RUB'} %}
+<header class="page-head"><h1>{{ _('Производные показатели') }}</h1><a class="btn" href="{{ url_for('macro_data') }}">{{ _('Ряды данных') }}</a></header>
+{% if saved_id %}<p>{{ _('Сохранённый расчёт') }} #{{ saved_id }} · {{ result.version }} · {{ result.as_of }}</p><a class="btn" href="{{ url_for('macro_calculations') }}">{{ _('Новый расчёт') }}</a>{% else %}
+<section class="card"><form method="get">
+{% for field,label in [('primary','Основной ряд'),('secondary','Второй ряд для спреда или ожиданий')] %}
+<label class="fld"><span>{{ _(label) }}</span><select name="{{ field }}"><option value="">{{ _('Выберите ряд') }}</option>{% for row in choices %}<option value="{{ row.series_id }}" {{ 'selected' if result.config[field]==row.series_id }}>#{{ row.series_id }} · {{ row.name_en if language=='en' else row.name_ru }} · {{ row.source_title }} · {{ _(labels[row.frequency]) }} / {{ _(labels[row.adjustment]) }} / {{ row.base_year or '—' }}</option>{% endfor %}</select></label>{% endfor %}
+<label class="fld"><span>{{ _('Историческая дата, UTC') }}</span><input type="date" name="as_of" value="{{ result.as_of[:10] }}" required></label>
+<label class="fld"><span>{{ _('Режим истории') }}</span><select name="mode">{% for v,label in [('known','Известно на дату'),('latest','Пересчитано по последним версиям')] %}<option value="{{ v }}" {{ 'selected' if result.mode==v }}>{{ _(label) }}</option>{% endfor %}</select></label>
+<label class="fld"><span>{{ _('Метод Output Gap') }}</span><select name="method"><option value="hp" {{ 'selected' if result.config.method=='hp' }}>{{ _('HP по доступному окну, λ = 1600') }}</option><option value="log_linear" {{ 'selected' if result.config.method=='log_linear' }}>{{ _('Логлинейный тренд') }}</option></select></label>
+<label class="fld"><span>{{ _('Окно модели, кварталов (20–120)') }}</span><input type="number" min="20" max="120" name="window" value="{{ result.config.window }}" required></label>
+<label><input type="checkbox" name="hold_rate" {{ 'checked' if result.config.hold_rate }}> {{ _('Для ex ante: ключевая ставка неизменна следующие 12 месяцев') }}</label>
+<p><button class="btn primary">{{ _('Рассчитать') }}</button></p>
+</form><p class="muted">{{ _('Выберите конкретный ряд и источник. Для спреда: 10-летняя ОФЗ и 1-летняя или 2-летняя ОФЗ одной методики. Для ex ante: ставка и ожидания на 12 месяцев. Месячная фактическая инфляция не заменяет ожидания.') }}</p>
+<p>{{ _('Output Gap требует минимум 20 последовательных кварталов реального ВВП с сезонной корректировкой и единым базовым годом. Разница методов — диагностика чувствительности, не доверительный интервал.') }}</p></section>
+{% endif %}
+<section class="card"><h2>{{ _('Результат расчёта') }}</h2>
+{% set statuses={'OK':'Рассчитано','PARTIAL':'Частичный результат','INSUFFICIENT_DATA':'Недостаточно данных'} %}
+<p>{{ _(statuses[result.status]) }} · {{ result.as_of }} · {{ result.config.method }} / {{ result.config.window }} · {{ result.version }}</p>
+<p>{{ _('Каждая точка использует окно, заканчивающееся её периодом. Все точки рассчитаны по версиям, выбранным на одну дату расчёта; это не последовательность исторических прогнозов.') }}</p>
+{% if result.reason %}<p>{{ _(messages[result.reason]) }}</p>{% endif %}
+{% for warning in result.warnings %}<p class="banner">{{ _(messages[warning]) }}</p>{% endfor %}
+{% for row in result.series %}<p>#{{ row.series_id }} · {{ row.indicator }} · {{ row.source_title }} · {{ row.country }} · {{ _(labels[row.frequency]) }} / {{ _(labels[row.adjustment]) }} · {{ _('Базовый год') }}: {{ row.base_year or '—' }} · {{ _('Методика') }}: {{ row.methodology }}</p>{% endfor %}
+{% for m in result.metrics %}<article class="card"><h3>{{ _(m.label) }}</h3>
+{% if m.points %}<p>{{ _('Последнее значение') }}: <b>{{ m.points[-1].value|macro_number }}</b> {{ _(units[m.unit]) }} · {{ m.points[-1].date }}</p>
+<details><summary>{{ _('Последние 12 значений и входные версии') }}</summary><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>{{ _('Дата') }}</th><th>{{ _('Значение') }}</th><th>{{ _('Версии наблюдений') }}</th><th>{{ _('Пояснение') }}</th></tr></thead><tbody>
+{% set notes={'normal':'Нормальная кривая','flat':'Плоская кривая','inverted':'Инвертированная кривая','hold_key_rate_12m':'Ключевая ставка неизменна 12 месяцев','yield_1y_expected_12m':'Доходность 1 год и ожидания 12 месяцев'} %}
+{% for p in m.points[-12:]|reverse %}<tr><td>{{ p.date }}</td><td>{{ p.value|macro_number }} {{ _(units[m.unit]) }}</td><td>{{ p.revisions|join(', ') }}</td><td>{{ _(notes[p.note]) if p.note else '' }}</td></tr>{% endfor %}</tbody></table></div></details>
+{% else %}<p>{{ _(messages[m.reason]) }}</p>{% endif %}</article>{% endfor %}
+{% if not saved_id and result.status!='INSUFFICIENT_DATA' %}<form method="post" action="{{ url_for('macro_calculation_save') }}">
+<input type="hidden" name="fingerprint" value="{{ fingerprint }}"><input type="hidden" name="as_of" value="{{ result.as_of }}"><input type="hidden" name="mode" value="{{ result.mode }}">
+{% for k in ['primary','secondary','method','window'] %}<input type="hidden" name="{{ k }}" value="{{ result.config[k] if result.config[k] is not none else '' }}">{% endfor %}
+{% if result.config.hold_rate %}<input type="hidden" name="hold_rate" value="on">{% endif %}
+<button class="btn primary">{{ _('Сохранить расчёт с версиями данных') }}</button></form>{% endif %}
+</section>
+{% if not saved_id %}<section class="card"><h2>{{ _('Сохранённые расчёты') }}</h2>{% for run in runs %}<p><a href="{{ url_for('macro_calculation',rid=run.id) }}">#{{ run.id }} · {{ run.as_of }} · {{ run.mode }} · {{ run.version }}</a></p>{% else %}<p>{{ _('Расчётов пока нет') }}</p>{% endfor %}</section>{% endif %}
+{% endblock %}

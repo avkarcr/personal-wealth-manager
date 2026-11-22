@@ -94,7 +94,7 @@ class Reader:
         with self.vault.lock_:
             if not self.vault.unlocked:raise RuntimeError('Vault is locked')
             rows=[dict(r) for r in self.vault.con.execute('''SELECT r.id AS revision_id,r.record_id,r.period_start,r.period_end,r.value,r.published_at,r.publication_precision,r.retrieved_at,r.available_at,r.status,r.note,r.deleted,r.previous_revision_id,
-             s.id AS series_id,s.indicator,s.country,s.unit,s.frequency,s.scale,s.adjustment,s.base_year,s.methodology,
+             s.id AS series_id,s.source_id,s.provider_key,s.indicator,s.country,s.unit,s.frequency,s.scale,s.adjustment,s.base_year,s.methodology,
              i.name_ru,i.name_en,src.title AS source_title,src.kind AS source_kind,a.locator,a.digest,a.parser_version
              FROM macro_revisions r JOIN macro_series s ON s.id=r.series_id JOIN macro_indicators i ON i.code=s.indicator
              JOIN macro_sources src ON src.id=s.source_id JOIN macro_artifacts a ON a.id=r.artifact_id ORDER BY r.id DESC''')]

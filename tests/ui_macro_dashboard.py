@@ -33,23 +33,23 @@ def main():
             page.goto(url+'/macroeconomics/dashboard?window=5&chart=gdp');page.locator('#macro-plot svg path').first.wait_for()
             assert page.get_by_role('heading',name='Экономика и инвестиционный цикл').count()==1
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-            page.screenshot(path=str(screenshots/'desktop-light.png'))
+            page.screenshot(animations='disabled',path=str(screenshots/'desktop-light.png'))
             plot=page.locator('#macro-plot');plot.focus();plot.press('Home');first=page.locator('#macro-readout').inner_text();plot.press('End');last=page.locator('#macro-readout').inner_text();assert first!=last
             light=page.locator('#macro-plot svg path').first.evaluate('(e)=>getComputedStyle(e).stroke')
             page.locator('#theme-toggle').click()
             dark=page.locator('#macro-plot svg path').first.evaluate('(e)=>getComputedStyle(e).stroke');assert light!=dark
-            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(path=str(screenshots/'chart-dark.png'))
+            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(animations='disabled',path=str(screenshots/'chart-dark.png'))
             page.set_viewport_size({'width':390,'height':844});page.locator('#theme-toggle').click();page.evaluate('scrollTo(0,0)')
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-            page.screenshot(path=str(screenshots/'mobile-light.png'))
+            page.screenshot(animations='disabled',path=str(screenshots/'mobile-light.png'))
             page.get_by_role('link',name='Кривая ОФЗ',exact=True).click();page.locator('#macro-plot svg circle').first.wait_for()
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(path=str(screenshots/'mobile-curve.png'))
+            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(animations='disabled',path=str(screenshots/'mobile-curve.png'))
             page.get_by_role('link',name='История фаз цикла',exact=True).click();page.locator('#macro-plot svg rect').first.wait_for()
             plot.focus();plot.press('Home');assert 'Индекс уверенности' in page.locator('#macro-readout').inner_text()
             fixture.s['change_language'].execute('en');page.reload();assert page.get_by_role('heading',name='Economy and investment cycle').count()==1
             assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(path=str(screenshots/'mobile-phases-en.png'))
+            page.locator('#macro-history').scroll_into_view_if_needed();page.screenshot(animations='disabled',path=str(screenshots/'mobile-phases-en.png'))
             assert not errors,errors
             context.close()
             nojs=browser.new_context(java_script_enabled=False,viewport={'width':390,'height':844})

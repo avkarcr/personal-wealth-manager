@@ -88,6 +88,23 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(p['groups'][-1]['signal'],'off');self.assertIsNone(p['kpis'][-1]['value'])
         self.assertIsNone(p['kpis'][-1]['delta']);self.assertEqual(p['kpis'][-1]['reason'],'missing_pair')
 
+    def test_tiny_changes_are_not_displayed_as_growth_or_decline_of_zero(self):
+        self.seed();app=create_app({'TESTING':True},vault=self.vault);client=app.test_client()
+        service=app.extensions['wealth_manager'].services['macro_dashboard']
+        view=self.dashboard().overview(self.vault.token)
+        with client.session_transaction() as s:s['vault']=self.vault.token
+        for lang,small in [('ru','Изменение менее 0,0001 п.п.'),('en','Change under 0.0001 pp')]:
+            self.s['change_language'].execute(lang)
+            for change,label in [('1e-20',small),('-1e-20',small),('0','→'),('0.0001','↑'),('-0.0001','↓')]:
+                snapshot=deepcopy(view);snapshot['kpis'][0]['delta']=D(change)
+                with patch.object(service,'overview',return_value=snapshot):
+                    response=client.get('/macroeconomics/dashboard')
+                self.assertEqual(response.status_code,200)
+                card=response.get_data(as_text=True).split('<section class="macro-kpis"',1)[1].split('</a>',1)[0]
+                self.assertIn(label,card)
+                if label==small:self.assertNotIn('↑',card);self.assertNotIn('↓',card)
+                self.assertEqual(snapshot['kpis'][0]['delta'],D(change))
+
     def test_http_ru_en_links_forms_and_current_refresh_preserve_view(self):
         self.seed();app=create_app({'TESTING':True},vault=self.vault);client=app.test_client();runtime=app.extensions['wealth_manager']
         runtime.services['macro_dashboard'].clock=lambda:'2026-11-22T12:00:00+00:00'

@@ -1362,5 +1362,6 @@
   "Выключено": "Disabled",
   "Далее": "Next",
   "Назад": "Previous",
-  "Ошибка загрузки": "Loading failed"
+  "Ошибка загрузки": "Loading failed",
+  "Изменение менее 0,0001 п.п.": "Change under 0.0001 pp"
 }

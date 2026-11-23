@@ -10,6 +10,7 @@ from wealth_manager.modules.macroeconomics.derived import MESSAGES
 from wealth_manager.modules.macroeconomics.data import instant
 from wealth_manager.modules.macroeconomics.refresh import RefreshError
 from wealth_manager.modules.macroeconomics.scheduling import KINDS
+from wealth_manager.shared.decimal import rounded
 from .commands import validated
 from .i18n import gettext
 
@@ -26,6 +27,8 @@ def register_macro_dashboard(app,runtime):
     @validated
     def macro_dashboard():
         view=service.overview(session.get('vault'),**params(request.args))
+        for kpi in view['kpis']:
+            kpi['delta_rounded']=rounded(kpi['delta'],4) if kpi['delta'] is not None else None
         graph=view['graph']
         # JSON contains exact numeric strings; only SVG coordinates use JS numbers.
         chart_data=dict(graph,phase_labels={k:gettext(v) for k,v in PHASES.items()},unit_label=gettext(UNITS.get(graph['unit'],graph['unit'])))

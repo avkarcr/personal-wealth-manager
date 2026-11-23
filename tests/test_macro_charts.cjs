@@ -48,6 +48,16 @@ test('Phase chart is categorical, unknown phases remain labelled, and untrusted 
   assert.match(output.textContent,/<img src=x onerror=alert\(1\)>/);assert.ok(nodes.every(n=>!('innerHTML' in n)));
   assert.ok(nodes.some(n=>n.attrs.fill==='var(--muted)'));
 });
+test('Phase readouts use concise localized scores without changing exact chart data',()=>{
+  for(const lang of ['ru','en']){
+    const {api,node}=boot(lang),box=node(),output=node();
+    const data={axis:'phase',kind:'phases',start:'2026-03-31',end:'2026-06-30',phase_labels:{RECOVERY:'Recovery'},points:[{date:'2026-03-31',value:1,phase:'RECOVERY',confidence:'93.139796424479270388383677',coverage:'100.000000000000000000',revisions:[]}]};
+    const before=JSON.stringify(data);api.mount(box,output,data);
+    assert.ok(output.textContent.includes(lang==='ru'?'93,14':'93.14'));
+    assert.match(output.textContent,/100%/);assert.doesNotMatch(output.textContent,/139796/);
+    assert.equal(JSON.stringify(data),before);
+  }
+});
 test('Empty charts and missing tenors do not create fabricated zero observations',()=>{
   const {api,node,nodes}=boot(),box=node(),output=node();api.mount(box,output,{axis:'date',points:[]});
   assert.ok(nodes.some(n=>n.textContent==='No data'));

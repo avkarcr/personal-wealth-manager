@@ -42,13 +42,15 @@
   function mount(box,readout,data) {
     const points=data.points,locale=document.documentElement.lang==='en'?'en-GB':'ru-RU';
     const format=new Intl.NumberFormat(locale,{maximumFractionDigits:3,notation:'compact'});
+    const indexFormat=new Intl.NumberFormat(locale,{maximumFractionDigits:2});
+    const score=value=>number(value)===null?'—':indexFormat.format(number(value));
     const time=new Intl.DateTimeFormat(locale,{month:'short',year:'2-digit',timeZone:'UTC'});
     const isPhase=data.axis==='phase',isTenor=data.axis==='tenor';
     const values=points.map(p=>isTenor?Number(p.x):Date.parse(p.date+'T00:00:00Z'));
     let index=points.length-1,cursor,marker,root,plotLeft,plotRight,xmin,xmax,x;
     function describe(p) {
       const pieces=[isTenor?`${p.x} ${t('лет')} · ${p.date || '—'}`:p.date];
-      if(isPhase){pieces.push(data.phase_labels[p.phase],`${t('Индекс уверенности')}: ${p.confidence}`,`${t('Покрытие активных весов')}: ${p.coverage}%`);}
+      if(isPhase){pieces.push(data.phase_labels[p.phase],`${t('Индекс уверенности')}: ${score(p.confidence)}`,`${t('Покрытие активных весов')}: ${score(p.coverage)}%`);}
       else{pieces.push(number(p.value)===null?t('Нет данных'):`${p.value} ${data.unit_label}`);if(p.revisions.length)pieces.push(`${t('Версии наблюдений')}: ${p.revisions.join(', ')}`);}
       return pieces.join(' · ');
     }

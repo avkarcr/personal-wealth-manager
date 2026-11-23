@@ -61,6 +61,8 @@ def create_app(config=None, *, vault=None):
     register_research(app, runtime)
     from wealth_manager.adapters.web.economic_cycle import register_economic_cycle
     register_economic_cycle(app,runtime)
+    from wealth_manager.adapters.web.macro_dashboard import register_macro_dashboard
+    register_macro_dashboard(app,runtime)
     from wealth_manager.adapters.web.macro_import import register_macro_import
     register_macro_import(app,runtime)
     register_instruments(app, runtime)

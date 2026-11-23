@@ -34,7 +34,10 @@ class Cycle:
         return cid
 
     def preview(self,token,as_of=None,mode='known'):
-        snapshot=self.session.cycle_snapshot(token); cfg=validate(snapshot['config'])
+        return self.from_snapshot(self.session.cycle_snapshot(token),as_of,mode)
+
+    def from_snapshot(self,snapshot,as_of=None,mode='known'):
+        cfg=validate(snapshot['config'])
         now=instant(self.clock()); cutoff=instant(as_of,True) if as_of else now
         if as_of and len(as_of)==10 and cutoff[:10]==now[:10]: cutoff=now
         if cutoff>now: raise RecordError(ERROR)

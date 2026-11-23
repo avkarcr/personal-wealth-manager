@@ -159,7 +159,7 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(self.dump(),before)
         self.assertIn('Macroeconomics',client.get('/macroeconomics').get_data(as_text=True))
         page=client.get('/').get_data(as_text=True)
-        self.assertLess(page.index('href="/macroeconomics"'),page.index('href="/portfolios"'))
+        self.assertLess(page.index('href="/macroeconomics/dashboard"'),page.index('href="/portfolios"'))
         response=client.post('/companies/save',data=dict(forms[0][1],website='javascript:alert(1)'))
         self.assertEqual(response.status_code,400);self.assertIn('URL must start',response.get_data(as_text=True))
         for url,data in forms:

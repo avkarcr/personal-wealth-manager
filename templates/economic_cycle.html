@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Экономический цикл') }}{% endblock %}
 {% block content %}
+<p><a class="btn" href="{{ url_for('macro_dashboard',as_of=result.as_of,mode=result.mode) }}">{{ _('Аналитический дашборд') }}</a></p>
 <header class="page-head"><h1>{{ _('Экономический цикл') }}</h1><a class="btn" href="{{ url_for('economic_cycle_settings') }}">{{ _('Настройки модели цикла') }}</a></header>
 <p>{{ _('Начальные веса и пороги — проверяемая гипотеза. Историческая калибровка будет выполнена отдельно.') }}</p>
 {% if saved_id %}<p>{{ _('Сохранённый расчёт') }} #{{ saved_id }}</p><a class="btn" href="{{ url_for('economic_cycle') }}">{{ _('Новый расчёт') }}</a>{% else %}

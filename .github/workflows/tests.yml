@@ -22,4 +22,22 @@ jobs:
       - run: python -m coverage report
       - run: python -m coverage report --include='wealth_manager/*' --omit='wealth_manager/adapters/web/legacy_routes.py' --fail-under=95
       - run: node --check static/app.js
-      - run: node --test tests/test_frontend.cjs
+      - run: node --check static/macro_charts.js
+      - run: node --test tests/*.cjs
+
+  macro-browser:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: PYTHONPATH=tests:. MACRO_SCREENSHOTS=/tmp/m8-ui python tests/ui_macro_dashboard.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macro-dashboard-synthetic-ui
+          path: /tmp/m8-ui/*.png
+          if-no-files-found: ignore

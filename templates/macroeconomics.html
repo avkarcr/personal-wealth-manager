@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Макроэкономика') }} — {{ _('Капитал') }}{% endblock %}
 {% block content %}
+<p><a class="btn primary" href="{{ url_for('macro_dashboard') }}">{{ _('Аналитический дашборд') }}</a></p>
 <p><a class="btn" href="{{ url_for('economic_cycle') }}">{{ _('Экономический цикл') }}</a></p>
 <p><a class="btn" href="{{ url_for('macro_calculations') }}">{{ _('Производные показатели') }}</a></p>
 <p><a class="btn" href="{{ url_for('macro_settings') }}">{{ _('Обновление макроданных') }}</a></p>

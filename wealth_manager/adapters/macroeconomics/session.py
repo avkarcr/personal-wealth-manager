@@ -47,3 +47,9 @@ class Session:
         with self.vault.lock_:
             self.check(token)
             return Repository(self.vault.con).get(rid)
+
+    def dashboard_snapshot(self,token):
+        with self.vault.lock_:
+            snapshot=self.cycle_snapshot(token)
+            snapshot['refresh']=self.read_state(token)
+            return snapshot

@@ -2,8 +2,8 @@
 <form method="post" action="{{ url_for('company_save') }}">
 {% if record %}<input type="hidden" name="id" value="{{ record.id }}">{% endif %}
 {{ fields.input('name','Название компании',record.name if record else '',required=true) }}
-<div class="row2">{{ fields.input('ticker','Тикер',record.ticker if record else '') }}{{ fields.input('exchange','Биржа',record.exchange if record else '') }}</div>
-<div class="row2">{{ fields.input('country','Код страны',record.country if record else 'RU',required=true) }}{{ fields.input('sector','Сектор',record.sector if record else '') }}</div>
+{% if record %}<input type="hidden" name="ticker" value="{{ record.ticker }}"><input type="hidden" name="exchange" value="{{ record.exchange }}">{% else %}<div class="row2">{{ fields.input('ticker','Первичный тикер (необязательно)') }}{{ fields.input('exchange','Биржа') }}</div><p class="small muted">{{ _('Если указан тикер, будет создан выпуск с неуточнённым типом. Его реквизиты и статус торгов можно заполнить в карточке.') }}</p>{% endif %}
+{{ fields.input('country','Код страны',record.country if record else 'RU',required=true) }}<input type="hidden" name="sector" value="{{ record.sector if record else '' }}"><p class="small muted">{{ _('Отрасли и несколько выпусков добавляются в карточке эмитента.') }}</p>
 {{ fields.input('website','Сайт компании',record.website if record else '',type='url') }}
 {{ fields.select('status','Статус',statuses,record.status if record else 'watch') }}
 {{ fields.area('thesis','Инвестиционная идея и заметки',record.thesis if record else '') }}

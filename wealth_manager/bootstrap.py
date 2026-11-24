@@ -55,6 +55,12 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
             "accounts": AccountCommands(factory,today), "positions": PositionCommands(factory, today),
             "cashflows": CashflowCommands(factory, today), "rentals": RentalCommands(factory, today)}
 
+    from wealth_manager.modules.market_catalog.application import Commands as CatalogCommands
+    from wealth_manager.modules.market_catalog.reports import Reports as CatalogReports
+    from wealth_manager.adapters.persistence.market_catalog import Reader as CatalogReader
+    services['market_catalog']=CatalogCommands(factory,today)
+    services['catalog_reports']=CatalogReports(CatalogReader(vault),today)
+
     from wealth_manager.adapters.macroeconomics.session import Session
     from wealth_manager.modules.macroeconomics.scheduling import Scheduler
     from wealth_manager.adapters.macroeconomics.providers import Providers

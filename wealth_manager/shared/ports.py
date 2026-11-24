@@ -56,7 +56,10 @@ from wealth_manager.modules.liabilities.ports import LiabilityRepository
 
 from wealth_manager.modules.instruments.ports import Repository as InstrumentRepository
 
+from wealth_manager.modules.market_catalog.ports import Repository as CatalogRepository
+
 class UnitOfWork(Protocol):
+    market_catalog: CatalogRepository
     instruments: InstrumentRepository
     liabilities: LiabilityRepository
     ledger: LedgerRepository

@@ -60,6 +60,8 @@ class Commands:
             identity=lambda link:(link['company_id'],link['crypto_id']) if link else None
             if identity(source_link)!=identity(target_link):
                 raise RecordError('Для перевода привяжите обе позиции к одной компании или криптоактиву')
+            if source_link and source_link['security_id']!=target_link['security_id']:
+                raise RecordError('Для перевода привяжите обе позиции к одному выпуску бумаги')
         eid=uow.ledger.insert(entry)
         if rebuild:self.rebuild(uow)
         h=data['holdings'][entry.holding_id]

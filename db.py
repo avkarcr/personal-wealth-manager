@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 18
+SCHEMA_VERSION = 19
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -265,6 +265,7 @@ def init_db(con):
             if version < 16: _migrate_macro_versions(con)
             if version < 17: _migrate_macro_calculations(con)
             if version < 18: _migrate_economic_cycle(con)
+            if version < 19: _migrate_market_catalog(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -723,3 +724,8 @@ def _migrate_economic_cycle(con):
         for action in ('UPDATE','DELETE'):
             con.execute(f"CREATE TRIGGER {table}_no_{action.lower()} BEFORE {action} ON {table} BEGIN SELECT RAISE(ABORT,'Immutable cycle evidence'); END")
     con.execute('PRAGMA user_version=18');con.commit()
+
+
+def _migrate_market_catalog(con):
+    from wealth_manager.adapters.persistence.catalog_migration import migrate
+    migrate(con)

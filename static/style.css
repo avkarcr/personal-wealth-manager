@@ -430,3 +430,36 @@ input[type="checkbox"]:disabled { cursor: not-allowed; }
   .macro-chart-link { padding: 8px; }.macro-page .card { padding: 14px; }.macro-readout { min-height: 70px; }
 }
 @media (prefers-reduced-motion: reduce) { .macro-kpi { transition: none; } }
+
+/* M9 catalog: one issuer, distinct issues and dated listings. */
+.catalog-page, .catalog-card { min-width: 0; overflow-wrap: anywhere; }
+.catalog-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.catalog-row > div { min-width: 0; }
+.catalog-row p { margin: 5px 0; }
+.catalog-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.catalog-tags .tag, .catalog-tags .btn { white-space: normal; height: auto; min-height: 28px; }
+.catalog-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.catalog-link:hover { text-decoration-thickness: 2px; }
+.catalog-card details > summary { cursor: pointer; padding: 10px; border-radius: 8px; margin: 6px -10px; }
+.catalog-card details > summary:hover { background: var(--surface-2); }
+.catalog-card :focus-visible, .catalog-page :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.catalog-form { padding: 14px 0; max-width: 720px; }
+.catalog-form .row2 > *, .catalog-form select { min-width: 0; }
+.catalog-delete { margin-top: 12px; }
+.catalog-listing + .catalog-listing { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 12px; }
+.catalog-history { padding-left: 18px; font-size: 12.5px; }
+.catalog-history li + li { margin-top: 6px; }
+.catalog-status { font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 9px; }
+.catalog-status.status-suspended, .catalog-status.status-delisted { color: var(--neg); }
+.catalog-status.status-unknown { color: var(--muted); }
+.catalog-subsector { margin-left: 24px; }
+.catalog-issues { padding-left: 18px; }
+.catalog-issues li + li { margin-top: 10px; }
+.catalog-binding { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.catalog-binding .fld { flex: 1 1 200px; min-width: 0; margin: 0; }
+@media (max-width:660px) {
+  .catalog-row { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .catalog-form .row2 { grid-template-columns: 1fr; }
+  .catalog-subsector { margin-left: 12px; }
+  .catalog-card { padding: 16px; }
+}

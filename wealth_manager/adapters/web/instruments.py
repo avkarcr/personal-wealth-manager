@@ -11,6 +11,9 @@ def register_instruments(app,runtime):
     @app.get('/companies/<int:rid>')
     @validated
     def company_detail(rid):return render_template('instrument.html',**reports.detail('company',rid))
+    @app.get('/securities/<int:rid>')
+    @validated
+    def security_detail(rid):return render_template('instrument.html',**reports.detail('security',rid))
     @app.get('/crypto-assets/<int:rid>')
     @validated
     def crypto_detail(rid):return render_template('instrument.html',**reports.detail('crypto',rid))
@@ -27,8 +30,8 @@ def register_instruments(app,runtime):
     @app.post('/instruments/<kind>/<int:rid>/link')
     @validated
     def instrument_link(kind,rid):
-        commands.link(int(f_str('holding_id')),kind,rid)
-        return redirect(url_for('company_detail' if kind=='company' else 'crypto_detail',rid=rid))
+        commands.link(int(f_str('holding_id')),kind,rid,int(f_str('security_id')) if f_str('security_id') else None)
+        return redirect(url_for('company_detail' if kind=='company' else 'security_detail' if kind=='security' else 'crypto_detail',rid=rid))
     @app.post('/positions/<int:hid>/unlink')
     @validated
     def instrument_unlink(hid):

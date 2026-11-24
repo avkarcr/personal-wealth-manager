@@ -27,11 +27,20 @@ class CompanyRepository(RecordRepository):
         get_row(self.connection,self.table,record_id)
         if self.connection.execute('SELECT 1 FROM holding_links WHERE company_id=?',(record_id,)).fetchone():
             raise RecordError('Сначала удалите связи с позициями или отправьте запись в архив')
+        from .market_catalog import Repository
+        Repository(self.connection).delete_company_catalog(record_id)
         super().delete(record_id)
     def save(self,record):
-        if record.ticker and self.connection.execute('SELECT 1 FROM companies WHERE ticker=? COLLATE NOCASE AND exchange=? COLLATE NOCASE AND id<>?',(record.ticker,record.exchange,record.id or -1)).fetchone():
+        old=get_row(self.connection,self.table,record.id) if record.id is not None else None
+        if old and (old['ticker'],old['exchange'])!=(record.ticker,record.exchange):
+            raise RecordError('Изменяйте тикеры в листингах выпуска; исходные поля компании сохранены для совместимости')
+        if not old and record.ticker and self.connection.execute('SELECT 1 FROM security_listings WHERE ticker=? COLLATE NOCASE AND exchange=? COLLATE NOCASE',(record.ticker,record.exchange)).fetchone():
             raise RecordError('Компания с таким тикером и биржей уже существует')
-        return super().save(record)
+        rid=super().save(record)
+        if not old and record.ticker:
+            from .market_catalog import Repository
+            Repository(self.connection).legacy_listing(rid,record.name,record.ticker,record.exchange)
+        return rid
 
 
 from .macro_data import Repository as ObservationRepository
@@ -61,7 +70,15 @@ class TableReader:
                 for key in self.decimal_fields: row[key]=Decimal(row[key])
             return rows
 
-class CompanyReader(TableReader): table='companies'
+class CompanyReader(TableReader):
+    table='companies'
+    def read(self):
+        from datetime import date
+        from .market_catalog import snapshot
+        from wealth_manager.modules.market_catalog.reports import company_catalog
+        with self.vault.lock_:
+            rows=super().read();data=snapshot(self.vault.con)
+            return [dict(row,catalog=company_catalog(data,row['id'],date.today().isoformat())) for row in rows]
 class ObservationReader(TableReader):
     table='macro_observations';decimal_fields=('value',)
 class EntryReader(TableReader):

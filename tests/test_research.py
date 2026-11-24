@@ -163,7 +163,8 @@ class ResearchTests(unittest.TestCase):
         response=client.post('/companies/save',data=dict(forms[0][1],website='javascript:alert(1)'))
         self.assertEqual(response.status_code,400);self.assertIn('URL must start',response.get_data(as_text=True))
         for url,data in forms:
-            self.assertEqual(client.post(url,data=dict(data,id=999)).status_code,400 if url in ('/companies/save','/macroeconomics/save') else 404)
+            # Unknown issuer ID is resolved before legacy listing conflicts.
+            self.assertEqual(client.post(url,data=dict(data,id=999)).status_code,400 if url=='/macroeconomics/save' else 404)
         for url in ('/companies/1/delete','/macroeconomics/1/delete','/taxes/entries/1/delete','/taxes/deductions/1/delete'):
             self.assertEqual(client.get(url).status_code,405)
             self.assertEqual(client.post(url).status_code,302)

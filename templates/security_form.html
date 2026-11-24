@@ -1,0 +1,12 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('security_save',cid=issuer_id) }}" class="catalog-form">
+{% if security %}<input type="hidden" name="id" value="{{ security.id }}">{% endif %}
+{{ fields.input('name','Название выпуска',security.name if security else '',required=true) }}
+<div class="row2">{{ fields.select('kind','Тип выпуска',catalog.security_types,security.kind if security else 'unknown') }}{{ fields.input('currency','Валюта выпуска',security.currency if security else '') }}</div>
+<div class="row2">{{ fields.input('isin','ISIN',security.isin if security else '') }}{{ fields.input('registration_number','Регистрационный номер выпуска',security.registration_number if security else '') }}</div>
+<label class="fld"><span>{{ _('Базовая акция для расписки') }}</span><select name="underlying_id"><option value="">{{ _('Не указана') }}</option>{% for s in catalog.underlying_choices %}{% if not security or s.id!=security.id %}<option value="{{ s.id }}" {{ 'selected' if security and security.underlying_id==s.id }}>{{ s.name }} · {{ s.isin or '#' ~ s.id }}</option>{% endif %}{% endfor %}</select></label>
+<p class="muted small">{{ _('Расписка и базовая акция — отдельные выпуски. Их позиции и количества не объединяются.') }}</p>
+<div class="row2">{{ fields.input('source','Источник сведений',security.source if security else '') }}{{ fields.input('as_of','Дата подтверждения',security.as_of if security else '',type='date') }}</div>
+<label class="check"><input type="checkbox" name="archived" value="1" {{ 'checked' if security and security.archived }}>{{ _('Архив') }}</label>
+<button class="btn primary">{{ _('Сохранить выпуск') }}</button>
+</form>

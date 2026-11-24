@@ -66,6 +66,8 @@ def create_app(config=None, *, vault=None):
     from wealth_manager.adapters.web.macro_import import register_macro_import
     register_macro_import(app,runtime)
     register_instruments(app, runtime)
+    from wealth_manager.adapters.web.market_catalog import register_catalog
+    register_catalog(app,runtime)
     register_entities(app, runtime)
     register_market_data(app, runtime)
     return app

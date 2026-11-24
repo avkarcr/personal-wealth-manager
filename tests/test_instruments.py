@@ -192,7 +192,7 @@ class InstrumentTests(unittest.TestCase):
 class InstrumentMigrationTests(unittest.TestCase):
     def test_v14_upgrade_preserves_data_no_automatic_links_and_rolls_back(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'):db.init_db(c)
+        with patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(c)
         c.execute("INSERT INTO companies(name,ticker,exchange,country,status) VALUES ('Old','OLD','MOEX','RU','watch')");c.commit()
         before=list(c.iterdump());original=db._migrate_instruments
         def fail(con):original(con);raise RuntimeError('migration')

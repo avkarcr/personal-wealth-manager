@@ -149,7 +149,7 @@ class CalculationTests(unittest.TestCase):
 
     def test_v16_migration_idempotence_and_failure_restores_original(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'):db.init_db(c)
+        with patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(c)
         self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],16)
         before=list(c.iterdump());original=db._migrate_macro_calculations
         def fail(con):original(con);raise RuntimeError('failure after migration')

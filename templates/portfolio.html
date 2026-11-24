@@ -7,7 +7,7 @@
 <p class="muted">{{ _('Доли применяются к текущей стоимости позиций и недвижимости. Изменение количества или оценки меняет стоимость доли. Общий капитал не увеличивается при распределении.') }}</p>
 {% for row in portfolio.rows %}
 <article class="card"><h3>{{ row.source.name }}{% if row.source.owner %} · {{ row.source.owner }}{% endif %}</h3>
-{% if row.source.kind=='holding' %}{% set link=instrument_links.get(row.source.id) %}{% if link %}<p><a href="{{ url_for('company_detail' if link.kind=='company' else 'crypto_detail',rid=link.id) }}">{{ link.name }}</a></p>{% endif %}{% endif %}
+{% if row.source.kind=='holding' %}{% set link=instrument_links.get(row.source.id) %}{% if link %}<p><a href="{{ url_for('company_detail' if link.kind=='company' else 'crypto_detail',rid=link.id) }}">{{ link.name }}</a>{% if link.security_id %} <a class="small catalog-link" href="{{ url_for('security_detail',rid=link.security_id) }}">{{ link.security_name }}</a>{% endif %}</p>{% endif %}{% endif %}
 <p>{{ row.percent|num(2) }}% · {% if row.value is none %}{{ _('Недостаточно данных для полной оценки') }}{% else %}{{ row.value|money }} {{ portfolio.currency }}{% endif %}
 {% if not row.source.active %} · {{ _('Счёт закрыт: доля сохранена, стоимость не учитывается') }}{% endif %}</p>
 <form method="post" action="{{ url_for('allocation_delete',pid=portfolio.id,rid=row.id) }}"><button class="btn sm ghost">{{ _('Убрать из портфеля') }}</button></form>

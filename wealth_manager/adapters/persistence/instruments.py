@@ -22,8 +22,8 @@ class Repository:
     def holding_link(self,hid):
         row=self.connection.execute('SELECT * FROM holding_links WHERE holding_id=?',(hid,)).fetchone()
         return dict(row) if row else None
-    def link(self,hid,kind,rid):
-        self.connection.execute('INSERT INTO holding_links(holding_id,company_id,crypto_id) VALUES (?,?,?) ON CONFLICT(holding_id) DO UPDATE SET company_id=excluded.company_id,crypto_id=excluded.crypto_id',(hid,rid if kind=='company' else None,rid if kind=='crypto' else None))
+    def link(self,hid,kind,rid,security_id=None):
+        self.connection.execute('INSERT INTO holding_links(holding_id,company_id,crypto_id,security_id) VALUES (?,?,?,?) ON CONFLICT(holding_id) DO UPDATE SET company_id=excluded.company_id,crypto_id=excluded.crypto_id,security_id=excluded.security_id',(hid,rid if kind=='company' else None,rid if kind=='crypto' else None,security_id))
     def unlink(self,hid):self.connection.execute('DELETE FROM holding_links WHERE holding_id=?',(hid,))
 
 class Reader:
@@ -33,4 +33,6 @@ class Reader:
             data=SqlitePlanningReader(self.vault).read()
             for key,table in (('companies','companies'),('cryptos','crypto_assets'),('links','holding_links')):
                 data[key]=[dict(r) for r in self.vault.con.execute('SELECT * FROM '+table)]
+            from .market_catalog import snapshot
+            data.update(snapshot(self.vault.con))
             return data

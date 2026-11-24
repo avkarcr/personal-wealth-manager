@@ -1,0 +1,8 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('sector_save') }}" class="catalog-form">
+{% if sector %}<input type="hidden" name="id" value="{{ sector.id }}">{% endif %}
+<div class="row2">{{ fields.input('name','Название отрасли',sector.name if sector else '',required=true) }}{{ fields.input('name_en','Название по-английски (необязательно)',sector.name_en if sector else '') }}</div>
+{{ fields.input('code','Код отрасли',sector.code if sector else '',required=true) }}
+<label class="fld"><span>{{ _('Родительская отрасль') }}</span><select name="parent_id"><option value="">{{ _('Самостоятельная отрасль') }}</option>{% for root in roots %}{% if not sector or root.id!=sector.id %}<option value="{{ root.id }}" {{ 'selected' if sector and sector.parent_id==root.id }}>{{ root.path_en if language=='en' else root.path }}</option>{% endif %}{% endfor %}</select></label>
+{{ fields.input('source_url','Ссылка на классификацию',sector.source_url if sector else '',type='url') }}
+<label class="check"><input type="checkbox" name="archived" value="1" {{ 'checked' if sector and sector.archived }}>{{ _('Архив') }}</label><button class="btn primary">{{ _('Сохранить') }}</button></form>

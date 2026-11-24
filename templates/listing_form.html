@@ -1,0 +1,10 @@
+{% import 'record_fields.html' as fields with context %}
+<form method="post" action="{{ url_for('listing_save',sid=record.id) }}" class="catalog-form">
+{% if listing %}<input type="hidden" name="id" value="{{ listing.id }}"><input type="hidden" name="exchange" value="{{ listing.exchange }}"><input type="hidden" name="ticker" value="{{ listing.ticker }}"><p><b>{{ listing.exchange }} · {{ listing.ticker }}</b></p>{% else %}<div class="row2">{{ fields.input('exchange','Биржа','',required=true) }}{{ fields.input('ticker','Тикер','',required=true) }}</div>{% endif %}
+{% if listing and listing.board %}<input type="hidden" name="board" value="{{ listing.board }}"><p>{{ _('Режим торгов') }}: {{ listing.board }}</p>{% else %}{{ fields.input('board','Режим торгов (необязательно)',listing.board if listing else '') }}{% endif %}
+<div class="row2">{{ fields.input('valid_from','Начало листинга',listing.valid_from if listing else '',type='date') }}{{ fields.input('valid_to','Окончание листинга',listing.valid_to if listing else '',type='date') }}</div>
+{{ fields.select('status','Статус торгов',catalog.listing_statuses,listing.status if listing else 'unknown') }}
+<div class="row2">{{ fields.input('as_of','Дата подтверждения',listing.as_of if listing else '',type='date') }}{{ fields.input('source','Источник сведений',listing.source if listing else '') }}</div>
+<p class="muted small">{{ _('Статус торгов подтверждается источником и датой. Он не означает, что торги доступны прямо сейчас.') }}</p>
+<button class="btn primary">{{ _('Сохранить листинг') }}</button>
+</form>

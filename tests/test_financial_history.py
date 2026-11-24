@@ -144,7 +144,7 @@ class FinancialHistoryTests(unittest.TestCase):
 
     def test_migration_v8_keeps_snapshots_and_does_not_backfill_rates(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_history'), patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'):
+        with patch('db._migrate_history'), patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):
             db.init_db(con)
         con.execute("INSERT INTO entities(id,entity_type,name) VALUES (1,'account','Old')")
         con.execute("INSERT INTO financial_accounts(id,kind) VALUES (1,'broker')")

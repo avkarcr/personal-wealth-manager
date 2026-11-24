@@ -170,13 +170,13 @@ class CycleTests(unittest.TestCase):
 
     def test_schema17_migration_is_atomic_and_preserves_old_data(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_economic_cycle'):db.init_db(con)
+        with patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(con)
         self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],17)
         before=list(con.iterdump());original=db._migrate_economic_cycle
         def fail(c):original(c);raise RuntimeError('failed migration')
         with patch('db._migrate_economic_cycle',side_effect=fail):
             with self.assertRaises(RuntimeError):db.init_db(con)
         self.assertEqual(before,list(con.iterdump()))
-        db.init_db(con);self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],18)
+        db.init_db(con);self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(con.execute('PRAGMA foreign_key_check').fetchall(),[])
         before=list(con.iterdump());db.init_db(con);self.assertEqual(before,list(con.iterdump()))

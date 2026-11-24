@@ -33,6 +33,8 @@ class VaultUnitOfWork:
             self.rates = SqliteRateRepository(self.connection)
             self.instruments = InstrumentRepository(self.connection)
             self.companies = CompanyRepository(self.connection)
+            from .market_catalog import Repository as MarketCatalog
+            self.market_catalog = MarketCatalog(self.connection)
             self.macroeconomics = ObservationRepository(self.connection)
             self.macro_data = self.macroeconomics
             from .macro_calculations import Repository as MacroCalculations

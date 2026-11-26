@@ -119,7 +119,7 @@ class DecimalIntegrationTests(unittest.TestCase):
 class DecimalMigrationTests(unittest.TestCase):
     def test_v9_real_migration_preserves_links_sequences_and_rolls_back(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(con)
+        with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'):db.init_db(con)
         con.execute("INSERT INTO entities(id,entity_type,name) VALUES (7,'account','Old')")
         con.execute("INSERT INTO financial_accounts(id,kind) VALUES (7,'broker')")
         con.execute("INSERT INTO holdings(id,account_id,name,quantity,price,avg_price) VALUES (123,7,'Old',?,?,?)",(0.1+0.2,1.25,0.1))
@@ -145,7 +145,7 @@ class DecimalMigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             vault=Vault(str(Path(directory)/'migration.enc'))
             try:
-                with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(vault.create('password123'))
+                with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'):db.init_db(vault.create('password123'))
                 vault.save(force=True)
                 before=list(vault.con.iterdump());disk=Path(vault.path).read_bytes()
                 with patch('vault.os.replace',side_effect=OSError('full')):

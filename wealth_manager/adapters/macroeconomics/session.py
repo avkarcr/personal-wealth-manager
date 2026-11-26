@@ -53,3 +53,17 @@ class Session:
             snapshot=self.cycle_snapshot(token)
             snapshot['refresh']=self.read_state(token)
             return snapshot
+
+    def sector_snapshot(self,token):
+        from wealth_manager.adapters.persistence.sector_scoring import Repository
+        with self.vault.lock_:
+            self.check(token)
+            repo=Repository(self.vault.con)
+            return dict(**repo.state(),sectors=repo.sectors(),observations=repo.observations(),
+                        revision_token=repo.revision_token(),runs=repo.recent(),cycle=self.cycle_snapshot(token))
+
+    def saved_sector(self,token,rid):
+        from wealth_manager.adapters.persistence.sector_scoring import Repository
+        with self.vault.lock_:
+            self.check(token)
+            return Repository(self.vault.con).get(rid)

@@ -22,7 +22,9 @@ class Repository:
     def save_sector(self,record):
         try:return SectorRepository(self.connection).save(record)
         except sqlite3.IntegrityError as error:raise RecordError('Отрасль с таким кодом уже существует') from error
-    def delete_sector(self,rid):SectorRepository(self.connection).delete(rid)
+    def delete_sector(self,rid):
+        try: SectorRepository(self.connection).delete(rid)
+        except sqlite3.IntegrityError as error: raise RecordError('У отрасли сохранены показатели; используйте архив') from error
     def assign_sector(self,cid,sid,primary,source,as_of):
         if primary:self.connection.execute('UPDATE company_sectors SET is_primary=0 WHERE company_id=?',(cid,))
         self.connection.execute('INSERT INTO company_sectors(company_id,sector_id,is_primary,source,as_of) VALUES (?,?,?,?,?) ON CONFLICT(company_id,sector_id) DO UPDATE SET is_primary=excluded.is_primary,source=excluded.source,as_of=excluded.as_of',(cid,sid,bool(primary),source,as_of))

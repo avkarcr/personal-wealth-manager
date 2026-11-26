@@ -14,13 +14,13 @@ REASONS = dict(short='Недостаточно непрерывных наблю
                unsupported='Для этого показателя расчёт не предусмотрен')
 
 
-def prepare(rows, cfg, cutoff, mode):
+def prepare(rows, cfg, cutoff, mode, *, include_disabled=False):
     with localcontext() as ctx:
         ctx.prec=50; ctx.rounding=ROUND_HALF_EVEN
-        return _prepare(rows,cfg,cutoff,mode)
+        return _prepare(rows,cfg,cutoff,mode,include_disabled)
 
 
-def _prepare(rows, cfg, cutoff, mode):
+def _prepare(rows, cfg, cutoff, mode, include_disabled=False):
     groups = {role:sorted((r for r in rows if r['series_id']==sid),key=lambda r:r['period_end']) for role,sid in cfg['series'].items()}
     # Only trailing evidence is needed for a snapshot. Bound long provider histories
     # before M6 builds every historical point (110 daily observations cover a 3M anchor).
@@ -89,7 +89,7 @@ def _prepare(rows, cfg, cutoff, mode):
     metric('equities','equities','return_3m'); metric('bonds','bonds','return_3m'); change('money','money')
     for feature in FEATURES:
         f=cfg['features'][feature]
-        if not f['enabled'] or not D(f['weight']) or not D(cfg['groups'][FEATURES[feature][0]]):
+        if not include_disabled and (not f['enabled'] or not D(f['weight']) or not D(cfg['groups'][FEATURES[feature][0]])):
             evidence[feature].update(value=None,date=None,revisions=[],reason='disabled',note='')
     selected=[r for r in rows if r['series_id'] in cfg['series'].values()]
     if any(r['publication_precision']=='unknown' for r in selected): warnings.add('unknown_publication')

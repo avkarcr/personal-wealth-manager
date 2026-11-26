@@ -5,5 +5,5 @@
 <label class="fld"><span>{{ _(label) }}</span><textarea name="{{ name }}" rows="3">{{ value }}</textarea></label>
 {%- endmacro %}
 {% macro select(name,label,options,value='') -%}
-<label class="fld"><span>{{ _(label) }}</span><select name="{{ name }}" required>{% for key,label in options.items() %}<option value="{{ key }}" {{ 'selected' if key==value }}>{{ _(label) }}</option>{% endfor %}</select></label>
+<label class="fld"><span>{{ _(label) }}</span><select name="{{ name }}" aria-label="{{ _(label) }}" required>{% for key,label in options.items() %}<option value="{{ key }}" {{ 'selected' if key==value }}>{{ _(label) }}</option>{% endfor %}</select></label>
 {%- endmacro %}

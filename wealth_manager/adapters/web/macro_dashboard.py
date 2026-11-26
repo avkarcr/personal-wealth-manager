@@ -32,7 +32,12 @@ def register_macro_dashboard(app,runtime):
         graph=view['graph']
         # JSON contains exact numeric strings; only SVG coordinates use JS numbers.
         chart_data=dict(graph,phase_labels={k:gettext(v) for k,v in PHASES.items()},unit_label=gettext(UNITS.get(graph['unit'],graph['unit'])))
+        from .sector_scoring import ranking
+        from wealth_manager.modules.sector_scoring.config import METRICS
+        from wealth_manager.modules.sector_scoring.model import REASONS as SECTOR_REASONS
+        sector_result=runtime.services['sector_scoring'].preview(session.get('vault'),as_of=view['result']['as_of'],mode=view['result']['mode'])['result']
         return render_template('macro_dashboard.html',**view,chart_data=chart_data,ranges=RANGES,charts=CHARTS,units=UNITS,phases=PHASES,
+                               sector_result=sector_result,sector_rows=ranking(sector_result),sector_metrics=METRICS,sector_reasons=SECTOR_REASONS,
                                descriptions=DESCRIPTIONS,transitions=TRANSITIONS,reasons=REASONS,signal_reasons=dict(SIGNAL_REASONS,range='В выбранном интервале нет наблюдений'),
                                signals=SIGNALS,statuses=STATUSES,roles=ROLE_LABELS,features=FEATURES,messages=MESSAGES)
 

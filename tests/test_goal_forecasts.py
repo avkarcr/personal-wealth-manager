@@ -134,7 +134,7 @@ class ForecastIntegrationTests(unittest.TestCase):
 class ForecastMigrationTests(unittest.TestCase):
     def test_schema13_default_zero_assumptions_and_atomic_migration(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'):db.init_db(c)
+        with patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'):db.init_db(c)
         c.execute("INSERT INTO goals(name,target_amount,currency) VALUES ('Old','1000','RUB')");c.commit()
         before=list(c.iterdump());original=db._migrate_goal_forecasts
         def fail(con):original(con);raise RuntimeError('migration')

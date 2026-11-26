@@ -463,3 +463,13 @@ input[type="checkbox"]:disabled { cursor: not-allowed; }
   .catalog-subsector { margin-left: 12px; }
   .catalog-card { padding: 16px; }
 }
+
+/* Sector analysis shares the existing responsive cards, palette and table scroll. */
+.sector-summary{display:flex;gap:2rem;align-items:center;flex-wrap:wrap}
+.sector-big-score{font-size:2.5rem}.sector-big-score small,.sector-score small{font-size:.8rem;font-weight:400;color:var(--muted)}
+.sector-input-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1rem}
+.sector-form-wide{grid-column:1/-1}.sector-settings-table input[type=number]{min-width:7rem;width:8rem}
+.sector-page .card,.sector-page .fld{min-width:0}.sector-page form+form{margin-top:1rem}
+.sector-page details>summary{cursor:pointer}.sector-page details>summary:hover{color:var(--accent)}
+.sector-page a:focus-visible,.sector-page summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:600px){.sector-input-form{grid-template-columns:minmax(0,1fr)}.sector-summary{gap:.5rem}.sector-big-score{font-size:2rem}}

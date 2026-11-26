@@ -36,6 +36,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: PYTHONPATH=tests:. MACRO_SCREENSHOTS=/tmp/m8-ui python tests/ui_macro_dashboard.py
       - run: PYTHONPATH=tests:. CATALOG_SCREENSHOTS=/tmp/m9-ui python tests/ui_market_catalog.py
+      - run: PYTHONPATH=tests:. SECTOR_SCREENSHOTS=/tmp/m10-ui python tests/ui_sector_scoring.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,4 +48,10 @@ jobs:
         with:
           name: market-catalog-synthetic-ui
           path: /tmp/m9-ui/*.png
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sector-scoring-synthetic-ui
+          path: /tmp/m10-ui/*.png
           if-no-files-found: ignore

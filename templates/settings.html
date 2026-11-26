@@ -2,6 +2,7 @@
 {% block title %}{{ _('Настройки — Капитал') }}{% endblock %}
 {% block content %}
 <p><a class="btn" href="{{ url_for('economic_cycle_settings') }}">{{ _('Настройки модели цикла') }}</a></p>
+<p><a class="btn" href="{{ url_for('sector_scoring_settings') }}">{{ _('Настройки отраслевой модели') }}</a></p>
 <p><a class="btn" href="{{ url_for('macro_settings') }}">{{ _('Обновление макроданных') }}</a></p>
 <header class="page-head">
   <div><h1>{{ _('Настройки') }}</h1><p class="muted">{{ _('Курсы для пересчёта всего в одну валюту') }}</p></div>

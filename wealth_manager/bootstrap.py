@@ -70,6 +70,8 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     services['macro_calculations']=Calculations(Session(vault))
     from wealth_manager.modules.economic_cycle.application import Cycle
     services['economic_cycle']=Cycle(Session(vault))
+    from wealth_manager.modules.sector_scoring.application import Scoring
+    services['sector_scoring']=Scoring(Session(vault))
     from wealth_manager.modules.macro_dashboard.application import Dashboard as MacroDashboard
     services['macro_dashboard']=MacroDashboard(Session(vault))
     from wealth_manager.modules.macroeconomics.statistics import StatisticsImport

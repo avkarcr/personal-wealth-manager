@@ -41,6 +41,8 @@ class VaultUnitOfWork:
             self.macro_calculations = MacroCalculations(self.connection)
             from .economic_cycle import Repository as Cycle
             self.economic_cycle = Cycle(self.connection)
+            from .sector_scoring import Repository as SectorScoring
+            self.sector_scoring = SectorScoring(self.connection)
             self.tax_evidence = TaxEvidenceRepository(self.connection)
             self.taxes = TaxRepository(self.connection)
             self.planning = SqlitePlanningRepository(self.connection)

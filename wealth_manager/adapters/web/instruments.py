@@ -1,5 +1,6 @@
-from flask import render_template,redirect,url_for
+from flask import render_template,redirect,url_for,session
 from wealth_manager.modules.instruments.domain import CryptoAsset
+from wealth_manager.modules.market_catalog.iss import ACCESS_MODES
 from .forms import f_str
 from .commands import validated,optional_id
 
@@ -13,7 +14,10 @@ def register_instruments(app,runtime):
     def company_detail(rid):return render_template('instrument.html',**reports.detail('company',rid))
     @app.get('/securities/<int:rid>')
     @validated
-    def security_detail(rid):return render_template('instrument.html',**reports.detail('security',rid))
+    def security_detail(rid):
+        detail = reports.detail('security', rid)
+        access = runtime.services['macro_scheduler'].state(session.get('vault'))['access']
+        return render_template('instrument.html', **detail, iss_access=access in ACCESS_MODES)
     @app.get('/crypto-assets/<int:rid>')
     @validated
     def crypto_detail(rid):return render_template('instrument.html',**reports.detail('crypto',rid))

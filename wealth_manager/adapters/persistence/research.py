@@ -23,6 +23,12 @@ class RecordRepository:
 
 class CompanyRepository(RecordRepository):
     table='companies'
+    def watch(self, record_id):
+        if get_row(self.connection, self.table, record_id)['status'] == 'watch':
+            return False
+        self.connection.execute("UPDATE companies SET status='watch' WHERE id=?", (record_id,))
+        return True
+
     def delete(self,record_id):
         get_row(self.connection,self.table,record_id)
         if self.connection.execute('SELECT 1 FROM holding_links WHERE company_id=?',(record_id,)).fetchone():
@@ -70,15 +76,27 @@ class TableReader:
                 for key in self.decimal_fields: row[key]=Decimal(row[key])
             return rows
 
-class CompanyReader(TableReader):
-    table='companies'
+class CompanyReader:
+    def __init__(self, vault):
+        self.vault = vault
+
     def read(self):
-        from datetime import date
-        from .market_catalog import snapshot
-        from wealth_manager.modules.market_catalog.reports import company_catalog
+        from .market_catalog import research_snapshot
         with self.vault.lock_:
-            rows=super().read();data=snapshot(self.vault.con)
-            return [dict(row,catalog=company_catalog(data,row['id'],date.today().isoformat())) for row in rows]
+            if not self.vault.unlocked:
+                raise RuntimeError('Vault is locked')
+            connection = self.vault.con
+            data = research_snapshot(connection)
+            data['portfolio_links'] = [dict(row) for row in connection.execute("""
+                SELECT link.company_id, p.id, p.name, h.quantity
+                FROM holding_links link
+                JOIN holdings h ON h.id = link.holding_id
+                JOIN entities e ON e.id = h.account_id
+                JOIN allocations a ON a.holding_id = h.id
+                JOIN portfolios p ON p.id = a.portfolio_id
+                WHERE link.company_id IS NOT NULL AND COALESCE(e.closed_at,'') = '' AND a.share_bps > 0
+            """)]
+            return data
 class ObservationReader(TableReader):
     table='macro_observations';decimal_fields=('value',)
 class EntryReader(TableReader):

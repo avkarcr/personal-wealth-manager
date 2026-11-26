@@ -3,7 +3,12 @@
 {% block content %}
 <div class="catalog-page">
 <header class="page-head"><div><h1>{{ record.name }}</h1><p>{% if kind=='security' %}<a class="catalog-link" href="{{ url_for('company_detail',rid=record.company_id) }}">{{ record.company.name }}</a> · {{ _('Выпуск бумаги') }}{% elif kind=='company' %}{{ record.country }} · {{ _('Эмитент') }}{% else %}{{ record.symbol }} · {{ record.network }}{% endif %}</p></div><a class="btn" href="{{ url_for('companies' if kind!='crypto' else 'crypto_assets') }}">{{ _('Компании') if kind!='crypto' else _('Криптоактивы') }}</a></header>
-{% if kind=='company' %}{% include '_company_catalog.html' %}{% elif kind=='security' %}{% include '_security_catalog.html' %}{% endif %}
+{% if kind=='company' %}
+<section class="card catalog-card">
+  <div class="card-head"><h2>{{ _('Ручной статус') }}</h2><span class="tag">{{ _(statuses[record.status]) }}</span></div>
+  {% if record.status!='watch' %}<form method="post" action="{{ url_for('company_watch',rid=record.id) }}"><button class="btn sm">{{ _('Вернуть в наблюдение') if record.status=='archived' else _('Добавить в наблюдение') }}</button></form>{% endif %}
+</section>
+{% include '_company_catalog.html' %}{% elif kind=='security' %}{% include '_security_catalog.html' %}{% endif %}
 <section class="card"><h2>{{ _('Связанные позиции') }}</h2><p>{{ _('Есть ненулевые позиции на открытых счетах') if owned else _('Нет ненулевых позиций на открытых счетах') }}</p><p class="muted">{{ _('Связь задаётся вручную. Статус наблюдения независим от фактического владения. Суммы по валютам не складываются; распределения в портфели не увеличивают капитал.') }}</p>
 {% for currency,total in totals.items() %}<p>{{ currency }}: {% if not total.complete %}{{ _('Известная часть') }}: {% endif %}{{ total.known|money }}{% if not total.complete %} · {{ _('Недостаточно данных для полной оценки') }}{% endif %}</p>{% endfor %}
 </section>

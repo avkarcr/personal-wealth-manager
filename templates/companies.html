@@ -1,15 +1,90 @@
 {% extends 'base.html' %}
 {% block title %}{{ _('Компании') }} — {{ _('Капитал') }}{% endblock %}
 {% block content %}
-<header class="page-head"><div><h1>{{ _('Компании') }}</h1><p class="muted">{{ _('Список наблюдения и инвестиционные идеи') }}</p></div><div class="actions"><a class="btn" href="{{ url_for('sectors') }}">{{ _('Отрасли') }}</a><a class="btn" href="{{ url_for('crypto_assets') }}">{{ _('Криптоактивы') }}</a></div></header>
-<section class="card"><details><summary>{{ _('Добавить компанию') }}</summary>{% with record=none %}{% include 'company_form.html' %}{% endwith %}</details></section>
-<p class="muted small">{{ _('Статус компании задаётся вручную и не меняет позиции на счетах.') }}</p>
-<div class="grid2">{% for company in companies %}<article class="card catalog-card" id="company-{{ company.id }}"><h2><a href="{{ url_for('company_detail',rid=company.id) }}">{{ company.name }}</a></h2>
-<p>{{ company.country }} · {{ _(statuses[company.status]) }}</p><div class="catalog-tags">{% for m in company.catalog.memberships %}<span class="tag">{{ m.sector.path_en if language=='en' else m.sector.path }}{{ ' ★' if m.is_primary }}</span>{% else %}<span class="muted small">{{ _('Отрасль ещё не классифицирована') }}{% if company.sector %} · {{ company.sector }}{% endif %}</span>{% endfor %}</div>
-<ul class="catalog-issues">{% for s in company.catalog.securities %}<li><a class="catalog-link" href="{{ url_for('security_detail',rid=s.id) }}">{{ s.name }}</a> · {{ _(company.catalog.security_types[s.kind]) }}{% if s.archived %} · {{ _('Архив') }}{% endif %}<span class="small muted block">{% for l in s.listings %}{{ l.ticker }} · {{ l.exchange }}{{ ' / ' if not loop.last }}{% endfor %}</span></li>{% endfor %}</ul>
-{% if company.website %}<a href="{{ company.website }}" target="_blank" rel="noopener noreferrer">{{ _('Сайт компании') }}</a>{% endif %}
-<p style="white-space:pre-wrap">{{ company.thesis }}</p>
-<details><summary>{{ _('Редактировать') }}</summary>{% with record=company %}{% include 'company_form.html' %}{% endwith %}</details>
-<form method="post" action="{{ url_for('company_delete',rid=company.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form>
-</article>{% else %}<section class="card"><p>{{ _('Пока нет компаний') }}</p></section>{% endfor %}</div>
+<div class="catalog-page">
+<header class="page-head">
+  <h1>{{ _('Компании') }}</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('sectors') }}">{{ _('Отрасли') }}</a>
+    <a class="btn" href="{{ url_for('crypto_assets') }}">{{ _('Криптоактивы') }}</a>
+  </div>
+</header>
+<section class="card catalog-card" aria-label="{{ _('Поиск и фильтры компаний') }}">
+  <form method="get" action="{{ url_for('companies') }}" class="explorer-filters">
+    <label class="fld explorer-wide"><span>{{ _('Название, тикер, ISIN или регномер') }}</span><input type="search" name="q" value="{{ filters.query }}"></label>
+    <label class="fld explorer-wide"><span>{{ _('Отрасль или подотрасль') }}</span><select name="sector" aria-label="{{ _('Отрасль или подотрасль') }}">
+      <option value="">{{ _('Все отрасли') }}</option>
+      <option value="unclassified" {{ 'selected' if filters.sector=='unclassified' }}>{{ _('Без классификации') }}</option>
+      {% if missing_sector %}<option value="{{ filters.sector }}" selected>{{ _('Отрасль недоступна') }}</option>{% endif %}
+      {% for s in sectors %}<option value="{{ s.id }}" {{ 'selected' if filters.sector==s.id|string }}>{{ s.path_en if language=='en' else s.path }}{% if not s.available %} · {{ _('Архив') }}{% endif %}</option>{% endfor %}
+    </select></label>
+    <label class="fld"><span>{{ _('Ручной статус') }}</span><select name="status" aria-label="{{ _('Ручной статус') }}">
+      <option value="">{{ _('Все статусы') }}</option>
+      {% for code, label in statuses.items() %}<option value="{{ code }}" {{ 'selected' if filters.status==code }}>{{ _(label) }}</option>{% endfor %}
+    </select></label>
+    <label class="fld"><span>{{ _('Биржа') }}</span><select name="scope" aria-label="{{ _('Биржа') }}">
+      <option value="">{{ _('Все компании') }}</option>
+      <option value="moex" {{ 'selected' if filters.scope=='moex' }}>{{ _('С листингами MOEX') }}</option>
+    </select></label>
+    <label class="fld explorer-wide"><span>{{ _('Сортировка') }}</span><select name="order" aria-label="{{ _('Сортировка') }}">
+      {% for code, label in sort_options.items() %}<option value="{{ code }}" {{ 'selected' if filters.order==code }}>{{ _(label) }}</option>{% endfor %}
+    </select></label>
+    <div class="actions"><button class="btn primary">{{ _('Применить') }}</button><a class="btn" href="{{ url_for('companies') }}">{{ _('Сбросить фильтры') }}</a></div>
+  </form>
+  {% if filters.order=='turnover' %}
+    {% if turnover_day %}
+      <p class="small muted">{{ _('Сортировка по максимальному обороту одного выпуска TQBR на последнюю доступную дату в результатах поиска. Пропуски и более ранние даты в конце списка.') }} <time datetime="{{ turnover_day }}">{{ turnover_day }}</time></p>
+    {% else %}<p class="small muted">{{ _('Для этих компаний нет сопоставимых данных об обороте TQBR.') }}</p>{% endif %}
+  {% endif %}
+</section>
+
+<section class="card catalog-card"><details><summary>{{ _('Добавить компанию') }}</summary>{% with record=none %}{% include 'company_form.html' %}{% endwith %}</details></section>
+<div class="grid2">
+{% for company in companies %}
+  <article class="card catalog-card" id="company-{{ company.id }}">
+    <div class="card-head"><h2><a class="catalog-link" href="{{ url_for('company_detail',rid=company.id) }}">{{ company.name }}</a></h2></div>
+    <p class="small">{{ company.country }} · {{ _('Ручной статус') }}: {{ _(statuses[company.status]) }}</p>
+    <div class="catalog-tags">
+      {% for member in company.catalog.memberships %}
+        <a class="btn sm" href="{{ url_for('companies',sector=member.sector_id) }}">{{ member.sector.path_en if language=='en' else member.sector.path }}{{ ' ★' if member.is_primary }}</a>
+      {% else %}<span class="muted small">{{ _('Отрасль ещё не классифицирована') }}{% if company.sector %} · {{ company.sector }}{% endif %}</span>{% endfor %}
+    </div>
+    {% if company.portfolios %}
+      <p class="small">{{ _('Портфели со связанными позициями') }}:
+      {% for portfolio in company.portfolios %}<a class="catalog-link" href="{{ url_for('portfolio_detail',pid=portfolio.id) }}">{{ portfolio.name }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>
+    {% endif %}
+    {% if company.catalog.securities %}
+    <ul class="catalog-issues">
+      {% for s in company.catalog.securities %}
+      <li>
+        <a class="catalog-link" href="{{ url_for('security_detail',rid=s.id) }}">{{ s.name }}</a> · {{ _(company.catalog.security_types[s.kind]) }}{% if s.archived %} · {{ _('Архив') }}{% endif %}
+        {% if s.isin or s.registration_number %}<p class="small muted">{{ [s.isin, s.registration_number]|select|join(' · ') }}</p>{% endif %}
+        {% for l in s.listings %}
+        <div class="explorer-listing">
+          <span class="small"><strong>{{ l.ticker }}</strong> · {{ l.exchange }}{% if l.board %} / {{ l.board }}{% endif %}</span>
+          <span class="small muted block">{{ _(company.catalog.listing_statuses[l.status]) }}{% if l.as_of %} · {{ l.as_of }}{% endif %}
+            {% if l.ended %} · {{ _('Завершённый листинг') }}{% elif l.future %} · {{ _('Листинг ещё не начался') }}{% endif %}
+          </span>
+          {% include '_iss_quote.html' %}
+        </div>
+        {% else %}<div class="small muted">{{ _('Листинги пока не добавлены') }}</div>{% endfor %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="small muted">{{ _('Выпуски пока не добавлены') }}</p>{% endif %}
+    {% if company.website %}<a class="catalog-link" href="{{ company.website }}" target="_blank" rel="noopener noreferrer">{{ _('Сайт компании') }}</a>{% endif %}
+    {% if company.thesis %}<p style="white-space:pre-wrap">{{ company.thesis }}</p>{% endif %}
+    {% if company.status!='watch' %}
+      <form method="post" action="{{ url_for('company_watch',rid=company.id) }}"><button class="btn sm">{{ _('Вернуть в наблюдение') if company.status=='archived' else _('Добавить в наблюдение') }}</button></form>
+    {% endif %}
+    <details><summary>{{ _('Редактировать') }}</summary>{% with record=company %}{% include 'company_form.html' %}{% endwith %}</details>
+    <form method="post" action="{{ url_for('company_delete',rid=company.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn sm ghost">{{ _('Удалить') }}</button></form>
+  </article>
+{% else %}
+  <section class="card">
+    <p>{{ _('Отрасль недоступна') if missing_sector else _('Компании по заданным фильтрам не найдены') if filters.query or filters.sector or filters.status or filters.scope else _('Пока нет компаний') }}</p>
+  </section>
+{% endfor %}
+</div>
+</div>
 {% endblock %}

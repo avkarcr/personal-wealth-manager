@@ -6,6 +6,11 @@ class Commands:
             record_id=uow.companies.save(record)
             uow.commit()
             return record_id
+    def watch(self, record_id):
+        with self.uow_factory() as uow:
+            if uow.companies.watch(record_id):
+                uow.commit()
+
     def delete(self,record_id):
         with self.uow_factory() as uow:
             uow.companies.delete(record_id)

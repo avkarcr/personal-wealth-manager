@@ -242,7 +242,7 @@ class CatalogTests(unittest.TestCase):
 class CatalogMigrationTests(unittest.TestCase):
     def test_v18_upgrade_preserves_ids_positions_allocations_and_unknowns_and_is_atomic(self):
         f=fixtures.ValuationIntegrationTests();self.addCleanup(f.doCleanups)
-        with patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'):f.setUp()
+        with patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):f.setUp()
         con=f.vault.con
         con.execute("INSERT INTO companies(id,name,ticker,exchange,country,sector,status) VALUES (42,'Legacy','OLD','MOEX','RU','Unclear legacy sector','watch')")
         con.execute('INSERT INTO holding_links(holding_id,company_id) VALUES (?,42)',(f.hid,));con.commit()

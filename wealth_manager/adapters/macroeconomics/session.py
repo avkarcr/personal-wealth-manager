@@ -23,6 +23,12 @@ class Session:
             self.check(token)
             with VaultUnitOfWork(self.vault) as uow:yield uow
 
+    def iss_target(self, token, listing_id):
+        from wealth_manager.adapters.persistence.market_catalog import Repository
+        with self.vault.lock_:
+            access = self.read_state(token)['access']
+            return Repository(self.vault.con).iss_target(listing_id), access
+
     def calculation_snapshot(self,token):
         from wealth_manager.adapters.persistence.macro_data import Reader, Repository
         from wealth_manager.adapters.persistence.macro_calculations import Repository as Calculations

@@ -1,5 +1,5 @@
 """Схема базы и миграции. Сама база хранится в зашифрованном виде — см. vault.py."""
-SCHEMA_VERSION = 20
+SCHEMA_VERSION = 21
 LEGACY_SCHEMA_VERSION = 3
 
 SCHEMA = """
@@ -267,6 +267,7 @@ def init_db(con):
             if version < 18: _migrate_economic_cycle(con)
             if version < 19: _migrate_market_catalog(con)
             if version < 20: _migrate_sector_scoring(con)
+            if version < 21: _migrate_listing_iss(con)
         except BaseException:
             con.rollback()
             before.backup(con)
@@ -734,4 +735,9 @@ def _migrate_market_catalog(con):
 
 def _migrate_sector_scoring(con):
     from wealth_manager.adapters.persistence.sector_migration import migrate
+    migrate(con)
+
+
+def _migrate_listing_iss(con):
+    from wealth_manager.adapters.persistence.iss_migration import migrate
     migrate(con)

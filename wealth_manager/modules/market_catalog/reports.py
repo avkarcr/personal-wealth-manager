@@ -1,6 +1,8 @@
 """Current catalog views. Classification and listing metadata do not value holdings."""
+from dataclasses import replace
 from datetime import date
 from .domain import find,SECURITY_TYPES,LISTING_STATUSES
+from .iss import supported
 from .ports import Reader
 
 
@@ -20,7 +22,14 @@ def sector_views(data):
 def security_view(data,sid,today):
     security=find(data['securities'],sid);listings=[]
     for row in sorted((r for r in data['listings'] if r['security_id']==sid),key=lambda r:(r['valid_from'],r['id']),reverse=True):
+        eligible = supported(security['kind'], row['exchange'], row['board'], row['ticker'])
+        iss = data.get('iss', {}).get(row['id'])
+        if iss and (not eligible or not iss.reference.matches(security)):
+            iss = None
+        if iss and iss.quote:
+            iss = replace(iss, quote=iss.quote.within(row['valid_from'], row['valid_to']))
         listings.append(dict(row,ended=bool(row['valid_to'] and row['valid_to']<today),future=bool(row['valid_from'] and row['valid_from']>today),
+                             iss=iss, iss_supported=eligible,
                              events=sorted((e for e in data['events'] if e['listing_id']==row['id']),key=lambda e:e['id'],reverse=True)))
     return dict(security,company=find(data['companies'],security['company_id']),listings=listings,
                 underlying=find(data['securities'],security['underlying_id']) if security['underlying_id'] else None,
@@ -28,8 +37,10 @@ def security_view(data,sid,today):
                 receipts=[s for s in data['securities'] if s['underlying_id']==sid])
 
 
-def company_catalog(data,cid,today):
-    sectors=sector_views(data);members=[]
+def company_catalog(data,cid,today,*,sectors=None):
+    if sectors is None:
+        sectors = sector_views(data)
+    members=[]
     for m in data['memberships']:
         if m['company_id']==cid:members.append(dict(m,sector=find(sectors,m['sector_id'])))
     return dict(securities=[security_view(data,r['id'],today) for r in data['securities'] if r['company_id']==cid],

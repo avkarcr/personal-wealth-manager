@@ -148,7 +148,7 @@ class LedgerTests(unittest.TestCase):
 class LedgerMigrationTests(unittest.TestCase):
     def test_v10_no_balances_reapplied_migration_rollback_and_idempotency(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'):db.init_db(c)
+        with patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
         c.execute("INSERT INTO entities(id,entity_type,name) VALUES (1,'account','Old')")
         c.execute("INSERT INTO financial_accounts(id,kind) VALUES (1,'broker')")
         c.execute("INSERT INTO holdings(account_id,name,quantity,price) VALUES (1,'Stock','0.123456789012345678','10')");c.commit()

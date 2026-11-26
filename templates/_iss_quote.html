@@ -1,0 +1,10 @@
+{% set quote = l.iss.quote if l.iss else none %}
+{% if quote %}
+<p class="small iss-quote">
+  {{ _('Закрытие дневной свечи') if quote.basis=='candle' else _('Последняя сделка предыдущей сессии') }} {{ quote.close|money('RUB',4) }} · <time datetime="{{ quote.day }}">{{ quote.day }}</time> · MOEX ISS
+  {% if quote.change is not none %}<span class="block">{{ _('Изменение к предыдущей свече') }} {{ quote.change|pct }} · <time datetime="{{ quote.previous_day }}">{{ quote.previous_day }}</time></span>{% endif %}
+  {% if quote.turnover is not none %}<span class="block">{{ _('Дневной оборот') }} {{ quote.turnover|money('RUB') }}</span>{% endif %}
+</p>
+{% elif l.iss_supported and not l.ended and not l.future %}
+<p class="small muted iss-quote">{{ _('Цена ISS пока недоступна') }}</p>
+{% endif %}

@@ -464,6 +464,15 @@ input[type="checkbox"]:disabled { cursor: not-allowed; }
   .catalog-card { padding: 16px; }
 }
 
+/* Company Explorer */
+.explorer-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: end; gap: 10px 16px; }
+.explorer-filters .fld, .explorer-filters select { min-width: 0; }
+.explorer-filters .fld { margin: 0; }
+.explorer-listing { margin: 6px 0; }
+.iss-quote { margin: 4px 0; }
+@media (max-width: 960px) { .explorer-filters { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 600px) { .explorer-filters .explorer-wide, .explorer-filters .actions { grid-column: 1/-1; } }
+
 /* Sector analysis shares the existing responsive cards, palette and table scroll. */
 .sector-summary{display:flex;gap:2rem;align-items:center;flex-wrap:wrap}
 .sector-big-score{font-size:2.5rem}.sector-big-score small,.sector-score small{font-size:.8rem;font-weight:400;color:var(--muted)}

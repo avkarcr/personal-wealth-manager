@@ -44,7 +44,7 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     ledger=LedgerCommands(factory,today)
     from wealth_manager.modules.macroeconomics.data import DataCommands,DataReports
     from wealth_manager.adapters.persistence.macro_data import Reader as RevisionReader
-    services = {"macro_data":DataCommands(factory),"macro_data_reports":DataReports(RevisionReader(vault)),"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault)),
+    services = {"macro_data":DataCommands(factory),"macro_data_reports":DataReports(RevisionReader(vault)),"instruments": InstrumentCommands(factory), "instrument_reports": InstrumentReports(InstrumentReader(vault),today), "liabilities": LiabilityCommands(factory,ledger,today), "imports": Imports(factory,ledger,CsvStatements(),today), "ledger": ledger, "ledger_reports": LedgerReports(factory), "companies": CompanyCommands(factory), "company_reports": CompanyReports(CompanyReader(vault),today),
             "macroeconomics": MacroCommands(factory), "macro_reports": MacroReports(ObservationReader(vault),today),
             "taxes": TaxCommands(factory,today), "tax_reports": TaxReports(TaxReader(vault)),
             "planning": PlanningCommands(factory), "planning_reports": PlanningReports(SqlitePlanningReader(vault),today),
@@ -62,6 +62,9 @@ def build_services(vault, *, today=date.today, http=None, catalog=None):
     services['catalog_reports']=CatalogReports(CatalogReader(vault),today)
 
     from wealth_manager.adapters.macroeconomics.session import Session
+    from wealth_manager.adapters.market_data.iss import IssProvider
+    from wealth_manager.modules.market_catalog.iss import ListingSync
+    services['listing_iss'] = ListingSync(IssProvider(), Session(vault))
     from wealth_manager.modules.macroeconomics.scheduling import Scheduler
     from wealth_manager.adapters.macroeconomics.providers import Providers
     services['macro_scheduler']=Scheduler(Providers(),Session(vault))

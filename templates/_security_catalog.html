@@ -4,7 +4,25 @@
 {% for receipt in record.receipts %}<p>{{ _('Связанная расписка') }}: <a class="catalog-link" href="{{ url_for('security_detail',rid=receipt.id) }}">{{ receipt.name }}</a></p>{% endfor %}
 <details><summary>{{ _('Редактировать выпуск') }}</summary>{% with security=record,issuer_id=record.company_id %}{% include 'security_form.html' %}{% endwith %}</details><form class="catalog-delete" method="post" action="{{ url_for('security_delete',rid=record.id) }}" data-confirm="{{ _('Удалить запись?') }}"><button class="btn ghost" {{ 'disabled' if record.used or record.receipts }}>{{ _('Удалить выпуск') }}</button></form></section>
 <section class="card catalog-card" id="security-listings"><h2>{{ _('Листинги и история тикеров') }}</h2>
-{% for l in record.listings %}<article class="catalog-listing"><div class="catalog-row"><div><h3>{{ l.ticker }} <span class="muted">· {{ l.exchange }}{% if l.board %} / {{ l.board }}{% endif %}</span></h3><p class="catalog-tags"><span class="catalog-status status-{{ l.status }}">{{ _(catalog.listing_statuses[l.status]) }}</span>{% if l.ended %}<span class="tag">{{ _('Завершённый листинг') }}</span>{% elif l.future %}<span class="tag">{{ _('Листинг ещё не начался') }}</span>{% endif %}</p></div><span class="muted small">{{ l.valid_from or _('Начало не указано') }} — {{ l.valid_to or _('Окончание не указано') }}</span></div><p class="small muted">{{ _('Подтверждено') }}: {{ l.as_of or _('Дата не указана') }} · {{ l.source or _('Источник не указан') }}</p>
+{% for l in record.listings %}<article class="catalog-listing" id="listing-{{ l.id }}"><div class="catalog-row"><div><h3>{{ l.ticker }} <span class="muted">· {{ l.exchange }}{% if l.board %} / {{ l.board }}{% endif %}</span></h3><p class="catalog-tags"><span class="catalog-status status-{{ l.status }}">{{ _(catalog.listing_statuses[l.status]) }}</span>{% if l.ended %}<span class="tag">{{ _('Завершённый листинг') }}</span>{% elif l.future %}<span class="tag">{{ _('Листинг ещё не начался') }}</span>{% endif %}</p></div><span class="muted small">{{ l.valid_from or _('Начало не указано') }} — {{ l.valid_to or _('Окончание не указано') }}</span></div><p class="small muted">{{ _('Подтверждено') }}: {{ l.as_of or _('Дата не указана') }} · {{ l.source or _('Источник не указан') }}</p>
+{% if l.iss_supported %}
+  {% include '_iss_quote.html' %}
+  {% if l.iss %}
+    <p class="small muted">MOEX ISS · {{ l.iss.reference.name }}{% if l.iss.reference.isin %} · ISIN {{ l.iss.reference.isin }}{% endif %}{% if l.iss.reference.registration_number %} · {{ _('Регистрационный номер выпуска') }} {{ l.iss.reference.registration_number }}{% endif %}</p>
+    <p class="small muted">{{ _('Проверено в ISS (UTC)') }} <time datetime="{{ l.iss.checked_at }}">{{ l.iss.checked_at }}</time></p>
+  {% endif %}
+  {% if not l.ended and not l.future and l.status not in ('suspended','delisted') and not record.archived and record.company.status!='archived' %}
+    {% if not record.isin and not record.registration_number %}
+      <p class="small muted">{{ _('Для ISS укажите ISIN или регистрационный номер выпуска') }}</p>
+    {% elif not iss_access %}
+      <p><a class="catalog-link" href="{{ url_for('macro_settings',_anchor='moex-access') }}">{{ _('Выберите режим доступа MOEX') }}</a></p>
+    {% else %}
+      <form method="post" action="{{ url_for('listing_iss_refresh',rid=l.id) }}" data-busy-label="{{ _('Запрашиваем MOEX ISS…') }}">
+        <button class="btn sm">{{ _('Обновить из MOEX ISS') }}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endif %}
 <details><summary>{{ _('Изменить статус или сроки') }}</summary>{% with listing=l %}{% include 'listing_form.html' %}{% endwith %}</details>
 {% if not l.valid_to and not record.archived and record.company.status!='archived' %}<details><summary>{{ _('Сменить тикер с сохранением истории') }}</summary><form class="catalog-form" method="post" action="{{ url_for('listing_rename',rid=l.id) }}"><div class="row2"><label class="fld"><span>{{ _('Новый тикер') }}</span><input name="ticker" required></label><label class="fld"><span>{{ _('Дата смены тикера') }}</span><input name="effective_date" type="date" required></label></div><label class="fld"><span>{{ _('Источник сведений') }}</span><input name="source"></label><p class="small muted">{{ _('Прежний листинг завершится накануне этой даты. Новый статус торгов нужно подтвердить отдельно; позиции сохранят свои тикеры.') }}</p><button class="btn">{{ _('Сохранить новый тикер') }}</button></form></details>{% endif %}
 <details><summary>{{ _('История подтверждений статуса') }}</summary><ul class="catalog-history">{% for e in l.events %}<li>{{ _(catalog.listing_statuses[e.status]) }} · {{ e.as_of or _('Дата не указана') }} · {{ e.source or _('Источник не указан') }}</li>{% endfor %}</ul></details>

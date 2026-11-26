@@ -1,6 +1,7 @@
 """HTTP forms for the existing company cards and their issues/listings."""
-from flask import render_template,redirect,url_for
+from flask import flash, g, render_template, redirect, session, url_for
 from wealth_manager.modules.market_catalog.domain import Sector,Security,Listing
+from wealth_manager.shared.records import RecordError
 from .forms import f_str
 from .commands import validated,optional_id
 
@@ -52,6 +53,27 @@ def register_catalog(app,runtime):
     def listing_rename(rid):
         sid=reports.listing(rid)['security_id'];commands.rename_listing(rid,f_str('ticker').upper(),f_str('effective_date'),f_str('source'))
         return redirect(url_for('security_detail',rid=sid)+'#security-listings')
+    @app.post('/securities/listings/<int:rid>/iss')
+    @validated
+    def listing_iss_refresh(rid):
+        sid = reports.listing(rid)['security_id']
+        token = session.get('vault')
+        lock = g.wealth_vault_lock
+        lock.release()
+        try:
+            runtime.services['listing_iss'].execute(rid, token)
+            message = 'Сведения ISS обновлены'
+        except RecordError as error:
+            message = str(error)
+        except OSError:
+            message = 'Не удалось сохранить сведения ISS'
+        finally:
+            lock.acquire()
+        if not runtime.vault.unlocked or runtime.vault.token != token or runtime.vault.idle_expired():
+            return redirect(url_for('unlock'))
+        flash(message)
+        return redirect(url_for('security_detail', rid=sid, _anchor=f'listing-{rid}'))
+
     @app.post('/securities/listings/<int:rid>/delete')
     @validated
     def listing_delete(rid):

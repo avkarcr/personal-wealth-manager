@@ -20,7 +20,12 @@ def register_research(app,runtime):
 
     @app.get('/companies')
     def companies():
-        return render_template('companies.html',**services['company_reports'].overview())
+        overview = services['company_reports'].overview(
+            query=request.args.get('q', ''), sector=request.args.get('sector', ''),
+            status=request.args.get('status', ''), scope=request.args.get('scope', ''),
+            order=request.args.get('order', 'name'),
+        )
+        return render_template('companies.html', **overview)
 
     @app.post('/companies/save')
     @validated
@@ -28,6 +33,12 @@ def register_research(app,runtime):
         services['companies'].save(Company(name=f_str('name'),ticker=f_str('ticker').upper(),exchange=f_str('exchange').upper(),
             country=f_str('country').upper(),sector=f_str('sector'),website=f_str('website'),thesis=f_str('thesis'),status=f_str('status'),id=optional_id()))
         return redirect(url_for('companies'))
+
+    @app.post('/companies/<int:rid>/watch')
+    @validated
+    def company_watch(rid):
+        services['companies'].watch(rid)
+        return redirect(url_for('company_detail', rid=rid))
 
     @app.post('/companies/<int:rid>/delete')
     @validated

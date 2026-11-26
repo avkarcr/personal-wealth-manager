@@ -31,8 +31,7 @@ class Reader:
     def read(self):
         with self.vault.lock_:
             data=SqlitePlanningReader(self.vault).read()
-            for key,table in (('companies','companies'),('cryptos','crypto_assets'),('links','holding_links')):
-                data[key]=[dict(r) for r in self.vault.con.execute('SELECT * FROM '+table)]
-            from .market_catalog import snapshot
-            data.update(snapshot(self.vault.con))
+            data['cryptos'] = [dict(row) for row in self.vault.con.execute('SELECT * FROM crypto_assets')]
+            from .market_catalog import research_snapshot
+            data.update(research_snapshot(self.vault.con))
             return data

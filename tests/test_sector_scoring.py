@@ -156,13 +156,13 @@ class SectorScoringTests(unittest.TestCase):
 
     def test_schema19_migration_is_atomic_idempotent_and_preserves_catalog(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_sector_scoring'):db.init_db(con)
+        with patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(con)
         self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],19)
         before=list(con.iterdump());original=db._migrate_sector_scoring
         def fail(c):original(c);raise OSError('failed')
         with patch('db._migrate_sector_scoring',side_effect=fail),self.assertRaises(OSError):db.init_db(con)
         self.assertEqual(list(con.iterdump()),before)
-        db.init_db(con);self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],20)
+        db.init_db(con);self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],db.SCHEMA_VERSION)
         self.assertEqual(con.execute('SELECT count(*) FROM sectors').fetchone()[0],10)
         self.assertEqual(con.execute('SELECT count(*) FROM sector_revisions').fetchone()[0],0)
         before=list(con.iterdump());db.init_db(con);self.assertEqual(list(con.iterdump()),before)

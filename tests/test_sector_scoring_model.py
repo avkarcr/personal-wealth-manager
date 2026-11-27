@@ -44,6 +44,21 @@ class SectorModelTests(unittest.TestCase):
         with localcontext() as ctx:
             ctx.prec=6;self.assertEqual(r,self.result(rows))
 
+    def test_rank_sensitivity_to_growth_and_valuation_weights(self):
+        sectors = SECTORS + [dict(SECTORS[0], id=2, code='industry', name='Industry')]
+        rows = []
+        for sid, growth, pe in ((1, 20, 20), (2, 5, 5)):
+            for metric, value in (('revenue_growth', growth), ('pe', pe), ('liquidity', 100)):
+                item = observation(metric, value, sector_id=sid)
+                rows.append(dict(item, id=item['id'] + 100 * sid))
+        for growth_weight, value_weight, expected in ((60, 20, [1, 2]), (20, 60, [2, 1])):
+            cfg = small_config()
+            cfg['groups'].update(fundamentals=str(growth_weight), valuation=str(value_weight))
+            result = assess(sectors, rows, EMPTY_CYCLE, validate(cfg), CUTOFF, 'known')
+            order = sorted(result['sectors'], key=lambda sector: sector['rank'])
+            self.assertEqual([sector['sector']['id'] for sector in order], expected)
+            self.assertTrue(all(sector['coverage'] == 100 for sector in order))
+
     def test_missing_zero_disabled_and_inapplicable_are_distinct(self):
         cfg=small_config();rows=[observation('revenue_growth',0),observation('pe',10),observation('liquidity',100)]
         r=self.result(rows);self.assertEqual(r['features']['revenue_growth']['score'],0)
@@ -117,7 +132,7 @@ class SectorModelTests(unittest.TestCase):
         self.assertEqual(rule_for(utility,[utility],defaults())['profile'],'utilities')
 
     def test_rank_cohorts_ties_hierarchy_exclusion_and_archives(self):
-        sectors=SECTORS+[dict(SECTORS[0],id=2),dict(SECTORS[0],id=3,parent_id=1),dict(SECTORS[0],id=4,parent_id=1)]
+        sectors=deepcopy(SECTORS)+[dict(SECTORS[0],id=2),dict(SECTORS[0],id=3,parent_id=1),dict(SECTORS[0],id=4,parent_id=1)]
         rows=[observation(k,v,sector_id=s['id'],id=s['id']*100+i) for s in sectors for i,(k,v) in enumerate([('revenue_growth',10),('pe',10),('liquidity',100)])]
         r=assess(sectors,rows,EMPTY_CYCLE,small_config(),CUTOFF,'known')['sectors']
         self.assertEqual([x['rank'] for x in r],[1,1,1,1])

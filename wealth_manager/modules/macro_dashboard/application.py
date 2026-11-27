@@ -3,7 +3,7 @@ from calendar import monthrange
 from datetime import date
 from decimal import Decimal as D
 from math import ceil
-from wealth_manager.modules.macroeconomics.data import DataReports,instant,utcnow
+from wealth_manager.modules.macroeconomics.data import select_rows,instant,utcnow
 from wealth_manager.modules.macroeconomics.derived import minus_months
 from wealth_manager.modules.economic_cycle.application import Cycle
 from wealth_manager.modules.economic_cycle.config import FEATURES,GROUPS
@@ -12,6 +12,7 @@ from wealth_manager.modules.macroeconomics.scheduling import KINDS
 from wealth_manager.shared.records import RecordError
 from .charts import history,CHARTS
 from .ports import Session
+from wealth_manager.modules.sector_scoring.application import sector_result
 
 RANGES = {'1':'1 год','3':'3 года','5':'5 лет','10':'10 лет','all':'Вся история'}
 ERROR='Некорректные параметры макродашборда'
@@ -61,9 +62,7 @@ class Dashboard:
         parameters(window,chart,page)
         snapshot=self.session.dashboard_snapshot(token);now=instant(self.clock())
         cycle=Cycle(self.session,lambda:now);preview=cycle.from_snapshot(snapshot,as_of,mode);result=preview['result'];cfg=result['config'];cutoff=result['as_of']
-        class Reader:
-            def read(self):return snapshot['rows']
-        selected=DataReports(Reader(),lambda:now).overview(cutoff,mode)['rows']
+        selected = select_rows(snapshot['rows'], cutoff, mode)
         selected=[r for r in selected if r['series_id'] in cfg['series'].values()]
         earliest=min((r['period_end'] for r in selected),default=cutoff[:10])
         start=earliest if window=='all' else minus_months(date.fromisoformat(cutoff[:10]),12*int(window)).isoformat()
@@ -88,6 +87,7 @@ class Dashboard:
         for kind in KINDS:
             runs=[r for r in state['runs'] if r['kind']==kind];schedule=state['schedules'].get(kind,{})
             refresh.append(dict(kind=kind,schedule=schedule,last=runs[-1] if runs else None,last_success=next((r['finished'] for r in reversed(runs) if r['status']=='success'),None),allowed=kind in KINDS[:2] or state['access']!='disabled'))
-        return dict(result=result,fingerprint=preview['fingerprint'],window=window,chart=chart,graph=graph,table=table,page=page,pages=pages,count=count,
+        sectors = sector_result(snapshot['sectors'], result, selected)
+        return dict(result=result,sector_result=sectors,fingerprint=preview['fingerprint'],window=window,chart=chart,graph=graph,table=table,page=page,pages=pages,count=count,
                     kpis=kpis,groups=groups,sources=sources,refresh=refresh,now=now,
                     last_received=max((r['retrieved_at'] for r in selected),default=None),empty=not any(cfg['series'].values()))

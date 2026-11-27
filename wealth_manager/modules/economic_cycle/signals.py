@@ -21,10 +21,17 @@ def prepare(rows, cfg, cutoff, mode, *, include_disabled=False):
 
 
 def _prepare(rows, cfg, cutoff, mode, include_disabled=False):
-    groups = {role:sorted((r for r in rows if r['series_id']==sid),key=lambda r:r['period_end']) for role,sid in cfg['series'].items()}
-    # Only trailing evidence is needed for a snapshot. Bound long provider histories
-    # before M6 builds every historical point (110 daily observations cover a 3M anchor).
-    groups = {role:data[-{'daily':110,'monthly':14,'quarterly':cfg['window']}[data[0]['frequency']]:] if data else [] for role,data in groups.items()}
+    bound = {sid: [] for sid in cfg['series'].values() if sid is not None}
+    for row in rows:
+        if row['series_id'] in bound:
+            bound[row['series_id']].append(row)
+    # Limit the history per bound series before building all derived points.
+    limits = {'daily': 110, 'monthly': 14, 'quarterly': cfg['window']}
+    for sid, data in bound.items():
+        if data:
+            data.sort(key=lambda row: row['period_end'])
+            bound[sid] = data[-limits[data[0]['frequency']]:]
+    groups = {role: bound.get(sid, []) for role, sid in cfg['series'].items()}
     opts = options(cfg['method'],cfg['window'],cfg['hold_rate'])
     cache, warnings, evidence = {}, set(), {}
     def derived(role, other=''):

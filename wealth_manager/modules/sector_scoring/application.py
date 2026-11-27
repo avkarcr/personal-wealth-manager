@@ -1,6 +1,6 @@
 """Independent configuration, dated previews and immutable calculation evidence."""
 from wealth_manager.modules.economic_cycle.application import Cycle, digest
-from wealth_manager.modules.macroeconomics.data import utcnow, instant, DataReports
+from wealth_manager.modules.macroeconomics.data import utcnow, instant, select_rows
 from wealth_manager.modules.economic_cycle.signals import prepare
 from wealth_manager.modules.market_catalog.domain import find
 from wealth_manager.shared.records import RecordError
@@ -9,6 +9,17 @@ from .model import assess, AUTO_FEATURES
 from .ports import Session
 
 CHANGED = 'Отраслевые данные или настройки изменились: обновите страницу'
+
+
+def sector_result(snapshot, cycle, rows):
+    cfg = validate(snapshot['config'])
+    mode = cycle['mode']
+    # Share series selection and transformations, never the cycle's factor weights.
+    evidence,_=prepare(rows,cycle['config'],cycle['as_of'],mode,include_disabled=True)
+    macro_evidence={code:evidence[code] for code in AUTO_FEATURES.values()}
+    result=assess(snapshot['sectors'],snapshot['observations'],dict(cycle,features=macro_evidence),cfg,cycle['as_of'],mode)
+    result.update(version=VERSION,config=cfg,config_version=digest(cfg),cycle=cycle,macro_evidence=macro_evidence,as_of=cycle['as_of'],mode=mode)
+    return result
 
 
 class Scoring:
@@ -43,15 +54,8 @@ class Scoring:
     def preview(self, token, as_of=None, mode='known'):
         snapshot=self.session.sector_snapshot(token)
         cycle=Cycle(self.session,self.clock).from_snapshot(snapshot['cycle'],as_of,mode)['result']
-        cfg=validate(snapshot['config'])
-        class Reader:
-            def read(self): return snapshot['cycle']['rows']
-        rows=DataReports(Reader(),self.clock).overview(cycle['as_of'],mode)['rows']
-        # Share series selection and transformations, never the cycle's factor weights.
-        evidence,_=prepare(rows,cycle['config'],cycle['as_of'],mode,include_disabled=True)
-        macro_evidence={code:evidence[code] for code in AUTO_FEATURES.values()}
-        result=assess(snapshot['sectors'],snapshot['observations'],dict(cycle,features=macro_evidence),cfg,cycle['as_of'],mode)
-        result.update(version=VERSION,config=cfg,config_version=digest(cfg),cycle=cycle,macro_evidence=macro_evidence,as_of=cycle['as_of'],mode=mode)
+        rows = select_rows(snapshot['cycle']['rows'], cycle['as_of'], mode)
+        result = sector_result(snapshot, cycle, rows)
         return dict(result=result,fingerprint=digest(result),config_id=snapshot['config_id'],
                     revision_token=snapshot['revision_token'],macro_token=snapshot['cycle']['revision_token'],
                     cycle_config_id=snapshot['cycle']['config_id'],catalog_token=digest(snapshot['sectors']),runs=snapshot['runs'])

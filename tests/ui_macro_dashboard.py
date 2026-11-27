@@ -11,6 +11,7 @@ from threading import Thread
 from werkzeug.serving import make_server
 from playwright.sync_api import sync_playwright
 import test_economic_cycle as fixtures
+from test_macro_vintages import VINTAGES, bind_archives, replay
 from wealth_manager.factory import create_app
 
 
@@ -56,6 +57,19 @@ def main():
             nojs.add_cookies([dict(name='session',value=cookie,url=url,httpOnly=True,sameSite='Strict')])
             page=nojs.new_page();page.goto(url+'/macroeconomics/dashboard?chart=cpi')
             page.get_by_text('Exact values and observation revisions',exact=False).click();assert page.locator('.macro-details table tbody tr').count()>0
+            # Exercise the historical mode switch through the real GET form.
+            for vintage in VINTAGES:
+                replay(fixture.s['macro_data'], vintage)
+            bind_archives(fixture.service(), fixture.vault.token)
+            page.goto(url + '/macroeconomics/dashboard?as_of=2020-09-30&mode=known&chart=gap')
+            latest_date = page.locator('.macro-table-wrap tbody tr').first.locator('td').first
+            page.locator('.macro-details summary').first.click()
+            assert latest_date.is_visible() and latest_date.text_content() == '2020-03-31'
+            page.locator('.macro-filter select[name=mode]').select_option('latest')
+            page.locator('.macro-filter button').click()
+            page.locator('.macro-details summary').first.click()
+            assert latest_date.is_visible() and latest_date.text_content() == '2020-09-30'
+            assert page.locator('.macro-filter input[name=as_of]').input_value() == '2020-09-30'
             nojs.close();browser.close()
         print('Chromium OK: RU/EN, 1440/390px, light/dark, keyboard, curve, phase history, no-JS table; no JS errors.')
         print('Screenshots:',screenshots)

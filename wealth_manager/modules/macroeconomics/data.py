@@ -121,13 +121,25 @@ class DataReports:
         if mode not in ('known','latest'):raise RecordError(ERROR)
         cutoff=instant(as_of,True) if as_of else instant(self.clock())
         rows=self.reader.read()
-        selected={}
-        for row in rows:
-            if mode=='known' and row['available_at']>cutoff:continue
-            key=row['record_id'];order=(row['available_at'],row['revision_id'])
-            if key not in selected or order>(selected[key]['available_at'],selected[key]['revision_id']):selected[key]=row
-        return dict(rows=[r for r in selected.values() if not r['deleted'] and r['period_end']<=cutoff[:10]],
-                    history=[r for r in rows if mode=='latest' or r['available_at']<=cutoff],as_of=as_of or cutoff,mode=mode)
+        selected = select_rows(rows, cutoff, mode)
+        return dict(rows=selected, history=[r for r in rows if mode=='latest' or r['available_at']<=cutoff],
+                    as_of=as_of or cutoff, mode=mode)
+
+
+def select_rows(rows, cutoff, mode):
+    """Select a vintage before filtering tombstones or changed observation dates."""
+    if mode not in ('known', 'latest'):
+        raise RecordError(ERROR)
+    selected = {}
+    for row in rows:
+        if mode == 'known' and row['available_at'] > cutoff:
+            continue
+        key = row['record_id']
+        prior = selected.get(key)
+        if prior is None or (row['available_at'], row['revision_id']) > (prior['available_at'], prior['revision_id']):
+            selected[key] = row
+    return [r for r in selected.values() if not r['deleted'] and r['period_end'] <= cutoff[:10]]
+
 
 
 LABELS={'unknown':'Неизвестно','preliminary':'Предварительные','final':'Окончательные','revised':'Пересмотренные',

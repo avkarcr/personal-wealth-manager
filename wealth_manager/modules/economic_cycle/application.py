@@ -1,7 +1,7 @@
 """As-of use cases, immutable configuration versions and reproducible evidence."""
 from datetime import date
 from hashlib import sha256
-from wealth_manager.modules.macroeconomics.data import DataReports, instant, utcnow
+from wealth_manager.modules.macroeconomics.data import select_rows, instant, utcnow
 from wealth_manager.modules.macroeconomics.derived import minus_months, VERSION as DERIVED_VERSION
 from wealth_manager.modules.macroeconomics.calculations import canonical
 from wealth_manager.shared.records import RecordError
@@ -42,10 +42,8 @@ class Cycle:
         if as_of and len(as_of)==10 and cutoff[:10]==now[:10]: cutoff=now
         if cutoff>now: raise RecordError(ERROR)
         previous=minus_months(date.fromisoformat(cutoff[:10]),3).isoformat()+cutoff[10:]
-        class Reader:
-            def read(self): return snapshot['rows']
-        reports=DataReports(Reader(),self.clock)
-        current_rows=reports.overview(cutoff,mode)['rows']; previous_rows=reports.overview(previous,mode)['rows']
+        current_rows = select_rows(snapshot['rows'], cutoff, mode)
+        previous_rows = select_rows(snapshot['rows'], previous, mode)
         evidence,warnings=prepare(current_rows,cfg,cutoff,mode)
         prior,prior_warnings=prepare(previous_rows,cfg,previous,mode)
         result=assess(evidence,prior,cfg)

@@ -8,10 +8,9 @@ from pathlib import Path
 import json
 import re
 import sqlite3
-import unittest
 from unittest.mock import patch
+from vault_fixtures import ResearchCase, historical_schema
 import db
-import test_research as fixtures
 from test_macro_derived import row,daily
 from wealth_manager.modules.economic_cycle.application import Cycle,digest
 from wealth_manager.modules.economic_cycle.config import defaults,validate,FEATURES,GROUPS,ROLES
@@ -24,9 +23,7 @@ from wealth_manager.shared.records import RecordError
 from wealth_manager.shared.errors import EntityNotFound
 
 
-class CycleTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class CycleTests(ResearchCase):
     def service(self): return Cycle(Session(self.vault),lambda:'2026-11-22T12:00:00+00:00')
     def ingest(self,rows,publication=True):
         first=rows[0];code=first['indicator'];points=[]
@@ -170,7 +167,7 @@ class CycleTests(unittest.TestCase):
 
     def test_schema17_migration_is_atomic_and_preserves_old_data(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(con)
+        historical_schema(con, 17)
         self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],17)
         before=list(con.iterdump());original=db._migrate_economic_cycle
         def fail(c):original(c);raise RuntimeError('failed migration')

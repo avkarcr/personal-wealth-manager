@@ -8,9 +8,10 @@ from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 from decimal import Decimal as D
-import test_ledger
+from vault_fixtures import LedgerCase
 from wealth_manager.adapters.importing.csv import CsvStatements, OPERATIONS, BALANCES, MAX_BYTES
 from wealth_manager.shared.records import RecordError
+from wealth_manager.modules.importing.domain import ImportRowError
 from wealth_manager.modules.positions.domain import Position
 
 
@@ -26,25 +27,26 @@ class CsvTests(unittest.TestCase):
         self.assertEqual(row.entry.quantity,D('0.1234567890123456789'))
         self.assertIn('\n',row.entry.note);self.assertEqual(row.line,3)
     def test_reject_malformed_unsupported_empty_and_oversized(self):
-        parser=CsvStatements()
-        bad=[b'',b'x'*(MAX_BYTES+1),b'\xff',b'wrong\n1',(','.join(OPERATIONS)+'\n').encode(),
-             (','.join(OPERATIONS)+'\n"unterminated').encode(),csv_bytes(BALANCES,[[1,'RUB']]),
-             csv_bytes(BALANCES,[[1,'RUB',0]]*501)]
-        for raw in bad:
-            with self.subTest(raw=raw[:50]),self.assertRaises(RecordError):parser.balances(raw)
-            with self.assertRaises(RecordError):parser.operations(raw)
+        parser = CsvStatements()
+        row_limit = 500  # Public CSV v1 limit for both formats.
+        trade = ['x', '2026-11-15', 'deposit', 1, 'RUB', '1', 0, 0, '', '', '']
+        for parse, columns, valid_row in ((parser.operations, OPERATIONS, trade),
+                                          (parser.balances, BALANCES, [1, 'RUB', 1])):
+            header = (','.join(columns) + '\n').encode()
+            with self.subTest(format=parse.__name__):
+                self.assertEqual(len(parse(csv_bytes(columns, [valid_row] * row_limit))), row_limit)
+                invalid = (b'', b'x' * (MAX_BYTES + 1), b'\xff', b'wrong\n1', header,
+                           header + b'"unterminated', csv_bytes(columns, [valid_row[:-1]]),
+                           csv_bytes(columns, [valid_row] * (row_limit + 1)))
+                for raw in invalid:
+                    with self.subTest(prefix=raw[:50]), self.assertRaises(RecordError):
+                        parse(raw)
         for q in ('NaN','inf','1,23','1e999','bad'):
             with self.subTest(q=q),self.assertRaises(RecordError):parser.balances(csv_bytes(BALANCES,[[1,'RUB',q]]))
             with self.assertRaises(RecordError):parser.operations(csv_bytes(OPERATIONS,[['x','2026-11-15','deposit',1,'RUB',q,0,0,'','','']]))
 
 
-class ImportTests(unittest.TestCase):
-    setUp=test_ledger.LedgerTests.setUp
-    dump=test_ledger.LedgerTests.dump
-    prepare=test_ledger.LedgerTests.prepare
-    row=test_ledger.LedgerTests.row
-    entry=test_ledger.LedgerTests.entry
-    target=test_ledger.LedgerTests.target
+class ImportTests(LedgerCase):
 
     def rows(self,operations):
         return csv_bytes(OPERATIONS,operations)
@@ -92,6 +94,14 @@ class ImportTests(unittest.TestCase):
             with self.assertRaises(OSError):self.s['imports'].operations(raw,'broker',self.aid,expected_revision=preview['revision'])
         self.assertEqual(self.dump(),before);self.assertEqual(Path(self.vault.path).read_bytes(),disk)
 
+        # Retry the same confirmation after restoring the durable vault.
+        self.vault.lock()
+        self.vault.unlock('password123')
+        result = self.s['imports'].operations(raw, 'broker', self.aid, expected_revision=preview['revision'])
+        self.assertEqual(result['new'], 2)
+        self.assertEqual(self.run_import(raw)['new'], 0)
+        self.assertEqual((self.row(self.cash)['quantity'], self.row(self.hid)['quantity']), (59, 2))
+
     def test_stale_preview_and_duplicate_external_id_rejected(self):
         self.prepare(0);raw=self.rows([self.deposit()]);preview=self.s['imports'].operations(raw,'broker',self.aid)
         self.s['positions'].update_prices(self.aid,{self.hid:D(21)})
@@ -101,6 +111,14 @@ class ImportTests(unittest.TestCase):
         with self.assertRaises(RecordError):self.run_import(self.rows([self.deposit(key='')]))
 
     def test_wrong_account_currency_unknown_position_and_nonledger_account(self):
+        cash_before_activation = self.s['positions'].save(Position(self.aid, name='Manual cash', asset_class_code='cash'))
+        raw = self.rows([['d', self.day, 'deposit', cash_before_activation, 'RUB', 100, 0, 0, '', '', '']])
+        before = self.dump()
+        with self.assertRaisesRegex(ImportRowError, 'включите журнал') as error:
+            self.s['imports'].operations(raw, 'broker', self.aid)
+        self.assertEqual(error.exception.line, 2)
+        self.assertEqual(self.dump(), before)
+
         self.prepare(0);aid,cash,stock=self.target()
         for index,value in ((3,cash),(3,999),(4,'USD')):
             row=self.deposit();row[index]=value
@@ -126,7 +144,8 @@ class ImportTests(unittest.TestCase):
         self.assertEqual(cash['difference'],D('0.0000000000000000001'))
         self.assertEqual(cash['status'],'difference');self.assertIn('missing',[r['status'] for r in result])
         result=self.s['imports'].balances(csv_bytes(BALANCES,[[self.cash,'RUB','2.3000000000000000001'],[self.hid,'RUB',0]]),self.aid,self.today.isoformat())
-        self.assertTrue(all(r['status']=='match' for r in result))
+        self.assertCountEqual([(r['holding_id'], r['status']) for r in result],
+                              [(self.cash, 'match'), (self.hid, 'match')])
         self.assertEqual(self.dump(),before);self.assertEqual(Path(self.vault.path).read_bytes(),disk)
 
     def test_reconcile_rejects_future_preopening_duplicate_wrong_currency_and_negative(self):

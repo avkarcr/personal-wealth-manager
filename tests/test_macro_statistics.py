@@ -10,7 +10,7 @@ import json
 import base64
 import unittest
 import openpyxl
-import test_research as fixtures
+from vault_fixtures import ResearchCase
 from wealth_manager.modules.macroeconomics.statistics import StatisticsImport,Upload,period,PROFILES
 from wealth_manager.adapters.macroeconomics.files import FileReader
 from wealth_manager.adapters.macroeconomics.session import Session
@@ -72,9 +72,7 @@ class FileTests(unittest.TestCase):
         for settings in [config(first_row='0'),config(last_row='99'),config(period_col='0'),config(layout='bad'),config(sheet='missing')]:
             with self.assertRaises(RecordError):r.extract(csvfile(),settings,'monthly')
 
-class ImportTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class ImportTests(ResearchCase):
     def service(self):return StatisticsImport(FileReader(),Session(self.vault),today=lambda:date(2026,11,21))
     def preview(self,files=None,configs=None):return self.service().preview(files or [csvfile()],configs or [config()],self.vault.token)
     def confirm(self,files=None,configs=None):
@@ -166,8 +164,10 @@ class ImportTests(unittest.TestCase):
             return original(obj,*args,**kwargs)
         with patch('wealth_manager.adapters.web.macro_import.URLSafeTimedSerializer.loads',new=expire):
             self.assertEqual(client.post('/macroeconomics/import/preview',data=dict(token=token)).status_code,400)
-        self.assertEqual(client.post('/macroeconomics/import/inspect',data={'files':(BytesIO(b'x'*524289),'large.csv')}).status_code,400)
-        self.assertEqual(client.post('/macroeconomics/import/inspect',data={'files':(BytesIO(b'x'*1500001),'large.csv')}).status_code,413)
+        for size, status in ((524289, 400), (1500001, 413)):
+            upload = {'files': (BytesIO(b'x' * size), 'large.csv')}
+            with client.post('/macroeconomics/import/inspect', data=upload) as response, response.request.input_stream:
+                self.assertEqual(response.status_code, status)
         self.assertEqual(client.post('/macroeconomics/import/inspect',data={}).status_code,400)
 
     def test_empty_negative_invalid_series_and_real_gdp_require_base_year(self):

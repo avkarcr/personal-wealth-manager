@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock,patch
 import threading
 import unittest
-import test_research as fixtures
+from vault_fixtures import ResearchCase
 from wealth_manager.adapters.macroeconomics.cbr import Provider,Transport,NoRedirect
 from wealth_manager.adapters.macroeconomics.session import Session
 from wealth_manager.modules.macroeconomics.refresh import Refresh,RefreshError
@@ -69,9 +69,7 @@ class ParserTests(unittest.TestCase):
             with self.assertRaises(RefreshError) as caught:Transport().get('https://www.cbr.ru/')
             self.assertNotIn('private details',str(caught.exception))
 
-class RefreshTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class RefreshTests(ResearchCase):
     def refresh(self,p=None):return Refresh(p or provider(),Session(self.vault),today=lambda:date(2026,11,21))
     def run_refresh(self,r=None,kind='key_rate'):return (r or self.refresh()).execute(kind,START.isoformat(),END.isoformat(),self.vault.token)
 

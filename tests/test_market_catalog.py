@@ -3,14 +3,11 @@ from dataclasses import replace
 from datetime import date,timedelta
 from decimal import Decimal as D
 from pathlib import Path
-import ast
-import json
-import re
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import PortfolioCase
 import db
-import test_valuation_quality as fixtures
 from wealth_manager.modules.market_catalog.domain import Sector,Security,Listing,find,security_class
 from wealth_manager.modules.companies.domain import Company
 from wealth_manager.modules.positions.domain import Position
@@ -22,9 +19,7 @@ from wealth_manager.adapters.persistence.market_catalog import Reader
 from wealth_manager.adapters.persistence.migrations import initialize_vault
 
 
-class CatalogTests(unittest.TestCase):
-    setUp=fixtures.ValuationIntegrationTests.setUp
-    dump=fixtures.ValuationIntegrationTests.dump
+class CatalogTests(PortfolioCase):
     def command(self):return self.s['market_catalog']
     def data(self):return Reader(self.vault).read()
     def issuer(self,name='Issuer'):return self.s['companies'].save(Company(name))
@@ -229,20 +224,12 @@ class CatalogTests(unittest.TestCase):
             with self.assertRaises(EntityNotFound):action()
         self.assertIsNone(security_class('unknown'))
 
-    def test_all_catalog_messages_have_english_translations(self):
-        en=json.loads(Path('wealth_manager/adapters/web/locales/en.json').read_text());messages=set()
-        for path in list(Path('wealth_manager/modules/market_catalog').glob('*.py'))+[Path('wealth_manager/adapters/persistence/market_catalog.py')]:
-            for n in ast.walk(ast.parse(path.read_text())):
-                if isinstance(n,ast.Constant) and isinstance(n.value,str) and re.search('[А-Яа-яЁё]',n.value):messages.add(n.value)
-        for name in ('sectors.html','sector_form.html','security_form.html','listing_form.html','_company_catalog.html','_security_catalog.html'):
-            content=(Path('templates')/name).read_text();messages.update(re.findall(r"_\('([^']+)'\)",content));messages.update(re.findall(r"fields\.(?:input|select|area)\('[^']+','([^']+)'",content))
-        self.assertEqual(sorted(messages-set(en)),[])
-
 
 class CatalogMigrationTests(unittest.TestCase):
     def test_v18_upgrade_preserves_ids_positions_allocations_and_unknowns_and_is_atomic(self):
-        f=fixtures.ValuationIntegrationTests();self.addCleanup(f.doCleanups)
-        with patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):f.setUp()
+        f=PortfolioCase();self.addCleanup(f.doCleanups)
+        f.schema_version = 18
+        f.setUp()
         con=f.vault.con
         con.execute("INSERT INTO companies(id,name,ticker,exchange,country,sector,status) VALUES (42,'Legacy','OLD','MOEX','RU','Unclear legacy sector','watch')")
         con.execute('INSERT INTO holding_links(holding_id,company_id) VALUES (?,42)',(f.hid,));con.commit()

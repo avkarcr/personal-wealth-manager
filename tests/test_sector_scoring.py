@@ -8,8 +8,8 @@ import re
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import ResearchCase, historical_schema
 import db
-import test_research as fixtures
 from test_sector_scoring_model import CUTOFF, observation, small_config
 from wealth_manager.adapters.macroeconomics.session import Session
 from wealth_manager.adapters.persistence.sector_scoring import Repository
@@ -22,21 +22,16 @@ from wealth_manager.modules.macroeconomics.refresh import RefreshError
 from wealth_manager.modules.macroeconomics.calculations import canonical
 from wealth_manager.shared.records import RecordError
 from wealth_manager.shared.errors import EntityNotFound
-from wealth_manager.factory import create_app
 
 
-class SectorScoringTests(unittest.TestCase):
-    setUp_base=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class SectorScoringTests(ResearchCase):
 
     def setUp(self):
-        self.setUp_base()
+        super().setUp()
         self.service=Scoring(Session(self.vault),lambda:CUTOFF)
         self.sid=next(s['id'] for s in Repository(self.vault.con).sectors() if s['code']=='technology')
-        self.app=create_app({'TESTING':True},vault=self.vault);self.client=self.app.test_client()
         self.app.extensions['wealth_manager'].services['sector_scoring'].clock=lambda:CUTOFF
         self.app.extensions['wealth_manager'].services['macro_dashboard'].clock=lambda:CUTOFF
-        with self.client.session_transaction() as session:session['vault']=self.vault.token
 
     def item(self,metric='pe',value=10,**changes):
         row=observation(metric,value,sector_id=self.sid,**changes)
@@ -156,7 +151,7 @@ class SectorScoringTests(unittest.TestCase):
 
     def test_schema19_migration_is_atomic_idempotent_and_preserves_catalog(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(con)
+        historical_schema(con, 19)
         self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0],19)
         before=list(con.iterdump());original=db._migrate_sector_scoring
         def fail(c):original(c);raise OSError('failed')

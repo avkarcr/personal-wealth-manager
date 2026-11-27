@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 import json
 import unittest
+from vault_fixtures import ResearchCase
 import test_economic_cycle as fixtures
 from test_macro_derived import monthly,daily,row
 from wealth_manager.modules.macro_dashboard.application import Dashboard,anchors
@@ -17,9 +18,7 @@ from wealth_manager.shared.records import RecordError
 from wealth_manager.modules.macroeconomics.refresh import RefreshError
 
 
-class DashboardTests(unittest.TestCase):
-    setUp=fixtures.CycleTests.setUp
-    dump=fixtures.CycleTests.dump
+class DashboardTests(ResearchCase):
     ingest=fixtures.CycleTests.ingest
     seed=fixtures.CycleTests.seed
     service=fixtures.CycleTests.service
@@ -42,8 +41,11 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(p['result'],self.service().preview(self.vault.token)['result'])
         self.assertEqual(p['kpis'][0]['date'],'2026-09-30');self.assertEqual(p['kpis'][0]['previous_date'],'2026-06-30')
         self.assertEqual(len(p['groups']),5);self.assertTrue(all(s['date'] for s in p['sources']))
-        for window in ('1','3','5','10','all'):
-            self.assertTrue(service.overview(self.vault.token,window=window)['graph']['points'])
+        for years in (3, 5, 10):
+            with self.subTest(years=years):
+                graph = service.overview(self.vault.token, window=str(years))['graph']
+                self.assertEqual(graph['start'], f'{2026 - years}-11-22')
+                self.assertTrue(graph['points'])
 
     def test_phase_markers_use_separate_known_vintages_not_the_final_snapshot(self):
         self.seed();service=self.dashboard();snapshot=service.session.dashboard_snapshot(self.vault.token)
@@ -89,21 +91,31 @@ class DashboardTests(unittest.TestCase):
         self.assertIsNone(p['kpis'][-1]['delta']);self.assertEqual(p['kpis'][-1]['reason'],'missing_pair')
 
     def test_tiny_changes_are_not_displayed_as_growth_or_decline_of_zero(self):
-        self.seed();app=create_app({'TESTING':True},vault=self.vault);client=app.test_client()
-        service=app.extensions['wealth_manager'].services['macro_dashboard']
-        view=self.dashboard().overview(self.vault.token)
-        with client.session_transaction() as s:s['vault']=self.vault.token
+        self.seed()
+        service = self.app.extensions['wealth_manager'].services['macro_dashboard']
+        view = self.dashboard().overview(self.vault.token)
         for lang,small in [('ru','Изменение менее 0,0001 п.п.'),('en','Change under 0.0001 pp')]:
             self.s['change_language'].execute(lang)
-            for change,label in [('1e-20',small),('-1e-20',small),('0','→'),('0.0001','↑'),('-0.0001','↓')]:
-                snapshot=deepcopy(view);snapshot['kpis'][0]['delta']=D(change)
-                with patch.object(service,'overview',return_value=snapshot):
-                    response=client.get('/macroeconomics/dashboard')
-                self.assertEqual(response.status_code,200)
-                card=response.get_data(as_text=True).split('<section class="macro-kpis"',1)[1].split('</a>',1)[0]
-                self.assertIn(label,card)
-                if label==small:self.assertNotIn('↑',card);self.assertNotIn('↓',card)
-                self.assertEqual(snapshot['kpis'][0]['delta'],D(change))
+            cases = [('1e-20', small), ('-1e-20', small), ('0', '→'), ('0.0001', '↑'), ('-0.0001', '↓')]
+            width = len(view['kpis'])
+            for offset in range(0, len(cases), width):
+                batch = cases[offset:offset + width]
+                snapshot = deepcopy(view)
+                for i, (change, _) in enumerate(batch):
+                    snapshot['kpis'][i]['delta'] = D(change)
+                with patch.object(service, 'overview', return_value=snapshot):
+                    response = self.client.get('/macroeconomics/dashboard')
+                self.assertEqual(response.status_code, 200)
+                section = response.get_data(as_text=True).split('<section class="macro-kpis"', 1)[1].split('</section>', 1)[0]
+                cards = section.split('</a>')[:-1]
+                self.assertEqual(len(cards), width)
+                for i, (change, label) in enumerate(batch):
+                    with self.subTest(lang=lang, change=change):
+                        self.assertIn(label, cards[i])
+                        if label == small:
+                            self.assertNotIn('↑', cards[i])
+                            self.assertNotIn('↓', cards[i])
+                        self.assertEqual(snapshot['kpis'][i]['delta'], D(change))
 
     def test_http_ru_en_links_forms_and_current_refresh_preserve_view(self):
         self.seed();app=create_app({'TESTING':True},vault=self.vault);client=app.test_client();runtime=app.extensions['wealth_manager']

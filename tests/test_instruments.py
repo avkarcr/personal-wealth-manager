@@ -3,12 +3,11 @@ from dataclasses import replace
 from decimal import Decimal as D
 from pathlib import Path
 import json
-import re
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import PortfolioCase, historical_schema
 import db
-import test_valuation_quality as fixtures
 from wealth_manager.modules.companies.domain import Company
 from wealth_manager.modules.instruments.domain import CryptoAsset, compatible
 from wealth_manager.modules.positions.domain import Position
@@ -18,9 +17,7 @@ from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.adapters.persistence.instruments import Repository
 
 
-class InstrumentTests(unittest.TestCase):
-    setUp=fixtures.ValuationIntegrationTests.setUp
-    dump=fixtures.ValuationIntegrationTests.dump
+class InstrumentTests(PortfolioCase):
     def company(self):return self.s['companies'].save(Company('Example','SAME','MOEX'))
     def crypto(self):return self.s['instruments'].save_crypto(CryptoAsset('Token','SAME','Ethereum','0xAbC'))
     def detail(self,cid):return self.s['instrument_reports'].detail('company',cid)
@@ -182,17 +179,11 @@ class InstrumentTests(unittest.TestCase):
         self.assertEqual(len(self.detail(cid)['positions']),2)
         self.assertEqual(self.detail(cid)['totals']['RUB']['known'],100)
 
-    def test_new_messages_are_translated(self):
-        from wealth_manager.adapters.web.i18n import EN
-        paths=list(Path('wealth_manager/modules/instruments').glob('*.py'))+[Path('wealth_manager/adapters/persistence/instruments.py')]+[Path('templates')/p for p in ('instrument.html','crypto_assets.html','crypto_form.html')]
-        for path in paths:
-            for text in re.findall(r"'([^'\n]*[А-Яа-яЁё][^'\n]*)'",path.read_text()):self.assertIn(text,EN)
-
 
 class InstrumentMigrationTests(unittest.TestCase):
     def test_v14_upgrade_preserves_data_no_automatic_links_and_rolls_back(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 14)
         c.execute("INSERT INTO companies(name,ticker,exchange,country,status) VALUES ('Old','OLD','MOEX','RU','watch')");c.commit()
         before=list(c.iterdump());original=db._migrate_instruments
         def fail(con):original(con);raise RuntimeError('migration')

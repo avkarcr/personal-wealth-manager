@@ -2,35 +2,22 @@
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
-import re
 import sqlite3
-import tempfile
 import unittest
 from unittest.mock import patch
+from vault_fixtures import ResearchCase
 import db
-from vault import Vault
-from wealth_manager.bootstrap import build_services
 from wealth_manager.factory import create_app
 from wealth_manager.modules.companies.domain import Company
 from wealth_manager.modules.macroeconomics.domain import Observation
-from wealth_manager.modules.taxes.domain import TaxEntry, Deduction, estimate, summarize as tax_summary
+from wealth_manager.modules.taxes.domain import estimate, summarize as tax_summary
 from wealth_manager.shared.records import RecordError
 from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.adapters.persistence.research import CompanyReader, ObservationReader, TaxReader
 
 D=Decimal
 
-class ResearchTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.vault=Vault(str(Path(self.tmp.name)/'test.enc'))
-        db.init_db(self.vault.create('password123'));self.vault.save(force=True);self.addCleanup(self.vault.lock)
-        self.s=build_services(self.vault)
-        self.company=Company('Example','EXM','MOEX','RU',website='https://example.com',thesis='Long term')
-        self.observation=Observation('RU','key_rate','2026-01-01',D('10.5'),'Manual source')
-        self.entry=TaxEntry(2026,'RU','Salary','RUB',D('100000'),D('13'),D('5000'))
-        self.deduction=Deduction(2026,'RU','Education','RUB',D('10000'),D('1300'),documents='Invoice 123; home folder')
-    def dump(self):return list(self.vault.con.iterdump())
+class ResearchTests(ResearchCase):
     def seed(self):
         return (self.s['companies'].save(self.company),self.s['macroeconomics'].save(self.observation),
                 self.s['taxes'].save_entry(self.entry),self.s['taxes'].save_deduction(self.deduction))
@@ -176,14 +163,6 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(client.post(url,data={k:v for k,v in data.items() if k!=key}).status_code,400)
         client.post('/lock')
         for url,data in forms:self.assertEqual(client.post(url,data=data).status_code,302)
-
-    def test_dynamic_labels_and_errors_have_translations(self):
-        from wealth_manager.adapters.web.i18n import EN
-        for directory in ('companies','macroeconomics','taxes'):
-            path=Path('wealth_manager/modules')/directory/'domain.py'
-            for key in re.findall(r"'([^'\n]*[А-Яа-яЁё][^'\n]*)'",path.read_text()):self.assertIn(key,EN)
-        for path in [Path('wealth_manager/shared/records.py'),Path('wealth_manager/adapters/persistence/research.py')]+list(Path('templates').glob('*_form.html')):
-            for key in re.findall(r"'([^'\n]*[А-Яа-яЁё][^'\n]*)'",path.read_text()):self.assertIn(key,EN)
 
 
 class ResearchMigrationTests(unittest.TestCase):

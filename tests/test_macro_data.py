@@ -3,10 +3,9 @@ from dataclasses import replace
 from decimal import Decimal as D
 from pathlib import Path
 import sqlite3
-import unittest
 from unittest.mock import patch
+from vault_fixtures import ResearchCase, historical_schema
 import db
-import test_research as fixtures
 from wealth_manager.adapters.persistence.macro_data import Reader, Repository
 from wealth_manager.modules.macroeconomics.data import Artifact, DataReports, Indicator, Point, Series, Source, instant
 from wealth_manager.shared.records import RecordError
@@ -14,9 +13,7 @@ from wealth_manager.shared.errors import EntityNotFound
 from wealth_manager.factory import create_app
 
 
-class MacroDataTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class MacroDataTests(ResearchCase):
     definition=Indicator('cpi_index','Индекс ИПЦ','CPI index')
     source=Source('stats','Statistics',url='https://example.test',terms='Fixture')
     series=Series('cpi_index','RU','cpi','index','monthly',base_year=2020,adjustment='nsa')
@@ -144,7 +141,7 @@ class MacroDataTests(unittest.TestCase):
 
     def test_migration_preserves_manual_identity_and_unknown_dates(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 15)
         c.execute("INSERT INTO macro_observations(id,country,indicator,date,value,source,note) VALUES (42,'RU','key_rate','2020-01-01','10.1234567890123456789','manual','old note')");c.commit()
         with patch('wealth_manager.modules.macroeconomics.data.utcnow',return_value='2026-04-01T00:00:00.000000+00:00'):db.init_db(c)
         row=dict(c.execute('SELECT * FROM macro_observations').fetchone())
@@ -156,7 +153,7 @@ class MacroDataTests(unittest.TestCase):
 
     def test_migration_failure_restores_v15(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 15)
         before=list(c.iterdump());original=db._migrate_macro_versions
         def fail(con):original(con);raise RuntimeError('migration failed')
         with patch('db._migrate_macro_versions',side_effect=fail):

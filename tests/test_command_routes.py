@@ -80,17 +80,21 @@ class CommandRouteTests(unittest.TestCase):
         self.assertEqual(self.client.get('/settings').status_code,200)
         self.assertEqual(self.rows('cashflows'),[])
 
-    def test_commands_have_no_persistence_access(self):
-        tree=ast.parse(Path('wealth_manager/adapters/web/commands.py').read_text())
-        for node in ast.walk(tree):
-            if isinstance(node,ast.Attribute):self.assertNotIn(node.attr,('connection','con','get_connection','commit','take_snapshot'))
-
     def test_command_messages_are_localized_and_user_input_preserved(self):
         self.post('/settings/general',language='en')
         self.post('/leases/save',account_id=self.aid,tenant='Арендатор Иван',start_date='2024-01-01',end_date='2024-01-31',schedule='on')
         page=self.client.get(f'/accounts/{self.aid}').get_data(as_text=True)
         self.assertIn('Lease saved',page)
         self.assertIn('Арендатор Иван',page)
+
+
+class CommandSourceTests(unittest.TestCase):
+    def test_commands_have_no_persistence_access(self):
+        tree=ast.parse(Path('wealth_manager/adapters/web/commands.py').read_text())
+        for node in ast.walk(tree):
+            if isinstance(node,ast.Attribute):self.assertNotIn(node.attr,('connection','con','get_connection','commit','take_snapshot'))
+
+    def test_flash_messages_are_localized(self):
         tree=ast.parse(Path('wealth_manager/adapters/web/commands.py').read_text())
         for node in ast.walk(tree):
             if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id in ('flash','gettext') and node.args and isinstance(node.args[0],ast.Constant):

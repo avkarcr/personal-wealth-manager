@@ -6,8 +6,8 @@ from pathlib import Path
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import PortfolioCase, historical_schema
 import db
-import test_valuation_quality
 from wealth_manager.modules.planning.domain import Goal,Portfolio,PlanningError
 from wealth_manager.modules.planning.forecast import forecast,month_date
 from wealth_manager.modules.positions.domain import Position
@@ -82,9 +82,7 @@ class ForecastDomainTests(unittest.TestCase):
         with self.assertRaises(ValueError):replace(g,annual_return='NaN')
         replace(g,annual_return=-99,annual_inflation=100).validate()
 
-class ForecastIntegrationTests(unittest.TestCase):
-    setUp=test_valuation_quality.ValuationIntegrationTests.setUp
-    dump=test_valuation_quality.ValuationIntegrationTests.dump
+class ForecastIntegrationTests(PortfolioCase):
     def test_multiple_portfolios_share_one_plan_and_do_not_mutate_money(self):
         p2=self.s['planning'].save_portfolio(Portfolio('Second',self.gid))
         self.s['planning'].allocate(self.pid,'holding',self.hid,60)
@@ -134,7 +132,7 @@ class ForecastIntegrationTests(unittest.TestCase):
 class ForecastMigrationTests(unittest.TestCase):
     def test_schema13_default_zero_assumptions_and_atomic_migration(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 13)
         c.execute("INSERT INTO goals(name,target_amount,currency) VALUES ('Old','1000','RUB')");c.commit()
         before=list(c.iterdump());original=db._migrate_goal_forecasts
         def fail(con):original(con);raise RuntimeError('migration')

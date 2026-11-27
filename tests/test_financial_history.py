@@ -3,20 +3,17 @@ from datetime import date, timedelta
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
-import unittest
 import sqlite3
+from vault_fixtures import PortfolioCase, historical_schema
 import db
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.modules.valuation.history import rates_on
 from wealth_manager.modules.reporting.domain import history
 from wealth_manager.shared.records import RecordError
-import test_valuation_quality
 
 
-class FinancialHistoryTests(unittest.TestCase):
-    setUp=test_valuation_quality.ValuationIntegrationTests.setUp
-    dump=test_valuation_quality.ValuationIntegrationTests.dump
+class FinancialHistoryTests(PortfolioCase):
 
     def clear_positions(self):
         self.s['positions'].save(Position(self.aid,id=self.hid,name='Empty',quantity=0,price=50))
@@ -144,8 +141,7 @@ class FinancialHistoryTests(unittest.TestCase):
 
     def test_migration_v8_keeps_snapshots_and_does_not_backfill_rates(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_history'), patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):
-            db.init_db(con)
+        historical_schema(con, 8)
         con.execute("INSERT INTO entities(id,entity_type,name) VALUES (1,'account','Old')")
         con.execute("INSERT INTO financial_accounts(id,kind) VALUES (1,'broker')")
         con.execute("INSERT INTO snapshots(date,account_id,value_rub,invested_rub) VALUES ('2020-01-01',1,100,50)")

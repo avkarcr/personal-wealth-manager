@@ -8,9 +8,8 @@ from unittest.mock import patch
 import json
 import re
 import sqlite3
-import unittest
+from vault_fixtures import ResearchCase, historical_schema
 import db
-import test_research as fixtures
 from test_macro_derived import row, metrics
 from wealth_manager.modules.macroeconomics.calculations import Calculations
 from wealth_manager.modules.macroeconomics.data import Indicator,Source,Series,Artifact,Point
@@ -20,9 +19,7 @@ from wealth_manager.factory import create_app
 from wealth_manager.shared.records import RecordError
 
 
-class CalculationTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class CalculationTests(ResearchCase):
     def seed(self,count=24,adjustment='sa',base=2021,source='test_m6',values=None,publication=True,revision='final'):
         points=[]
         for i in range(count):
@@ -149,7 +146,7 @@ class CalculationTests(unittest.TestCase):
 
     def test_v16_migration_idempotence_and_failure_restores_original(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 16)
         self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],16)
         before=list(c.iterdump());original=db._migrate_macro_calculations
         def fail(con):original(con);raise RuntimeError('failure after migration')

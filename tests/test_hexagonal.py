@@ -5,7 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from db import init_db
 from vault import Vault
@@ -34,10 +34,10 @@ class DomainTests(unittest.TestCase):
         self.assertEqual(uow.events, ['save', 'purchase', 'snapshot', 'commit'])
 
     def test_invalid_account_does_not_open_transaction(self):
-        uow = MemoryUow()
+        factory = Mock()
         with self.assertRaises(ValueError):
-            SaveAccount(lambda: uow).execute(Account('X', kind='invalid'))
-        self.assertEqual(uow.events, [])
+            SaveAccount(factory).execute(Account('X', kind='invalid'))
+        factory.assert_not_called()
 
     def test_core_has_no_adapter_imports(self):
         for p in Path('wealth_manager/modules').rglob('*.py'):

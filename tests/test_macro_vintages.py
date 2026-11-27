@@ -4,10 +4,9 @@ import csv
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
-import unittest
 from unittest.mock import patch
 
-import test_research as fixtures
+from vault_fixtures import ResearchCase
 from test_macro_cbr import provider
 from wealth_manager.modules.economic_cycle.config import defaults
 from wealth_manager.modules.macroeconomics.data import Artifact, Indicator, Point, Series, Source
@@ -63,8 +62,7 @@ def bind_archives(cycle, token):
     return config, cycle.configure(token, config, state['config_id'])
 
 
-class VintageTests(unittest.TestCase):
-    setUp = fixtures.ResearchTests.setUp
+class VintageTests(ResearchCase):
 
     def test_archive_replay_survives_revisions_and_pandemic_shock(self):
         dashboard = self.s['macro_dashboard']

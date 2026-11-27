@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 import sqlite3
 import unittest
+from vault_fixtures import PortfolioCase, historical_schema
 import db
-import test_valuation_quality
 from wealth_manager.shared.decimal import decimal, exact_text, rounded, input_decimal
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
@@ -44,9 +44,7 @@ class DecimalPolicyTests(unittest.TestCase):
             self.assertEqual(http.json('unused')['price'],Decimal('0.123456789012345678'))
 
 
-class DecimalIntegrationTests(unittest.TestCase):
-    setUp=test_valuation_quality.ValuationIntegrationTests.setUp
-    dump=test_valuation_quality.ValuationIntegrationTests.dump
+class DecimalIntegrationTests(PortfolioCase):
 
     def test_position_http_disk_and_reopen_preserve_crypto_digits(self):
         value='0.123456789012345678'
@@ -119,7 +117,7 @@ class DecimalIntegrationTests(unittest.TestCase):
 class DecimalMigrationTests(unittest.TestCase):
     def test_v9_real_migration_preserves_links_sequences_and_rolls_back(self):
         con=sqlite3.connect(':memory:');con.row_factory=sqlite3.Row;self.addCleanup(con.close)
-        with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(con)
+        historical_schema(con, 9)
         con.execute("INSERT INTO entities(id,entity_type,name) VALUES (7,'account','Old')")
         con.execute("INSERT INTO financial_accounts(id,kind) VALUES (7,'broker')")
         con.execute("INSERT INTO holdings(id,account_id,name,quantity,price,avg_price) VALUES (123,7,'Old',?,?,?)",(0.1+0.2,1.25,0.1))
@@ -145,7 +143,7 @@ class DecimalMigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             vault=Vault(str(Path(directory)/'migration.enc'))
             try:
-                with patch('db._migrate_decimals'), patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(vault.create('password123'))
+                historical_schema(vault.create('password123'), 9)
                 vault.save(force=True)
                 before=list(vault.con.iterdump());disk=Path(vault.path).read_bytes()
                 with patch('vault.os.replace',side_effect=OSError('full')):

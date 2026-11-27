@@ -7,9 +7,8 @@ from pathlib import Path
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import ResearchCase, historical_schema
 import db
-import test_research
-from wealth_manager.factory import create_app
 from wealth_manager.modules.taxes.documents import Evidence,TaxPayment,MAX_FILE_BYTES,MAX_TOTAL_BYTES
 from wealth_manager.modules.taxes.domain import TaxEntry,Deduction
 from wealth_manager.shared.records import RecordError
@@ -19,14 +18,10 @@ PDF=b'%PDF-1.4\nPRIVATE EVIDENCE FOR TEST\n%%EOF'
 PNG=b'\x89PNG\r\n\x1a\nTEST'
 JPEG=b'\xff\xd8\xffTEST'
 
-class TaxEvidenceTests(unittest.TestCase):
-    base_setup=test_research.ResearchTests.setUp
-    dump=test_research.ResearchTests.dump
+class TaxEvidenceTests(ResearchCase):
     def setUp(self):
-        self.base_setup();self.cmd=self.s['taxes'];self.day=date.today().isoformat()
+        super().setUp();self.cmd=self.s['taxes'];self.day=date.today().isoformat()
         self.eid=self.cmd.save_entry(self.entry);self.did=self.cmd.save_deduction(self.deduction)
-        self.app=create_app({'TESTING':True},vault=self.vault);self.client=self.app.test_client()
-        with self.client.session_transaction() as session:session['vault']=self.vault.token
     def payment(self,**kw):
         data=dict(entry_id=self.eid,date=self.day,amount=D('100.01'),request_id='payment')
         data.update(kw);return TaxPayment(**data)
@@ -188,7 +183,7 @@ class TaxEvidenceTests(unittest.TestCase):
 class TaxDocumentMigrationTests(unittest.TestCase):
     def test_v12_refunds_preserved_without_fabricated_receipt_dates(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 12)
         for status,refund in [('received','123.45'),('submitted','200')]:
             c.execute("INSERT INTO tax_deductions(year,country,category,currency,amount,refund,status,documents) VALUES (2026,'RU','Education','RUB','1000',?,?, 'folder')",(refund,status))
         c.commit();before=list(c.iterdump());original=db._migrate_tax_documents

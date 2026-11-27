@@ -358,8 +358,8 @@ class IssMigrationTests(unittest.TestCase):
     def test_populated_v20_rolls_back_and_preserves_existing_catalog_and_links(self):
         f = catalog_fixtures.CatalogTests()
         self.addCleanup(f.doCleanups)
-        with patch('db._migrate_listing_iss'):
-            f.setUp()
+        f.schema_version = 20
+        f.setUp()
         cid = f.issuer()
         sid = f.issue(cid, isin=ISIN)
         lid = f.command().save_listing(Listing(sid, 'MOEX', 'SYNTH', 'TQBR'))

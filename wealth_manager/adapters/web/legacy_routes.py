@@ -173,6 +173,8 @@ def register_routes(app, runtime):
                 flash("Пароль изменён, файл перешифрован")
             except WrongPassword:
                 flash("Текущий пароль неверный")
+            except OSError:
+                flash("Не удалось записать хранилище. Прежний пароль продолжает действовать.")
         return redirect(url_for("settings"))
 
 

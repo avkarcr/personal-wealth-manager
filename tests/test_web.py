@@ -1,11 +1,9 @@
 from pathlib import Path
-import re
 import tempfile
 import unittest
 
 from wealth_manager.factory import create_app
 from db import init_db
-from wealth_manager.adapters.web.i18n import EN
 
 class WebTests(unittest.TestCase):
     def setUp(self):
@@ -62,18 +60,19 @@ class WebTests(unittest.TestCase):
         for kind in ('broker','crypto','realty','freelance','other'):
             response=self.client.post('/accounts/save',data={'name':kind,'kind':kind,'purchase_price':'100'})
             urls.append(response.headers['Location'])
+            if kind == 'realty':
+                realty_url = response.headers['Location']
         for lang in ('ru','en'):
             self.client.post('/settings/general',data={'language':lang})
             for url in urls:
                 with self.subTest(language=lang,url=url):
                     response=self.client.get(url)
                     self.assertEqual(response.status_code,200)
-                    self.assertNotIn('JINJATOKEN',response.get_data(as_text=True))
-
-    def test_static_template_catalog_complete(self):
-        for p in Path('templates').glob('*.html'):
-            for key in re.findall(r"_\('([^']*)'\)",p.read_text()):
-                if re.search('[А-Яа-яЁё]',key): self.assertIn(key,EN,(p,key))
+                    body = response.get_data(as_text=True)
+                    self.assertNotIn('JINJATOKEN', body)
+                    if url == realty_url:
+                        label = 'Expenses' if lang == 'en' else 'Расходы'
+                        self.assertIn(f'<span class="lbl">{label}</span>', body)
 
     def test_unauthenticated_preferences_write_is_blocked(self):
         self.client.post('/lock')

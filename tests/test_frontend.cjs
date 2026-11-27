@@ -43,6 +43,29 @@ test('Missing rate uses translated fallback without shadowing translator',async(
   assert.equal(button.disabled,false);
 });
 
+test('CBR quote for the tenant payment date updates the rental FX difference', async () => {
+  const requests = [];
+  const {handlers,alerts} = boot('en', async url => {
+    requests.push(url);
+    return {json: async () => ({rate: '90.25'})};
+  });
+  const form = {
+    received_date: {value: ''}, tenant_paid_date: {value: '2024-02-29'}, due_date: {value: '2024-02-01'},
+    currency: {value: 'USD'}, received_currency: {value: 'RUB'}, amount: {value: '2'},
+    received_amount: {value: '180'}, cb_rate: {value: ''},
+  };
+  const output = {innerHTML: ''};
+  const dialog = {querySelector: key => key === 'form' ? form : output};
+  const button = {textContent: 'CBR', closest: key => key === 'form' ? form : dialog};
+  await handlers.click[0]({target: {closest: () => button}});
+  assert.deepEqual(requests, ['/api/cbr?cur=USD&date=2024-02-29']);
+  assert.equal(form.cb_rate.value, '90,25');
+  assert.match(output.innerHTML, /1 USD = 90 RUB/);
+  assert.match(output.innerHTML, /−0\.5 ₽/);
+  assert.equal(button.disabled, false);
+  assert.deepEqual(alerts, []);
+});
+
 test('Entity forms route by type and unlock type choices when creating again',()=>{
   const {handlers}=boot('en',async()=>({}));
   const radios=['broker','crypto','realty','freelance','other'].map(value=>({value,disabled:false,checked:false}));

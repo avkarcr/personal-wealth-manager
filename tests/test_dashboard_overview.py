@@ -5,7 +5,7 @@ from decimal import Decimal as D
 from pathlib import Path
 import unittest
 from unittest.mock import Mock,patch
-import test_valuation_quality as fixtures
+from vault_fixtures import PortfolioCase
 from wealth_manager.modules.macroeconomics.reports import Reports,REVIEW_DAYS
 from wealth_manager.modules.macroeconomics.domain import Observation,INDICATORS
 from wealth_manager.modules.taxes.domain import TaxEntry,Deduction
@@ -47,9 +47,7 @@ class MacroOverviewTests(unittest.TestCase):
                 self.assertEqual(report['summary'][0]['latest']['value'],0)
 
 
-class DashboardOverviewTests(unittest.TestCase):
-    setUp=fixtures.ValuationIntegrationTests.setUp
-    dump=fixtures.ValuationIntegrationTests.dump
+class DashboardOverviewTests(PortfolioCase):
     def report(self):return self.s['dashboard'].overview()
     def seed(self):
         y=self.today.year

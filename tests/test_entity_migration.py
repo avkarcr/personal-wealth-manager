@@ -36,6 +36,37 @@ def v3(con):
     con.commit()
 
 
+class EarlySchemaTests(unittest.TestCase):
+    def test_older_schema_is_upgraded_in_one_restorable_operation(self):
+        c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
+        c.executescript("CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,kind TEXT CHECK(kind IN ('broker','realty')),institution TEXT,currency TEXT,current_value REAL,note TEXT,archived INTEGER,created_at TEXT); INSERT INTO accounts VALUES (7,'Old','realty','','RUB',100,'',0,'2020-01-01'); PRAGMA user_version=1;")
+        db.init_db(c)
+        self.assertEqual(c.execute('SELECT current_value FROM assets WHERE id=7').fetchone()[0],100)
+        self.assertEqual(c.execute('PRAGMA foreign_key_check').fetchall(),[])
+
+    def test_pre_v3_cashflow_survives_missing_optional_columns(self):
+        con = sqlite3.connect(':memory:')
+        self.addCleanup(con.close)
+        con.row_factory = sqlite3.Row
+        con.executescript("""
+            CREATE TABLE accounts(id INTEGER PRIMARY KEY, name TEXT, kind TEXT, institution TEXT,
+                                  currency TEXT, current_value REAL, note TEXT, archived INTEGER, created_at TEXT);
+            CREATE TABLE cashflows(id INTEGER PRIMARY KEY, account_id INTEGER REFERENCES accounts(id),
+                                   date TEXT, type TEXT, amount REAL, currency TEXT, note TEXT);
+            INSERT INTO accounts VALUES (7,'Synthetic client','freelance','','RUB',0,'',0,'2020-01-01');
+            INSERT INTO cashflows VALUES (14,7,'2020-01-15','income',123.25,'RUB','Original note');
+            PRAGMA user_version=2;
+        """)
+        db.init_db(con)
+        account = con.execute("SELECT name, tax_rate FROM accounts WHERE id=7").fetchone()
+        self.assertEqual(tuple(account), ('Synthetic client', 0))
+        cash = con.execute("""SELECT account_id, amount, currency, note, category, source, pending, rent_payment_id
+                              FROM cashflows WHERE id=14""").fetchone()
+        self.assertEqual(tuple(cash), (7, Decimal('123.25'), 'RUB', 'Original note', '', '', 0, None))
+        self.assertEqual(con.execute('PRAGMA foreign_key_check').fetchall(), [])
+        self.assertEqual(con.execute('PRAGMA user_version').fetchone()[0], db.SCHEMA_VERSION)
+
+
 class MigrationTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
@@ -129,13 +160,6 @@ class MigrationTests(unittest.TestCase):
         con.execute('PRAGMA user_version=3');con.execute("UPDATE settings SET value=value")
         with self.assertRaises(RuntimeError):db.init_db(con)
         con.rollback()
-
-    def test_older_schema_is_upgraded_in_one_restorable_operation(self):
-        c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        c.executescript("CREATE TABLE accounts(id INTEGER PRIMARY KEY,name TEXT,kind TEXT CHECK(kind IN ('broker','realty')),institution TEXT,currency TEXT,current_value REAL,note TEXT,archived INTEGER,created_at TEXT); INSERT INTO accounts VALUES (7,'Old','realty','','RUB',100,'',0,'2020-01-01'); PRAGMA user_version=1;")
-        db.init_db(c)
-        self.assertEqual(c.execute('SELECT current_value FROM assets WHERE id=7').fetchone()[0],100)
-        self.assertEqual(c.execute('PRAGMA foreign_key_check').fetchall(),[])
 
     def test_typed_workflows_after_upgrade_delete_without_orphans_or_id_reuse(self):
         initialize_vault(self.vault);s=build_services(self.vault)

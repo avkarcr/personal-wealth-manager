@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import Mock, patch
-import test_research as fixtures
+from vault_fixtures import ResearchCase
 from wealth_manager.adapters.macroeconomics.moex import Provider, Transport, MARKETS
 from wealth_manager.adapters.macroeconomics.providers import Providers
 from wealth_manager.adapters.macroeconomics.session import Session
@@ -92,9 +92,7 @@ class MarketTests(unittest.TestCase):
         p=Providers();p.cbr=Mock();p.moex=Mock();p.fetch('key_rate',1,2);p.cbr.fetch.assert_called_once_with('key_rate',1,2)
         p.fetch('IMOEX',1,2);p.moex.fetch.assert_called_once()
 
-class ScheduleTests(unittest.TestCase):
-    setUp=fixtures.ResearchTests.setUp
-    dump=fixtures.ResearchTests.dump
+class ScheduleTests(ResearchCase):
     def scheduler(self):
         self.clock=Mock(return_value='2024-01-13T12:00:00+00:00')
         self.provider=Mock(fetch=Mock(return_value=bundles()))

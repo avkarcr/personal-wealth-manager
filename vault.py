@@ -6,6 +6,7 @@
 поэтому подмена параметров или повреждение файла обнаруживаются.
 Без пароля восстановить данные невозможно.
 """
+from contextlib import suppress
 import hashlib
 import hmac
 import os
@@ -118,9 +119,10 @@ class Vault:
         self.touch()
 
     def check_password(self, password):
-        if not self._salt:
-            return False
-        return hmac.compare_digest(derive_key(password, self._salt, *self._params), self._key)
+        with self.lock_:
+            if not self.unlocked:
+                return False
+            return hmac.compare_digest(derive_key(password, self._salt, *self._params), self._key)
 
     # ── сохранение ──
     def dirty(self):
@@ -130,38 +132,49 @@ class Vault:
         with self.lock_:
             if not self.unlocked or (not force and not self.dirty()):
                 return
-            if hasattr(self.con, "serialize"):
-                payload = b"S" + self.con.serialize()
-            else:  # Python < 3.11
-                # iterdump omits header PRAGMAs; migration version must survive unlock.
-                version = self.con.execute("PRAGMA user_version").fetchone()[0]
-                script = "\n".join(self.con.iterdump()) + f"\nPRAGMA user_version={int(version)};\n"
-                payload = b"D" + script.encode("utf-8")
-            nonce = os.urandom(12)
-            header = MAGIC + self._salt + struct.pack(">III", *self._params) + nonce
-            blob = header + AESGCM(self._key).encrypt(nonce, payload, header)
-            tmp = self.path + ".tmp"
+            self._write_encrypted(self._salt, self._params, self._key, keep_backup=True)
+
+    def _write_encrypted(self, salt, params, key, *, keep_backup):
+        """Caller holds lock_. The atomic replacement commits the supplied key."""
+        if hasattr(self.con, "serialize"):
+            payload = b"S" + self.con.serialize()
+        else:  # Python < 3.11
+            # iterdump omits header PRAGMAs; migration version must survive unlock.
+            version = self.con.execute("PRAGMA user_version").fetchone()[0]
+            script = "\n".join(self.con.iterdump()) + f"\nPRAGMA user_version={int(version)};\n"
+            payload = b"D" + script.encode("utf-8")
+        nonce = os.urandom(12)
+        header = MAGIC + salt + struct.pack(">III", *params) + nonce
+        blob = header + AESGCM(key).encrypt(nonce, payload, header)
+        tmp, backup = self.path + ".tmp", self.path + ".bak"
+        try:
             with open(tmp, "wb") as f:
                 f.write(blob)
                 f.flush()
                 os.fsync(f.fileno())
-            if os.path.exists(self.path):
-                shutil.copyfile(self.path, self.path + ".bak")   # предыдущая версия, тоже зашифрована
+            if not keep_backup:
+                # Remove the old-password copy while the original file is still authoritative.
+                with suppress(FileNotFoundError):
+                    os.remove(backup)
+            elif os.path.exists(self.path):
+                shutil.copyfile(self.path, backup)
             os.replace(tmp, self.path)
-            self._saved_changes = self.con.total_changes
+        except OSError:
+            with suppress(OSError):
+                os.unlink(tmp)
+            raise
+        self._saved_changes = self.con.total_changes
 
     def change_password(self, old, new):
         with self.lock_:
             if not self.check_password(old):
                 raise WrongPassword()
-            self._salt = os.urandom(16)
-            self._params = SCRYPT
-            self._key = derive_key(new, self._salt, *self._params)
-            self.save(force=True)
-            bak = self.path + ".bak"
-            if os.path.exists(bak):   # старая копия зашифрована старым паролем — убираем
-                os.remove(bak)
-            self.token = secrets.token_urlsafe(32)
+            salt = os.urandom(16)
+            params = SCRYPT
+            key = derive_key(new, salt, *params)
+            token = secrets.token_urlsafe(32)
+            self._write_encrypted(salt, params, key, keep_backup=False)
+            self._salt, self._params, self._key, self.token = salt, params, key, token
 
     def lock(self):
         with self.lock_:

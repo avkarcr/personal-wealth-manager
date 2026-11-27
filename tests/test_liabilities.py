@@ -6,8 +6,8 @@ from pathlib import Path
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import LedgerCase, historical_schema
 import db
-import test_ledger
 from wealth_manager.modules.liabilities.domain import Liability,Payment
 from wealth_manager.modules.assets.domain import Asset
 from wealth_manager.modules.accounts.domain import Account
@@ -16,11 +16,7 @@ from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.modules.rentals.domain import Lease,RentPayment
 from wealth_manager.shared.records import RecordError
 
-class LiabilityTests(unittest.TestCase):
-    setUp=test_ledger.LedgerTests.setUp
-    dump=test_ledger.LedgerTests.dump
-    prepare=test_ledger.LedgerTests.prepare
-    row=test_ledger.LedgerTests.row
+class LiabilityTests(LedgerCase):
     def debt(self,**kw):
         data=dict(name='Mortgage',opening_date=self.day,opening_principal=D(500),request_id='debt')
         data.update(kw);return Liability(**data)
@@ -100,7 +96,7 @@ class LiabilityTests(unittest.TestCase):
         with patch('vault.os.replace',side_effect=OSError('disk')):
             with self.assertRaises(OSError):cmd.pay(self.payment(lid))
         self.assertEqual(self.dump(),before)
-        self.s['ledger'].post(test_ledger.LedgerTests.entry(self,'deposit',holding_id=self.cash,quantity=111,price=0,fee=0,cash_id=None))
+        self.s['ledger'].post(self.entry('deposit',holding_id=self.cash,quantity=111,price=0,fee=0,cash_id=None))
         pid=cmd.pay(self.payment(lid,cash_id=self.cash))
         self.s['accounts'].close(self.aid)
         before=self.dump()
@@ -188,7 +184,7 @@ class LiabilityTests(unittest.TestCase):
 class LiabilityMigrationTests(unittest.TestCase):
     def test_upgrade_does_not_infer_lease_deposit_or_change_old_data_and_rolls_back(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 11)
         self.assertEqual(c.execute('PRAGMA user_version').fetchone()[0],11)
         before=list(c.iterdump());original=db._migrate_liabilities
         def fail(con):original(con);raise RuntimeError('migration')

@@ -6,31 +6,16 @@ from pathlib import Path
 import sqlite3
 import unittest
 from unittest.mock import patch
+from vault_fixtures import LedgerCase, historical_schema
 import db
-import test_valuation_quality
-from wealth_manager.modules.ledger.domain import Entry, replay, validate_links
+from wealth_manager.modules.ledger.domain import replay, validate_links
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.accounts.domain import Account
 from wealth_manager.modules.cashflows.domain import Cashflow
 from wealth_manager.shared.records import RecordError
 from wealth_manager.shared.errors import EntityNotFound
 
-class LedgerTests(unittest.TestCase):
-    setUp=test_valuation_quality.ValuationIntegrationTests.setUp
-    dump=test_valuation_quality.ValuationIntegrationTests.dump
-    def prepare(self,amount=1000):
-        self.s['positions'].save(Position(self.aid,id=self.hid,name='Stock',ticker='ABC',quantity=0,price=20))
-        self.cash=self.s['positions'].save(Position(self.aid,name='Cash',asset_class_code='cash',quantity=amount))
-        self.cmd=self.s['ledger'];self.cmd.activate(self.aid)
-    def row(self,hid):return dict(self.vault.con.execute('SELECT * FROM holdings WHERE id=?',(hid,)).fetchone())
-    def entry(self,kind='buy',**kw):
-        data=dict(date=self.today.isoformat(),kind=kind,holding_id=self.hid,quantity=D('10'),price=D('20'),fee=D('2'),cash_id=self.cash,request_id=kind)
-        data.update(kw);return Entry(**data)
-    def target(self):
-        aid=self.s['save_financial_account'].execute(Account('Destination'))
-        cash=self.s['positions'].save(Position(aid,name='Cash',asset_class_code='cash'))
-        stock=self.s['positions'].save(Position(aid,name='Stock',ticker='ABC',price=20))
-        self.cmd.activate(aid);return aid,cash,stock
+class LedgerTests(LedgerCase):
     def test_activation_preserves_capital_cost_and_does_not_replay_legacy_flows(self):
         self.s['cashflows'].save(Cashflow(self.aid,self.day,'income',10))
         self.s['cashflows'].save(Cashflow(self.aid,self.day,'withdrawal',5))
@@ -148,7 +133,7 @@ class LedgerTests(unittest.TestCase):
 class LedgerMigrationTests(unittest.TestCase):
     def test_v10_no_balances_reapplied_migration_rollback_and_idempotency(self):
         c=sqlite3.connect(':memory:');c.row_factory=sqlite3.Row;self.addCleanup(c.close)
-        with patch('db._migrate_ledger'),patch('db._migrate_liabilities'),patch('db._migrate_tax_documents'),patch('db._migrate_goal_forecasts'),patch('db._migrate_instruments'),patch('db._migrate_macro_versions'),patch('db._migrate_macro_calculations'),patch('db._migrate_economic_cycle'),patch('db._migrate_market_catalog'),patch('db._migrate_sector_scoring'),patch('db._migrate_listing_iss'):db.init_db(c)
+        historical_schema(c, 10)
         c.execute("INSERT INTO entities(id,entity_type,name) VALUES (1,'account','Old')")
         c.execute("INSERT INTO financial_accounts(id,kind) VALUES (1,'broker')")
         c.execute("INSERT INTO holdings(account_id,name,quantity,price) VALUES (1,'Stock','0.123456789012345678','10')");c.commit()

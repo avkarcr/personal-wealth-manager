@@ -4,20 +4,16 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 import sqlite3
-import tempfile
 import unittest
 from unittest.mock import patch
+from vault_fixtures import PortfolioCase
 import db
-from vault import Vault
-from wealth_manager.factory import create_app
-from wealth_manager.bootstrap import build_services
 from wealth_manager.adapters.persistence.migrations import initialize_vault
-from wealth_manager.modules.accounts.domain import Account
 from wealth_manager.modules.assets.domain import Asset
 from wealth_manager.modules.income_sources.domain import IncomeSource
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
-from wealth_manager.modules.planning.domain import Goal, Portfolio
+from wealth_manager.modules.planning.domain import Goal
 from wealth_manager.modules.rentals.domain import Lease, RentPayment
 from wealth_manager.modules.valuation.domain import ExchangeRates, complete_sum
 from wealth_manager.modules.valuation.quality import rate_factor, freshness, holding_value, issues_for
@@ -57,20 +53,7 @@ class PolicyTests(unittest.TestCase):
         self.assertEqual([(i['name'],i['status']) for i in issues],[('USD','stale'),('EUR','undated')])
 
 
-class ValuationIntegrationTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.vault=Vault(str(Path(self.tmp.name)/'test.enc'));db.init_db(self.vault.create('password123'))
-        self.vault.save(force=True);self.addCleanup(self.vault.lock)
-        self.today=date.today();self.day=self.today.isoformat()
-        self.s=build_services(self.vault,today=lambda:self.today)
-        self.aid=self.s['save_financial_account'].execute(Account('Broker'))
-        self.hid=self.s['positions'].save(Position(self.aid,name='Known stock',quantity=2,price=50,avg_price=40))
-        self.gid=self.s['planning'].save_goal(Goal('Goal',Decimal('1000')))
-        self.pid=self.s['planning'].save_portfolio(Portfolio('Portfolio',self.gid))
-        self.app=create_app({'TESTING':True},vault=self.vault);self.client=self.app.test_client()
-        with self.client.session_transaction() as session:session['vault']=self.vault.token
-    def dump(self):return list(self.vault.con.iterdump())
+class ValuationIntegrationTests(PortfolioCase):
     def snapshots(self):return list(self.vault.con.execute('SELECT * FROM snapshots'))
 
     def test_unknown_currency_and_price_give_partial_totals_not_fake_losses(self):

@@ -14,13 +14,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m coverage run -m unittest discover -s tests -v
       - run: python -m coverage report
       - run: python -m coverage report --include='wealth_manager/*' --omit='wealth_manager/adapters/web/legacy_routes.py' --fail-under=95
+
+  javascript:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - run: node --check static/app.js
       - run: node --check static/macro_charts.js
       - run: node --test tests/*.cjs
@@ -34,6 +39,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements-dev.txt playwright
       - run: python -m playwright install --with-deps chromium
+      - run: PYTHONPATH=tests:. python tests/ui_wealth.py
       - run: PYTHONPATH=tests:. MACRO_SCREENSHOTS=/tmp/m8-ui python tests/ui_macro_dashboard.py
       - run: PYTHONPATH=tests:. CATALOG_SCREENSHOTS=/tmp/m9-ui python tests/ui_market_catalog.py
       - run: PYTHONPATH=tests:. SECTOR_SCREENSHOTS=/tmp/m10-ui python tests/ui_sector_scoring.py

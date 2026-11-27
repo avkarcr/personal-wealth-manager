@@ -5,6 +5,7 @@ from pathlib import Path
 from resource import RUSAGE_SELF, getrusage
 from time import perf_counter
 
+from vault import SCRYPT
 from test_economic_cycle import CycleTests
 from wealth_manager.factory import create_app
 from wealth_manager.modules.macroeconomics.data import Artifact, Indicator, Point, Series, Source
@@ -20,6 +21,7 @@ def measured(label, run):
 
 def main():
     fixture = CycleTests()
+    fixture.scrypt_parameters = SCRYPT  # Measure unlock at the deployed work factor.
     fixture.setUp()
     try:
         config, _ = fixture.seed()

@@ -3,13 +3,13 @@ from datetime import date
 from decimal import Decimal
 import unittest
 from unittest.mock import Mock
+from vault_fixtures import VaultCase
 from wealth_manager.modules.reporting.domain import portfolio, history, income_report, last_months
 from wealth_manager.modules.reporting.application import Reports
 from wealth_manager.modules.valuation.domain import ExchangeRates
 from wealth_manager.modules.entities.domain import RecordDraft as Account
 from wealth_manager.modules.positions.domain import Position
 from wealth_manager.modules.cashflows.domain import Cashflow
-import test_market_data
 
 class ReportDomainTests(unittest.TestCase):
     def setUp(self):
@@ -38,15 +38,39 @@ class ReportDomainTests(unittest.TestCase):
         self.assertAlmostEqual(total['profit'],-9320);self.assertIsNone(total['xirr'])
         self.assertEqual(len(portfolio(self.data,self.rates,self.today)[0]),3)
 
+    def test_unpriced_deposit_preserves_known_wealth_and_withholds_return(self):
+        self.flow(1, 'deposit', 1000, '2025-11-10')
+        flow = self.data['cashflows'][0]
+        flow['currency'] = 'ZZZ'
+        _, total, _, _ = portfolio(self.data, self.rates, self.today)
+        self.assertTrue(total['value_complete'])
+        self.assertEqual(total['value'], 1500)
+        self.assertFalse(total['complete'])
+        for key in ('xirr', 'profit', 'profit_pct'):
+            self.assertIsNone(total[key])
+        rates = ExchangeRates({'ZZZ': 1})
+        _, priced, _, _ = portfolio(self.data, rates, self.today)
+        self.assertTrue(priced['complete'])
+        self.assertEqual(priced['profit'], 500)
+        self.assertAlmostEqual(priced['xirr'], 0.5)
+
     def test_history_forward_fill_and_archived_account_detail(self):
         self.data['snapshots']=[dict(account_id=1,date='2026-01-01',value_rub=100,invested_rub=80),dict(account_id=2,date='2026-02-01',value_rub=50,invested_rub=40),dict(account_id=1,date='2026-03-01',value_rub=120,invested_rub=80),dict(account_id=4,date='2026-03-01',value_rub=999,invested_rub=500)]
         self.assertEqual([r['value'] for r in history(self.data,self.rates)],[100,150,1169])
         self.assertEqual(history(self.data,self.rates,4)[0]['value'],999)
 
-class ReportIntegrationTests(unittest.TestCase):
-    setUp=test_market_data.MarketTests.setUp
+    def test_report_application_uses_detached_port(self):
+        repository = Mock()
+        repository.read.return_value = dict(accounts=[], holdings=[], cashflows=[], leases=[], rent_payments=[],
+                                            rates=[], settings=[], snapshots=[])
+        reports = Reports(repository, lambda: date(2026, 11, 10))
+        self.assertFalse(reports.dashboard()['has_any'])
+        repository.read.assert_called_once()
 
+
+class ReportIntegrationTests(VaultCase):
     def test_pages_read_without_mutating_database_or_disk(self):
+        self.aid = self.s['save_account'].execute(Account('Crypto', kind='crypto'))
         self.s['positions'].save(Position(self.aid,ticker='BTC',quantity=2,price=10,avg_price=5))
         self.s['cashflows'].save(Cashflow(self.aid,'2026-11-01','income',50))
         self.s['cashflows'].save(Cashflow(self.aid,'2026-11-01','expense',5))
@@ -62,9 +86,3 @@ class ReportIntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.get('/accounts/999').status_code,404)
         self.vault.lock()
         with self.assertRaises(RuntimeError):self.s['reports'].dashboard()
-
-    def test_report_application_uses_detached_port(self):
-        repository=Mock()
-        repository.read.return_value=dict(accounts=[],holdings=[],cashflows=[],leases=[],rent_payments=[],rates=[],settings=[],snapshots=[])
-        reports=Reports(repository,lambda:date(2026,11,10))
-        self.assertFalse(reports.dashboard()['has_any']);repository.read.assert_called_once()

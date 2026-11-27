@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from db import init_db
-from vault import Vault
+from vault import Vault, WrongPassword
 from wealth_manager.factory import create_app
 
 
@@ -181,6 +181,39 @@ with patch.object(flask.Flask, '__init__', side_effect=AssertionError('app creat
         self.assertEqual(client.post('/unlock', data={'password': 'password123'}).status_code, 302)
         self.assertIn('Saved', client.get('/').get_data(as_text=True))
         self.assertIn('<html lang="en">', client.get('/settings').get_data(as_text=True))
+
+    def test_rotated_password_keeps_the_downloadable_backup_recoverable(self):
+        app = self.make_app()
+        client = self.setup_client(app)
+        client.post('/accounts/save', data={'name': 'Synthetic backup account'})
+        old_session = app.test_client()
+        with client.session_transaction() as active, old_session.session_transaction() as previous:
+            previous['vault'] = active['vault']
+        rejected = client.post('/settings/password', data={'old': 'incorrect', 'new': 'rotated123', 'new2': 'rotated123'})
+        self.assertEqual(rejected.status_code, 302)
+        self.assertEqual(old_session.get('/settings').status_code, 200)
+
+        client.post('/settings/general', data={'language': 'en'})
+        with patch('vault.os.replace', side_effect=OSError('disk error')):
+            failed = client.post('/settings/password', data={'old': 'password123', 'new': 'rotated123', 'new2': 'rotated123'},
+                                 follow_redirects=True)
+        self.assertEqual(failed.status_code, 200)
+        self.assertIn('Could not save the vault. Your current password still works.', failed.get_data(as_text=True))
+        self.assertEqual(old_session.get('/settings').status_code, 200)
+        client.post('/settings/password', data={'old': 'password123', 'new': 'rotated123', 'new2': 'rotated123'})
+        self.assertIn('/unlock', old_session.get('/backup').location)
+        copy = self.root / 'download.enc'
+        with client.get('/backup') as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('attachment', response.headers['Content-Disposition'])
+            copy.write_bytes(response.data)
+        restored = Vault(str(copy))
+        self.addCleanup(restored.lock)
+        with self.assertRaises(WrongPassword):
+            restored.unlock('password123')
+        restored.unlock('rotated123')
+        self.assertEqual(restored.con.execute('SELECT name FROM accounts').fetchone()[0], 'Synthetic backup account')
+        self.assertEqual(restored.con.execute('PRAGMA foreign_key_check').fetchall(), [])
 
     def test_legacy_import_uses_this_app_configured_path(self):
         path = self.root/'legacy.db'
